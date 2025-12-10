@@ -129,7 +129,6 @@ const (
 )
 
 // TCP_ESTATS_DATA_ROD_v0 contains data transfer statistics
-// Go and Windows use same natural alignment rules - no explicit padding needed
 type TCP_ESTATS_DATA_ROD_v0 struct {
 	DataBytesOut      uint64
 	DataSegsOut       uint64
@@ -145,26 +144,16 @@ type TCP_ESTATS_DATA_ROD_v0 struct {
 	ThruBytesAcked    uint64
 	RcvNxt            uint32
 	ThruBytesReceived uint64
-	SegsRetrans       uint32
-	BytesRetrans      uint32
-	FastRetran        uint32
-	DupAcksIn         uint32
-	TimeoutEpisodes   uint32
-	SynRetrans        uint8
 }
 
 // TCP_ESTATS_SND_CONG_ROD_v0 contains congestion control statistics
-// Field order MUST match Windows API exactly: Trans/Time/Bytes for each limit type
 type TCP_ESTATS_SND_CONG_ROD_v0 struct {
 	SndLimTransRwin uint32
-	SndLimTimeRwin  uint32
-	SndLimBytesRwin uint32 // was missing
 	SndLimTransCwnd uint32
-	SndLimTimeCwnd  uint32
-	SndLimBytesCwnd uint32 // was missing
 	SndLimTransSnd  uint32
+	SndLimTimeRwin  uint32
+	SndLimTimeCwnd  uint32
 	SndLimTimeSnd   uint32
-	SndLimBytesSnd  uint32 // was missing
 	SlowStart       uint32
 	CongAvoid       uint32
 	OtherReductions uint32
@@ -221,7 +210,6 @@ type TCP_ESTATS_PATH_ROD_v0 struct {
 }
 
 // TCP_ESTATS_REC_ROD_v0 contains receiver statistics
-// Layout must match Windows exactly: 13 uint32s, 2 bytes, then 3 more uint32s
 type TCP_ESTATS_REC_ROD_v0 struct {
 	CurRwinSent    uint32
 	MaxRwinSent    uint32
@@ -236,12 +224,8 @@ type TCP_ESTATS_REC_ROD_v0 struct {
 	MaxReasmQueue  uint32
 	CurAppRQueue   uint32
 	MaxAppRQueue   uint32
-	WinScaleRcvd   uint8 // was missing - comes before WinScaleSent
 	WinScaleSent   uint8
-	_              [2]byte // padding to align next uint32
-	CurRwinRcvd    uint32  // was missing
-	MaxRwinRcvd    uint32  // was missing
-	MinRwinRcvd    uint32  // was missing
+	_              [3]byte // padding
 }
 
 // TCP_ESTATS_SEND_BUFF_ROD_v0 contains send buffer statistics
@@ -298,10 +282,11 @@ type TCP_ESTATS_SEND_BUFF_RW_v0 struct {
 }
 
 // TCP_ESTATS_BANDWIDTH_RW_v0 is used to enable/disable bandwidth statistics
-// Note: Unlike other RW structs, this has TWO fields - one for each direction
+// CRITICAL: TCP_BOOLEAN_OPTIONAL is a C enum = 4 bytes (int32), NOT 1 byte!
+// Using byte here would make the struct 2 bytes instead of 8, causing silent failures.
 type TCP_ESTATS_BANDWIDTH_RW_v0 struct {
-	EnableCollectionOutbound byte
-	EnableCollectionInbound  byte
+	EnableCollectionOutbound TCP_BOOLEAN_OPTIONAL // 4 bytes
+	EnableCollectionInbound  TCP_BOOLEAN_OPTIONAL // 4 bytes
 }
 
 // TCP_ESTATS_FINE_RTT_RW_v0 is used to enable/disable fine RTT statistics

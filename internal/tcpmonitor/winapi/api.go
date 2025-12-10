@@ -124,10 +124,16 @@ func (w *WindowsAPILayer) SetPerTcpConnectionEStats(row interface{}, statsType T
 		rwPtr = uintptr(unsafe.Pointer(&rwStruct))
 		rwSize = unsafe.Sizeof(rwStruct)
 	case TcpConnectionEstatsBandwidth:
-		// Bandwidth RW has TWO fields per MSDN - must enable both directions
+		// Bandwidth RW uses TCP_BOOLEAN_OPTIONAL (int32), not byte
+		// Must enable both directions using the proper enum values
+		var outboundVal, inboundVal TCP_BOOLEAN_OPTIONAL = TcpBoolOptDisabled, TcpBoolOptDisabled
+		if enable {
+			outboundVal = TcpBoolOptEnabled
+			inboundVal = TcpBoolOptEnabled
+		}
 		rwStruct := TCP_ESTATS_BANDWIDTH_RW_v0{
-			EnableCollectionOutbound: enableValue,
-			EnableCollectionInbound:  enableValue,
+			EnableCollectionOutbound: outboundVal,
+			EnableCollectionInbound:  inboundVal,
 		}
 		rw = &rwStruct
 		rwPtr = uintptr(unsafe.Pointer(&rwStruct))
