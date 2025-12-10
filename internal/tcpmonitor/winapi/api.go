@@ -122,11 +122,8 @@ func (w *WindowsAPILayer) SetPerTcpConnectionEStats(row interface{}, statsType T
 		rwPtr = uintptr(unsafe.Pointer(&rwStruct))
 		rwSize = unsafe.Sizeof(rwStruct)
 	case TcpConnectionEstatsBandwidth:
-		// Bandwidth has TWO enable fields - one for each direction
-		rwStruct := TCP_ESTATS_BANDWIDTH_RW_v0{
-			EnableCollectionOutbound: enableValue,
-			EnableCollectionInbound:  enableValue,
-		}
+		// C# uses the same simple 1-byte struct for ALL types - let's match that
+		rwStruct := TCP_ESTATS_DATA_RW_v0{EnableCollection: enableValue}
 		rw = &rwStruct
 		rwPtr = uintptr(unsafe.Pointer(&rwStruct))
 		rwSize = unsafe.Sizeof(rwStruct)
@@ -179,49 +176,35 @@ func (w *WindowsAPILayer) GetPerTcpConnectionEStats(row interface{}, statsType T
 	}
 
 	// Create the ROD structure to receive statistics
+	// Like C#, we allocate a buffer and ZERO it first to avoid reading garbage if API fails
 	var rod interface{}
-	var rodPtr uintptr
 	var rodSize uintptr
 
 	switch statsType {
 	case TcpConnectionEstatsData:
-		rodStruct := TCP_ESTATS_DATA_ROD_v0{}
-		rod = &rodStruct
-		rodPtr = uintptr(unsafe.Pointer(&rodStruct))
-		rodSize = unsafe.Sizeof(rodStruct)
+		rodSize = unsafe.Sizeof(TCP_ESTATS_DATA_ROD_v0{})
 	case TcpConnectionEstatsSndCong:
-		rodStruct := TCP_ESTATS_SND_CONG_ROD_v0{}
-		rod = &rodStruct
-		rodPtr = uintptr(unsafe.Pointer(&rodStruct))
-		rodSize = unsafe.Sizeof(rodStruct)
+		rodSize = unsafe.Sizeof(TCP_ESTATS_SND_CONG_ROD_v0{})
 	case TcpConnectionEstatsPath:
-		rodStruct := TCP_ESTATS_PATH_ROD_v0{}
-		rod = &rodStruct
-		rodPtr = uintptr(unsafe.Pointer(&rodStruct))
-		rodSize = unsafe.Sizeof(rodStruct)
+		rodSize = unsafe.Sizeof(TCP_ESTATS_PATH_ROD_v0{})
 	case TcpConnectionEstatsRec:
-		rodStruct := TCP_ESTATS_REC_ROD_v0{}
-		rod = &rodStruct
-		rodPtr = uintptr(unsafe.Pointer(&rodStruct))
-		rodSize = unsafe.Sizeof(rodStruct)
+		rodSize = unsafe.Sizeof(TCP_ESTATS_REC_ROD_v0{})
 	case TcpConnectionEstatsSendBuff:
-		rodStruct := TCP_ESTATS_SEND_BUFF_ROD_v0{}
-		rod = &rodStruct
-		rodPtr = uintptr(unsafe.Pointer(&rodStruct))
-		rodSize = unsafe.Sizeof(rodStruct)
+		rodSize = unsafe.Sizeof(TCP_ESTATS_SEND_BUFF_ROD_v0{})
 	case TcpConnectionEstatsBandwidth:
-		rodStruct := TCP_ESTATS_BANDWIDTH_ROD_v0{}
-		rod = &rodStruct
-		rodPtr = uintptr(unsafe.Pointer(&rodStruct))
-		rodSize = unsafe.Sizeof(rodStruct)
+		rodSize = unsafe.Sizeof(TCP_ESTATS_BANDWIDTH_ROD_v0{})
 	case TcpConnectionEstatsFineRtt:
-		rodStruct := TCP_ESTATS_FINE_RTT_ROD_v0{}
-		rod = &rodStruct
-		rodPtr = uintptr(unsafe.Pointer(&rodStruct))
-		rodSize = unsafe.Sizeof(rodStruct)
+		rodSize = unsafe.Sizeof(TCP_ESTATS_FINE_RTT_ROD_v0{})
 	default:
 		return nil, fmt.Errorf("unsupported statistics type: %d", statsType)
 	}
+
+	// Allocate and zero the buffer (like C# Marshal.AllocHGlobal + zeroing)
+	buffer := make([]byte, rodSize)
+	for i := range buffer {
+		buffer[i] = 0
+	}
+	rodPtr := uintptr(unsafe.Pointer(&buffer[0]))
 
 	// GetPerTcpConnectionEStats params: Row, EstatsType, Rw, RwVersion, RwSize, Ros, RosVersion, RosSize, Rod, RodVersion, RodSize
 	ret, _, _ := procGetPerTcpConnectionEStats.Call(
@@ -241,6 +224,31 @@ func (w *WindowsAPILayer) GetPerTcpConnectionEStats(row interface{}, statsType T
 	if ret != 0 {
 		errno := syscall.Errno(ret)
 		return nil, fmt.Errorf("GetPerTcpConnectionEStats failed: %w", errno)
+	}
+
+	// Copy the buffer back to a properly typed struct
+	switch statsType {
+	case TcpConnectionEstatsData:
+		result := (*TCP_ESTATS_DATA_ROD_v0)(unsafe.Pointer(&buffer[0]))
+		rod = result
+	case TcpConnectionEstatsSndCong:
+		result := (*TCP_ESTATS_SND_CONG_ROD_v0)(unsafe.Pointer(&buffer[0]))
+		rod = result
+	case TcpConnectionEstatsPath:
+		result := (*TCP_ESTATS_PATH_ROD_v0)(unsafe.Pointer(&buffer[0]))
+		rod = result
+	case TcpConnectionEstatsRec:
+		result := (*TCP_ESTATS_REC_ROD_v0)(unsafe.Pointer(&buffer[0]))
+		rod = result
+	case TcpConnectionEstatsSendBuff:
+		result := (*TCP_ESTATS_SEND_BUFF_ROD_v0)(unsafe.Pointer(&buffer[0]))
+		rod = result
+	case TcpConnectionEstatsBandwidth:
+		result := (*TCP_ESTATS_BANDWIDTH_ROD_v0)(unsafe.Pointer(&buffer[0]))
+		rod = result
+	case TcpConnectionEstatsFineRtt:
+		result := (*TCP_ESTATS_FINE_RTT_ROD_v0)(unsafe.Pointer(&buffer[0]))
+		rod = result
 	}
 
 	return rod, nil
