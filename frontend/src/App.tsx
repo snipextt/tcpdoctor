@@ -1,22 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
     GetConnections,
-    GetConnectionCount,
     IsAdministrator,
     GetUpdateInterval,
     ExportToCSV,
     ConfigureLLM,
     IsLLMConfigured,
     DiagnoseConnection,
-    QueryConnections,
     GenerateHealthReport
 } from "../wailsjs/go/main/App";
 import { tcpmonitor } from "../wailsjs/go/models";
 import ConnectionTable from './components/ConnectionTable';
 import FilterControls from './components/FilterControls';
 import StatsPanel from './components/StatsPanel';
-import AIAssistant from './components/AIAssistant';
 import SettingsModal from './components/SettingsModal';
+import HealthReportModal from './components/HealthReportModal';
 import './App.css';
 
 function App() {
@@ -33,7 +31,7 @@ function App() {
     const [isLoading, setIsLoading] = useState(true);
 
     // AI State
-    const [isAIOpen, setIsAIOpen] = useState(false);
+    const [isHealthReportOpen, setIsHealthReportOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isAIConfigured, setIsAIConfigured] = useState(false);
 
@@ -133,14 +131,6 @@ function App() {
         setIsAIConfigured(true);
     };
 
-    const handleQueryConnections = async (query: string) => {
-        const result = await QueryConnections(query);
-        return {
-            answer: result?.answer || "No response",
-            success: result?.success || false
-        };
-    };
-
     const handleGenerateReport = async () => {
         const result = await GenerateHealthReport();
         return {
@@ -171,10 +161,6 @@ function App() {
         };
     };
 
-    const selectedConnectionInfo = selectedConnection
-        ? `${selectedConnection.LocalAddr}:${selectedConnection.LocalPort}${selectedConnection.RemoteAddr}:${selectedConnection.RemotePort}`
-        : undefined;
-
     return (
         <div className="app-container">
             <header className="app-header">
@@ -186,25 +172,22 @@ function App() {
                         Export CSV
                     </button>
                     <button
-                        className={`btn-ai ${isAIConfigured ? 'configured' : ''}`}
-                        onClick={() => setIsAIOpen(true)}
-                        title={isAIConfigured ? "Open AI Assistant" : "Configure AI to enable"}
+                        className="btn-report"
+                        onClick={() => setIsHealthReportOpen(true)}
+                        title="Generate AI Health Report"
                     >
-                        🤖 AI Assistant
+                        📊 Health Report
                     </button>
-                    <div className="header-stats">
-                        <div className="stat-badge">
-                            <span className="label">Connections</span>
-                            <span className="value">{connectionCount}</span>
-                        </div>
-                        <div className="stat-badge">
-                            <span className="label">Update Rate</span>
-                            <span className="value">{updateInterval}ms</span>
-                        </div>
-                        <div className={`stat-badge ${isAdmin ? 'admin' : 'user'}`}>
-                            <span className="label">Mode</span>
-                            <span className="value">{isAdmin ? 'Administrator' : 'User'}</span>
-                        </div>
+                    <button
+                        className="btn-settings"
+                        onClick={() => setIsSettingsOpen(true)}
+                        title="AI Settings"
+                    >
+                        ⚙️
+                    </button>
+                    <div className={`stat-badge ${isAdmin ? 'admin' : 'user'}`}>
+                        <span className="label">Mode</span>
+                        <span className="value">{isAdmin ? 'Admin' : 'User'}</span>
                     </div>
                 </div>
             </header>
@@ -227,23 +210,23 @@ function App() {
                     <StatsPanel
                         connection={selectedConnection}
                         isAdmin={isAdmin}
+                        onDiagnose={selectedConnection ? handleDiagnose : undefined}
+                        isAIConfigured={isAIConfigured}
+                        onConfigureAPI={() => setIsSettingsOpen(true)}
                     />
                 </div>
             </main>
 
-            {/* AI Assistant Panel */}
-            <AIAssistant
-                isOpen={isAIOpen}
-                onClose={() => setIsAIOpen(false)}
+            {/* Health Report Modal */}
+            <HealthReportModal
+                isOpen={isHealthReportOpen}
+                onClose={() => setIsHealthReportOpen(false)}
+                generateReport={handleGenerateReport}
+                isConfigured={isAIConfigured}
                 onConfigureAPI={() => {
-                    setIsAIOpen(false);
+                    setIsHealthReportOpen(false);
                     setIsSettingsOpen(true);
                 }}
-                isConfigured={isAIConfigured}
-                queryConnections={handleQueryConnections}
-                generateHealthReport={handleGenerateReport}
-                onDiagnose={selectedConnection ? handleDiagnose : undefined}
-                selectedConnectionInfo={selectedConnectionInfo}
             />
 
             {/* Settings Modal */}
@@ -257,4 +240,3 @@ function App() {
 }
 
 export default App;
-

@@ -55,6 +55,9 @@ export interface ConnectionTableProps {
 export interface StatsPanelProps {
   connection: any | null; // tcpmonitor.ConnectionInfo | null
   isAdmin: boolean;
+  onDiagnose?: () => Promise<any>;
+  isAIConfigured?: boolean;
+  onConfigureAPI?: () => void;
 }
 
 export interface FilterControlsProps {

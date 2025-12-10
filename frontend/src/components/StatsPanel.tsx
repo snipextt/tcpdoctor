@@ -10,6 +10,7 @@ import {
 import {
   LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
+import DiagnosisPanel from './DiagnosisPanel';
 
 interface TimeSeriesData {
   time: number;
@@ -21,6 +22,9 @@ interface TimeSeriesData {
 const StatsPanel: React.FC<StatsPanelProps> = ({
   connection,
   isAdmin,
+  onDiagnose,
+  isAIConfigured = false,
+  onConfigureAPI,
 }) => {
   const [history, setHistory] = useState<TimeSeriesData[]>([]);
 
@@ -272,9 +276,19 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
             <p>Extended statistics not available for this connection.</p>
           </div>
         ) : null}
+
+        {/* AI Diagnosis */}
+        {onDiagnose && onConfigureAPI && (
+          <DiagnosisPanel
+            onDiagnose={onDiagnose}
+            isConfigured={isAIConfigured}
+            onConfigureAPI={onConfigureAPI}
+          />
+        )}
       </div>
     </div>
   );
 };
 
 export default StatsPanel;
+

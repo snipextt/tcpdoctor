@@ -94,6 +94,39 @@
     color: white;
 }
 
+.btn-report {
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-report:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-settings {
+    padding: 0.5rem 0.75rem;
+    background: transparent;
+    color: var(--color-text-dim);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-settings:hover {
+    color: var(--color-text);
+    border-color: var(--color-text-dim);
+}
+
 .header-stats {
     display: flex;
     gap: 1.5rem;
