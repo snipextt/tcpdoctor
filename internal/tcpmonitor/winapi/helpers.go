@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package winapi
@@ -10,13 +11,10 @@ import (
 
 // ConvertPort converts a port from network byte order to host byte order
 func ConvertPort(port uint32) uint16 {
-	// Windows stores ports in network byte order (big-endian)
-	// We need to convert to host byte order
-	portBytes := []byte{
-		byte(port >> 8),
-		byte(port),
-	}
-	return binary.BigEndian.Uint16(portBytes)
+	// Windows stores ports in network byte order (big-endian) in the low 16 bits
+	// We need to swap bytes to convert to host byte order (little-endian on x86)
+	p := uint16(port)
+	return (p >> 8) | (p << 8)
 }
 
 // ConvertIPv4Address converts an IPv4 address from uint32 to string
@@ -45,7 +43,7 @@ func ParseTCPTable(buffer []byte) ([]MIB_TCPROW_OWNER_PID, error) {
 
 	// Read number of entries
 	numEntries := binary.LittleEndian.Uint32(buffer[0:4])
-	
+
 	if numEntries == 0 {
 		return []MIB_TCPROW_OWNER_PID{}, nil
 	}
@@ -53,16 +51,16 @@ func ParseTCPTable(buffer []byte) ([]MIB_TCPROW_OWNER_PID, error) {
 	// Calculate expected size
 	rowSize := sizeofMIB_TCPROW_OWNER_PID()
 	expectedSize := 4 + int(numEntries)*rowSize
-	
+
 	if len(buffer) < expectedSize {
-		return nil, fmt.Errorf("buffer too small for %d entries (expected %d, got %d)", 
+		return nil, fmt.Errorf("buffer too small for %d entries (expected %d, got %d)",
 			numEntries, expectedSize, len(buffer))
 	}
 
 	// Parse rows
 	rows := make([]MIB_TCPROW_OWNER_PID, numEntries)
 	offset := 4
-	
+
 	for i := uint32(0); i < numEntries; i++ {
 		row := &rows[i]
 		row.State = binary.LittleEndian.Uint32(buffer[offset : offset+4])
@@ -85,7 +83,7 @@ func ParseTCP6Table(buffer []byte) ([]MIB_TCP6ROW_OWNER_PID, error) {
 
 	// Read number of entries
 	numEntries := binary.LittleEndian.Uint32(buffer[0:4])
-	
+
 	if numEntries == 0 {
 		return []MIB_TCP6ROW_OWNER_PID{}, nil
 	}
@@ -93,16 +91,16 @@ func ParseTCP6Table(buffer []byte) ([]MIB_TCP6ROW_OWNER_PID, error) {
 	// Calculate expected size
 	rowSize := sizeofMIB_TCP6ROW_OWNER_PID()
 	expectedSize := 4 + int(numEntries)*rowSize
-	
+
 	if len(buffer) < expectedSize {
-		return nil, fmt.Errorf("buffer too small for %d entries (expected %d, got %d)", 
+		return nil, fmt.Errorf("buffer too small for %d entries (expected %d, got %d)",
 			numEntries, expectedSize, len(buffer))
 	}
 
 	// Parse rows
 	rows := make([]MIB_TCP6ROW_OWNER_PID, numEntries)
 	offset := 4
-	
+
 	for i := uint32(0); i < numEntries; i++ {
 		row := &rows[i]
 		copy(row.LocalAddr[:], buffer[offset:offset+16])
