@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package winapi
@@ -13,12 +14,12 @@ var (
 	advapi32 = syscall.NewLazyDLL("advapi32.dll")
 	kernel32 = syscall.NewLazyDLL("kernel32.dll")
 
-	procGetExtendedTcpTable        = iphlpapi.NewProc("GetExtendedTcpTable")
-	procSetPerTcpConnectionEStats  = iphlpapi.NewProc("SetPerTcpConnectionEStats")
-	procGetPerTcpConnectionEStats  = iphlpapi.NewProc("GetPerTcpConnectionEStats")
-	procOpenProcessToken           = advapi32.NewProc("OpenProcessToken")
-	procGetTokenInformation        = advapi32.NewProc("GetTokenInformation")
-	procGetCurrentProcess          = kernel32.NewProc("GetCurrentProcess")
+	procGetExtendedTcpTable       = iphlpapi.NewProc("GetExtendedTcpTable")
+	procSetPerTcpConnectionEStats = iphlpapi.NewProc("SetPerTcpConnectionEStats")
+	procGetPerTcpConnectionEStats = iphlpapi.NewProc("GetPerTcpConnectionEStats")
+	procOpenProcessToken          = advapi32.NewProc("OpenProcessToken")
+	procGetTokenInformation       = advapi32.NewProc("GetTokenInformation")
+	procGetCurrentProcess         = kernel32.NewProc("GetCurrentProcess")
 )
 
 // WindowsAPILayer provides access to Windows TCP statistics APIs
@@ -32,7 +33,7 @@ func NewWindowsAPILayer() *WindowsAPILayer {
 // GetExtendedTcpTable retrieves a table of TCP connections
 func (w *WindowsAPILayer) GetExtendedTcpTable(family AddressFamily, tableClass TCPTableClass) ([]byte, error) {
 	var size uint32 = 0
-	
+
 	// First call to get the required buffer size
 	ret, _, _ := procGetExtendedTcpTable.Call(
 		0, // pTcpTable (NULL to get size)
@@ -73,25 +74,25 @@ func (w *WindowsAPILayer) GetExtendedTcpTable(family AddressFamily, tableClass T
 func (w *WindowsAPILayer) SetPerTcpConnectionEStats(row interface{}, statsType TCP_ESTATS_TYPE, enable bool) error {
 	var rowPtr uintptr
 	var version uint32 = 0
-	
+
 	// Determine the row pointer based on type
 	switch r := row.(type) {
-	case *MIB_TCPROW_OWNER_PID:
+	case *MIB_TCPROW:
 		rowPtr = uintptr(unsafe.Pointer(r))
-	case *MIB_TCP6ROW_OWNER_PID:
+	case *MIB_TCP6ROW:
 		rowPtr = uintptr(unsafe.Pointer(r))
 	default:
-		return fmt.Errorf("unsupported row type")
+		return fmt.Errorf("unsupported row type: expected MIB_TCPROW or MIB_TCP6ROW")
 	}
 
 	// Create the RW structure to enable/disable collection
 	var rw interface{}
 	var rwPtr uintptr
 	var rwSize uintptr
-	
-	enableValue := TcpBoolOptDisabled
+
+	var enableValue byte = 0
 	if enable {
-		enableValue = TcpBoolOptEnabled
+		enableValue = 1
 	}
 
 	switch statsType {
@@ -220,11 +221,11 @@ func (w *WindowsAPILayer) GetPerTcpConnectionEStats(row interface{}, statsType T
 	ret, _, _ := procGetPerTcpConnectionEStats.Call(
 		rowPtr,
 		uintptr(statsType),
-		0,      // pRos (NULL)
-		0,      // RosSize
-		0,      // RosVersion
+		0, // pRos (NULL)
+		0, // RosSize
+		0, // RosVersion
 		rodPtr,
-		0,      // RodOffset
+		0, // RodOffset
 		rodSize,
 		uintptr(version),
 	)
@@ -240,17 +241,17 @@ func (w *WindowsAPILayer) GetPerTcpConnectionEStats(row interface{}, statsType T
 // IsAdministrator checks if the current process has administrator privileges
 func (w *WindowsAPILayer) IsAdministrator() bool {
 	var token syscall.Token
-	
+
 	// Get current process handle
 	proc, _, _ := procGetCurrentProcess.Call()
-	
+
 	// Open process token
 	ret, _, _ := procOpenProcessToken.Call(
 		proc,
 		syscall.TOKEN_QUERY,
 		uintptr(unsafe.Pointer(&token)),
 	)
-	
+
 	if ret == 0 {
 		return false
 	}
@@ -261,10 +262,10 @@ func (w *WindowsAPILayer) IsAdministrator() bool {
 	type TOKEN_ELEVATION struct {
 		TokenIsElevated uint32
 	}
-	
+
 	var elevation TOKEN_ELEVATION
 	var returnLength uint32
-	
+
 	ret, _, _ = procGetTokenInformation.Call(
 		uintptr(token),
 		TokenElevation,
@@ -272,10 +273,10 @@ func (w *WindowsAPILayer) IsAdministrator() bool {
 		unsafe.Sizeof(elevation),
 		uintptr(unsafe.Pointer(&returnLength)),
 	)
-	
+
 	if ret == 0 {
 		return false
 	}
-	
+
 	return elevation.TokenIsElevated != 0
 }

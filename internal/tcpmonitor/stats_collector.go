@@ -418,20 +418,20 @@ func (sc *StatsCollector) getBandwidthStats(row interface{}) (*winapi.TCP_ESTATS
 }
 
 // Helper methods to create row structures for API calls
+// Note: Extended stats APIs require MIB_TCPROW/MIB_TCP6ROW (without PID)
 
-func (sc *StatsCollector) createTCPRow(conn *ConnectionInfo) *winapi.MIB_TCPROW_OWNER_PID {
-	return &winapi.MIB_TCPROW_OWNER_PID{
+func (sc *StatsCollector) createTCPRow(conn *ConnectionInfo) *winapi.MIB_TCPROW {
+	return &winapi.MIB_TCPROW{
 		State:      uint32(convertToWinAPIState(conn.State)),
 		LocalAddr:  sc.ipv4StringToUint32(conn.LocalAddr),
 		LocalPort:  sc.portToNetworkOrder(conn.LocalPort),
 		RemoteAddr: sc.ipv4StringToUint32(conn.RemoteAddr),
 		RemotePort: sc.portToNetworkOrder(conn.RemotePort),
-		OwningPid:  conn.PID,
 	}
 }
 
-func (sc *StatsCollector) createTCP6Row(conn *ConnectionInfo) *winapi.MIB_TCP6ROW_OWNER_PID {
-	return &winapi.MIB_TCP6ROW_OWNER_PID{
+func (sc *StatsCollector) createTCP6Row(conn *ConnectionInfo) *winapi.MIB_TCP6ROW {
+	return &winapi.MIB_TCP6ROW{
 		LocalAddr:     sc.ipv6StringToBytes(conn.LocalAddr),
 		LocalScopeId:  0,
 		LocalPort:     sc.portToNetworkOrder(conn.LocalPort),
@@ -439,7 +439,6 @@ func (sc *StatsCollector) createTCP6Row(conn *ConnectionInfo) *winapi.MIB_TCP6RO
 		RemoteScopeId: 0,
 		RemotePort:    sc.portToNetworkOrder(conn.RemotePort),
 		State:         uint32(convertToWinAPIState(conn.State)),
-		OwningPid:     conn.PID,
 	}
 }
 
