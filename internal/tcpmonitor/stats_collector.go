@@ -343,7 +343,7 @@ func (sc *StatsCollector) GetExtendedStats(conn *ConnectionInfo) (*ExtendedStats
 		stats.OutboundBandwidth = bwStats.OutboundBandwidth
 		stats.InboundBandwidth = bwStats.InboundBandwidth
 	} else {
-		sc.logger.Debug("Failed to get bandwidth stats: %v", err)
+		sc.logger.Info("Failed to get bandwidth stats: %v", err)
 	}
 
 	return stats, nil
