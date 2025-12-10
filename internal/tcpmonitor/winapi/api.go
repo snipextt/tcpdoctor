@@ -226,29 +226,37 @@ func (w *WindowsAPILayer) GetPerTcpConnectionEStats(row interface{}, statsType T
 		return nil, fmt.Errorf("GetPerTcpConnectionEStats failed: %w", errno)
 	}
 
-	// Copy the buffer back to a properly typed struct
+	// Copy the buffer data to a properly typed struct (like C# Marshal.PtrToStructure)
+	// We create new structs and copy the values to avoid returning pointers to the buffer
 	switch statsType {
 	case TcpConnectionEstatsData:
-		result := (*TCP_ESTATS_DATA_ROD_v0)(unsafe.Pointer(&buffer[0]))
-		rod = result
+		src := (*TCP_ESTATS_DATA_ROD_v0)(unsafe.Pointer(&buffer[0]))
+		result := *src // Copy the struct
+		rod = &result
 	case TcpConnectionEstatsSndCong:
-		result := (*TCP_ESTATS_SND_CONG_ROD_v0)(unsafe.Pointer(&buffer[0]))
-		rod = result
+		src := (*TCP_ESTATS_SND_CONG_ROD_v0)(unsafe.Pointer(&buffer[0]))
+		result := *src
+		rod = &result
 	case TcpConnectionEstatsPath:
-		result := (*TCP_ESTATS_PATH_ROD_v0)(unsafe.Pointer(&buffer[0]))
-		rod = result
+		src := (*TCP_ESTATS_PATH_ROD_v0)(unsafe.Pointer(&buffer[0]))
+		result := *src
+		rod = &result
 	case TcpConnectionEstatsRec:
-		result := (*TCP_ESTATS_REC_ROD_v0)(unsafe.Pointer(&buffer[0]))
-		rod = result
+		src := (*TCP_ESTATS_REC_ROD_v0)(unsafe.Pointer(&buffer[0]))
+		result := *src
+		rod = &result
 	case TcpConnectionEstatsSendBuff:
-		result := (*TCP_ESTATS_SEND_BUFF_ROD_v0)(unsafe.Pointer(&buffer[0]))
-		rod = result
+		src := (*TCP_ESTATS_SEND_BUFF_ROD_v0)(unsafe.Pointer(&buffer[0]))
+		result := *src
+		rod = &result
 	case TcpConnectionEstatsBandwidth:
-		result := (*TCP_ESTATS_BANDWIDTH_ROD_v0)(unsafe.Pointer(&buffer[0]))
-		rod = result
+		src := (*TCP_ESTATS_BANDWIDTH_ROD_v0)(unsafe.Pointer(&buffer[0]))
+		result := *src
+		rod = &result
 	case TcpConnectionEstatsFineRtt:
-		result := (*TCP_ESTATS_FINE_RTT_ROD_v0)(unsafe.Pointer(&buffer[0]))
-		rod = result
+		src := (*TCP_ESTATS_FINE_RTT_ROD_v0)(unsafe.Pointer(&buffer[0]))
+		result := *src
+		rod = &result
 	}
 
 	return rod, nil
