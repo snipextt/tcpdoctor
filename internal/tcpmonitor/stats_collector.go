@@ -70,6 +70,10 @@ type ConnectionInfo struct {
 	BasicStats    *BasicStats
 	ExtendedStats *ExtendedStats
 
+	// Raw port values in network byte order (for Windows API calls)
+	RawLocalPort  uint32
+	RawRemotePort uint32
+
 	// Health indicators
 	HighRetransmissionWarning bool
 	HighRTTWarning            bool
@@ -165,14 +169,16 @@ func (sc *StatsCollector) CollectIPv4Connections() ([]ConnectionInfo, error) {
 
 	for _, row := range rows {
 		conn := ConnectionInfo{
-			LocalAddr:  winapi.ConvertIPv4Address(row.LocalAddr),
-			LocalPort:  winapi.ConvertPort(row.LocalPort),
-			RemoteAddr: winapi.ConvertIPv4Address(row.RemoteAddr),
-			RemotePort: winapi.ConvertPort(row.RemotePort),
-			State:      convertWinAPIState(winapi.TCPState(row.State)),
-			PID:        row.OwningPid,
-			IsIPv6:     false,
-			LastSeen:   now,
+			LocalAddr:     winapi.ConvertIPv4Address(row.LocalAddr),
+			LocalPort:     winapi.ConvertPort(row.LocalPort),
+			RemoteAddr:    winapi.ConvertIPv4Address(row.RemoteAddr),
+			RemotePort:    winapi.ConvertPort(row.RemotePort),
+			State:         convertWinAPIState(winapi.TCPState(row.State)),
+			PID:           row.OwningPid,
+			IsIPv6:        false,
+			LastSeen:      now,
+			RawLocalPort:  row.LocalPort,  // Keep original network byte order
+			RawRemotePort: row.RemotePort, // Keep original network byte order
 		}
 
 		connections = append(connections, conn)
@@ -205,14 +211,16 @@ func (sc *StatsCollector) CollectIPv6Connections() ([]ConnectionInfo, error) {
 
 	for _, row := range rows {
 		conn := ConnectionInfo{
-			LocalAddr:  winapi.ConvertIPv6Address(row.LocalAddr),
-			LocalPort:  winapi.ConvertPort(row.LocalPort),
-			RemoteAddr: winapi.ConvertIPv6Address(row.RemoteAddr),
-			RemotePort: winapi.ConvertPort(row.RemotePort),
-			State:      convertWinAPIState(winapi.TCPState(row.State)),
-			PID:        row.OwningPid,
-			IsIPv6:     true,
-			LastSeen:   now,
+			LocalAddr:     winapi.ConvertIPv6Address(row.LocalAddr),
+			LocalPort:     winapi.ConvertPort(row.LocalPort),
+			RemoteAddr:    winapi.ConvertIPv6Address(row.RemoteAddr),
+			RemotePort:    winapi.ConvertPort(row.RemotePort),
+			State:         convertWinAPIState(winapi.TCPState(row.State)),
+			PID:           row.OwningPid,
+			IsIPv6:        true,
+			LastSeen:      now,
+			RawLocalPort:  row.LocalPort,  // Keep original network byte order
+			RawRemotePort: row.RemotePort, // Keep original network byte order
 		}
 
 		connections = append(connections, conn)
@@ -419,9 +427,9 @@ func (sc *StatsCollector) createTCPRow(conn *ConnectionInfo) *winapi.MIB_TCPROW 
 	return &winapi.MIB_TCPROW{
 		State:      uint32(convertToWinAPIState(conn.State)),
 		LocalAddr:  sc.ipv4StringToUint32(conn.LocalAddr),
-		LocalPort:  sc.portToNetworkOrder(conn.LocalPort),
+		LocalPort:  conn.RawLocalPort, // Use raw network byte order value
 		RemoteAddr: sc.ipv4StringToUint32(conn.RemoteAddr),
-		RemotePort: sc.portToNetworkOrder(conn.RemotePort),
+		RemotePort: conn.RawRemotePort, // Use raw network byte order value
 	}
 }
 
@@ -429,10 +437,10 @@ func (sc *StatsCollector) createTCP6Row(conn *ConnectionInfo) *winapi.MIB_TCP6RO
 	return &winapi.MIB_TCP6ROW{
 		LocalAddr:     sc.ipv6StringToBytes(conn.LocalAddr),
 		LocalScopeId:  0,
-		LocalPort:     sc.portToNetworkOrder(conn.LocalPort),
+		LocalPort:     conn.RawLocalPort, // Use raw network byte order value
 		RemoteAddr:    sc.ipv6StringToBytes(conn.RemoteAddr),
 		RemoteScopeId: 0,
-		RemotePort:    sc.portToNetworkOrder(conn.RemotePort),
+		RemotePort:    conn.RawRemotePort, // Use raw network byte order value
 		State:         uint32(convertToWinAPIState(conn.State)),
 	}
 }
