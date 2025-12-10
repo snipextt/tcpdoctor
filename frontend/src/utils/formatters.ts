@@ -3,17 +3,20 @@ import { FormattedValue } from '../types';
 /**
  * Format bytes with appropriate units (B, KB, MB, GB)
  */
-export function formatBytes(bytes: number): FormattedValue {
+export function formatBytes(bytes: number | undefined | null): FormattedValue {
+  if (bytes === null || bytes === undefined || isNaN(bytes)) {
+    return { value: 0, unit: 'B', formatted: '0 B' };
+  }
   if (bytes === 0) {
     return { value: 0, unit: 'B', formatted: '0 B' };
   }
-  
+
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   const k = 1024;
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   const value = bytes / Math.pow(k, i);
   const unit = units[i];
-  
+
   return {
     value,
     unit,
@@ -28,12 +31,12 @@ export function formatMilliseconds(ms: number): FormattedValue {
   if (ms < 1000) {
     return { value: ms, unit: 'ms', formatted: `${ms.toFixed(0)} ms` };
   }
-  
+
   if (ms < 60000) {
     const seconds = ms / 1000;
     return { value: seconds, unit: 's', formatted: `${seconds.toFixed(2)} s` };
   }
-  
+
   const minutes = ms / 60000;
   return { value: minutes, unit: 'm', formatted: `${minutes.toFixed(2)} m` };
 }
@@ -44,15 +47,15 @@ export function formatMilliseconds(ms: number): FormattedValue {
 export function formatBandwidth(bytesPerSecond: number): FormattedValue {
   const units = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
   const k = 1024;
-  
+
   if (bytesPerSecond === 0) {
     return { value: 0, unit: 'B/s', formatted: '0 B/s' };
   }
-  
+
   const i = Math.floor(Math.log(bytesPerSecond) / Math.log(k));
   const value = bytesPerSecond / Math.pow(k, i);
   const unit = units[i];
-  
+
   return {
     value,
     unit,
