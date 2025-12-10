@@ -226,7 +226,7 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
           <div className="table-message">No connections found</div>
         ) : (
           <AutoSizer>
-            {({ height, width }) => (
+            {({ height, width }: { height: number; width: number }) => (
               <List
                 height={height}
                 itemCount={sortedConnections.length}
