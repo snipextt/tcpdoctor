@@ -5,6 +5,7 @@ package winapi
 
 import (
 	"fmt"
+	"runtime"
 	"syscall"
 	"unsafe"
 )
@@ -311,6 +312,10 @@ func (w *WindowsAPILayer) GetBandwidthStats(row interface{}) (*TCP_ESTATS_BANDWI
 		errno := syscall.Errno(ret)
 		return nil, fmt.Errorf("GetBandwidthStats failed: %w", errno)
 	}
+
+	// Keep references alive until after syscall completes
+	runtime.KeepAlive(row)
+	runtime.KeepAlive(&rodStruct)
 
 	// Return a copy of the struct
 	result := rodStruct
