@@ -42,19 +42,20 @@ export function formatMilliseconds(ms: number): FormattedValue {
 }
 
 /**
- * Format bandwidth (bytes per second) with appropriate units
+ * Format bandwidth (bits per second) with appropriate units
+ * Windows API returns bandwidth in bits per second
  */
-export function formatBandwidth(bytesPerSecond: number): FormattedValue {
-  const units = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
-  const k = 1024;
-
-  if (bytesPerSecond === 0) {
-    return { value: 0, unit: 'B/s', formatted: '0 B/s' };
+export function formatBandwidth(bitsPerSecond: number | undefined | null): FormattedValue {
+  if (bitsPerSecond === null || bitsPerSecond === undefined || isNaN(bitsPerSecond) || bitsPerSecond <= 0) {
+    return { value: 0, unit: 'bps', formatted: '0 bps' };
   }
 
-  const i = Math.floor(Math.log(bytesPerSecond) / Math.log(k));
-  const value = bytesPerSecond / Math.pow(k, i);
-  const unit = units[i];
+  const units = ['bps', 'Kbps', 'Mbps', 'Gbps'];
+  const k = 1000; // Use 1000 for bits (standard network convention)
+
+  const i = Math.min(Math.floor(Math.log(bitsPerSecond) / Math.log(k)), units.length - 1);
+  const value = bitsPerSecond / Math.pow(k, i);
+  const unit = units[i] || 'bps';
 
   return {
     value,
