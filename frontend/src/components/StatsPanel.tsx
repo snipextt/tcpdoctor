@@ -104,13 +104,22 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
               {TCPStateNames[connection.State as TCPState]}
             </span>
             {connection.HighRetransmissionWarning && (
-              <span className="badge warning">High Retransmission</span>
+              <span className="badge warning">High Retrans</span>
             )}
             {connection.HighRTTWarning && (
               <span className="badge warning">High RTT</span>
             )}
           </div>
         </div>
+
+        {/* AI Diagnose - Right in header */}
+        {onDiagnose && onConfigureAPI && (
+          <DiagnosisPanel
+            onDiagnose={onDiagnose}
+            isConfigured={isAIConfigured}
+            onConfigureAPI={onConfigureAPI}
+          />
+        )}
       </div>
 
       {/* Admin Warning */}
@@ -276,19 +285,9 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
             <p>Extended statistics not available for this connection.</p>
           </div>
         ) : null}
-
-        {/* AI Diagnosis */}
-        {onDiagnose && onConfigureAPI && (
-          <DiagnosisPanel
-            onDiagnose={onDiagnose}
-            isConfigured={isAIConfigured}
-            onConfigureAPI={onConfigureAPI}
-          />
-        )}
       </div>
     </div>
   );
 };
 
 export default StatsPanel;
-

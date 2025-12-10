@@ -57,7 +57,7 @@ const HealthReportModal: React.FC<HealthReportModalProps> = ({
     const getScoreLabel = (score: number) => {
         if (score >= 80) return 'Healthy';
         if (score >= 60) return 'Fair';
-        return 'Needs Attention';
+        return 'Critical';
     };
 
     if (!isOpen) return null;
@@ -66,16 +66,27 @@ const HealthReportModal: React.FC<HealthReportModalProps> = ({
         <div className="modal-overlay" onClick={onClose}>
             <div className="health-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
-                    <h2>📊 Network Health Report</h2>
-                    <button className="close-btn" onClick={onClose}>×</button>
+                    <h2>Network Health</h2>
+                    <div className="header-actions">
+                        {report && !isLoading && (
+                            <button
+                                className="refresh-btn"
+                                onClick={handleGenerate}
+                                title="Refresh report"
+                            >
+                                ↻
+                            </button>
+                        )}
+                        <button className="close-btn" onClick={onClose}>×</button>
+                    </div>
                 </div>
 
                 <div className="modal-body">
                     {!isConfigured && (
                         <div className="config-prompt">
-                            <p>AI features require a Gemini API key.</p>
+                            <p>API key required</p>
                             <button className="btn-primary" onClick={onConfigureAPI}>
-                                Configure API Key
+                                Configure
                             </button>
                         </div>
                     )}
@@ -83,7 +94,7 @@ const HealthReportModal: React.FC<HealthReportModalProps> = ({
                     {isLoading && (
                         <div className="loading-state">
                             <div className="spinner-large"></div>
-                            <p>Analyzing network health...</p>
+                            <p>Analyzing...</p>
                         </div>
                     )}
 
@@ -96,29 +107,30 @@ const HealthReportModal: React.FC<HealthReportModalProps> = ({
 
                     {report && !isLoading && (
                         <div className="report-content">
-                            {/* Score Circle */}
-                            <div className="score-section">
+                            {/* Score */}
+                            <div className="score-row">
                                 <div
-                                    className="score-circle"
-                                    style={{ borderColor: getScoreColor(report.score) }}
+                                    className="score-badge"
+                                    style={{ background: getScoreColor(report.score) }}
                                 >
-                                    <span className="score-value" style={{ color: getScoreColor(report.score) }}>
-                                        {report.score}
+                                    <span className="score-num">{report.score}</span>
+                                </div>
+                                <div className="score-info">
+                                    <span className="score-status" style={{ color: getScoreColor(report.score) }}>
+                                        {getScoreLabel(report.score)}
                                     </span>
-                                    <span className="score-label">{getScoreLabel(report.score)}</span>
+                                    <span className="score-desc">{report.summary}</span>
                                 </div>
                             </div>
 
-                            {/* Summary */}
-                            <div className="summary-section">
-                                <p>{report.summary}</p>
-                            </div>
-
-                            {/* Details Grid */}
-                            <div className="details-grid">
+                            {/* Sections */}
+                            <div className="report-sections">
                                 {report.highlights && report.highlights.length > 0 && (
-                                    <div className="detail-card highlights">
-                                        <h4>✅ Highlights</h4>
+                                    <div className="report-section good">
+                                        <div className="section-header">
+                                            <span className="section-icon">✓</span>
+                                            <span>Working Well</span>
+                                        </div>
                                         <ul>
                                             {report.highlights.map((item, i) => (
                                                 <li key={i}>{item}</li>
@@ -128,8 +140,11 @@ const HealthReportModal: React.FC<HealthReportModalProps> = ({
                                 )}
 
                                 {report.concerns && report.concerns.length > 0 && (
-                                    <div className="detail-card concerns">
-                                        <h4>⚠️ Concerns</h4>
+                                    <div className="report-section warn">
+                                        <div className="section-header">
+                                            <span className="section-icon">!</span>
+                                            <span>Concerns</span>
+                                        </div>
                                         <ul>
                                             {report.concerns.map((item, i) => (
                                                 <li key={i}>{item}</li>
@@ -139,8 +154,11 @@ const HealthReportModal: React.FC<HealthReportModalProps> = ({
                                 )}
 
                                 {report.suggestions && report.suggestions.length > 0 && (
-                                    <div className="detail-card suggestions">
-                                        <h4>💡 Suggestions</h4>
+                                    <div className="report-section info">
+                                        <div className="section-header">
+                                            <span className="section-icon">→</span>
+                                            <span>Suggestions</span>
+                                        </div>
                                         <ul>
                                             {report.suggestions.map((item, i) => (
                                                 <li key={i}>{item}</li>
@@ -151,17 +169,6 @@ const HealthReportModal: React.FC<HealthReportModalProps> = ({
                             </div>
                         </div>
                     )}
-                </div>
-
-                <div className="modal-footer">
-                    {report && (
-                        <button className="btn-secondary" onClick={handleGenerate} disabled={isLoading}>
-                            🔄 Refresh
-                        </button>
-                    )}
-                    <button className="btn-primary" onClick={onClose}>
-                        Close
-                    </button>
                 </div>
             </div>
         </div>

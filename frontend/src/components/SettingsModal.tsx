@@ -5,14 +5,12 @@ interface SettingsModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSaveAPIKey: (apiKey: string) => Promise<void>;
-    currentAPIKey?: string;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
     isOpen,
     onClose,
     onSaveAPIKey,
-    currentAPIKey,
 }) => {
     const [apiKey, setApiKey] = useState('');
     const [isSaving, setIsSaving] = useState(false);
@@ -20,42 +18,33 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     const [success, setSuccess] = useState(false);
 
     useEffect(() => {
-        // Load from localStorage on mount
-        const savedKey = localStorage.getItem('gemini_api_key');
-        if (savedKey) {
+        if (isOpen) {
+            const savedKey = localStorage.getItem('gemini_api_key') || '';
             setApiKey(savedKey);
+            setError(null);
+            setSuccess(false);
         }
     }, [isOpen]);
 
     const handleSave = async () => {
         if (!apiKey.trim()) {
-            setError('Please enter an API key');
+            setError('API key required');
             return;
         }
 
         setIsSaving(true);
         setError(null);
-        setSuccess(false);
 
         try {
             await onSaveAPIKey(apiKey);
             localStorage.setItem('gemini_api_key', apiKey);
             setSuccess(true);
-            setTimeout(() => {
-                onClose();
-            }, 1000);
+            setTimeout(onClose, 800);
         } catch (err) {
-            setError(`Failed to configure API: ${err}`);
+            setError(`${err}`);
         } finally {
             setIsSaving(false);
         }
-    };
-
-    const handleClear = () => {
-        setApiKey('');
-        localStorage.removeItem('gemini_api_key');
-        setSuccess(false);
-        setError(null);
     };
 
     if (!isOpen) return null;
@@ -70,48 +59,37 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
                 <div className="modal-body">
                     <div className="setting-group">
-                        <label htmlFor="api-key">Gemini API Key</label>
+                        <label>Gemini API Key</label>
                         <p className="setting-description">
-                            Get your API key from{' '}
-                            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">
-                                Google AI Studio
-                            </a>
+                            Get from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">AI Studio</a>
                         </p>
                         <div className="input-group">
                             <input
-                                id="api-key"
                                 type="password"
                                 value={apiKey}
                                 onChange={(e) => setApiKey(e.target.value)}
-                                placeholder="Enter your Gemini API key..."
+                                placeholder="Enter API key..."
                                 className={error ? 'error' : success ? 'success' : ''}
                             />
-                            {apiKey && (
-                                <button className="clear-btn" onClick={handleClear} title="Clear">
-                                    ×
-                                </button>
-                            )}
                         </div>
                         {error && <div className="error-message">{error}</div>}
-                        {success && <div className="success-message">✓ API key saved successfully!</div>}
+                        {success && <div className="success-message">✓ Saved</div>}
                     </div>
 
                     <div className="info-box">
                         <h4>🔒 Privacy</h4>
-                        <p>Your API key is stored locally in your browser and only used to communicate with Google's Gemini API. Your connection data is sent to Gemini for analysis.</p>
+                        <p>Key stored locally, data sent to Gemini for analysis.</p>
                     </div>
                 </div>
 
                 <div className="modal-footer">
-                    <button className="btn-secondary" onClick={onClose}>
-                        Cancel
-                    </button>
+                    <button className="btn-secondary" onClick={onClose}>Cancel</button>
                     <button
                         className="btn-primary"
                         onClick={handleSave}
                         disabled={isSaving || !apiKey.trim()}
                     >
-                        {isSaving ? 'Saving...' : 'Save & Enable AI'}
+                        {isSaving ? 'Saving...' : 'Save'}
                     </button>
                 </div>
             </div>
