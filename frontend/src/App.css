@@ -29,11 +29,24 @@
     flex-shrink: 0;
 }
 
-.app-header h1 {
+.app-header .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.logo-img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.app-header .logo h1 {
     margin: 0;
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--color-text);
 }
 
 .header-actions {
@@ -90,32 +103,14 @@
     background: var(--color-bg-secondary);
 }
 
-.header-stats {
-    display: flex;
-    gap: 1.5rem;
-}
-
-.stat-badge {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-}
-
-.stat-badge .label {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    color: var(--color-text-dim);
-    letter-spacing: 0.5px;
-}
-
-.stat-badge .value {
-    font-size: 0.95rem;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-}
-
-.stat-badge.admin .value {
-    color: var(--color-success);
+.admin-warning-badge {
+    padding: 0.35rem 0.6rem;
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
 }
 
 /* Main Content Area */

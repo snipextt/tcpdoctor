@@ -165,6 +165,7 @@ function App() {
         <div className="app-container">
             <header className="app-header">
                 <div className="logo">
+                    <img src="/src/assets/logo.png" alt="TCP Doctor" className="logo-img" />
                     <h1>TCP Doctor</h1>
                 </div>
                 <div className="header-actions">
@@ -185,10 +186,11 @@ function App() {
                     >
                         ⚙️
                     </button>
-                    <div className={`stat-badge ${isAdmin ? 'admin' : 'user'}`}>
-                        <span className="label">Mode</span>
-                        <span className="value">{isAdmin ? 'Admin' : 'User'}</span>
-                    </div>
+                    {!isAdmin && (
+                        <div className="admin-warning-badge">
+                            ⚠️ Run as Admin
+                        </div>
+                    )}
                 </div>
             </header>
 
