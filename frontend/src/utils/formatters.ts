@@ -42,21 +42,24 @@ export function formatMilliseconds(ms: number): FormattedValue {
 }
 
 /**
- * Format bandwidth (bits per second) with appropriate units
- * Windows API returns bandwidth in bits per second
+ * Format bandwidth (bits per second from Windows API) to Bytes per second display
+ * Windows API returns bandwidth in bits per second, we convert to bytes/second
  */
 export function formatBandwidth(bitsPerSecond: number | undefined | null): FormattedValue {
   // Only reject null, undefined, NaN, or zero/negative values
   if (bitsPerSecond === null || bitsPerSecond === undefined || isNaN(bitsPerSecond) || bitsPerSecond <= 0) {
-    return { value: 0, unit: 'bps', formatted: 'N/A' };
+    return { value: 0, unit: 'B/s', formatted: 'N/A' };
   }
 
-  const units = ['bps', 'Kbps', 'Mbps', 'Gbps', 'Tbps'];
-  const k = 1000; // Use 1000 for bits (standard network convention)
+  // Convert bits per second to bytes per second (divide by 8)
+  const bytesPerSecond = bitsPerSecond / 8;
 
-  const i = Math.min(Math.floor(Math.log(bitsPerSecond) / Math.log(k)), units.length - 1);
-  const value = bitsPerSecond / Math.pow(k, i);
-  const unit = units[i] || 'bps';
+  const units = ['B/s', 'KB/s', 'MB/s', 'GB/s', 'TB/s'];
+  const k = 1000; // Use 1000 for standard SI units
+
+  const i = Math.min(Math.floor(Math.log(bytesPerSecond) / Math.log(k)), units.length - 1);
+  const value = bytesPerSecond / Math.pow(k, i);
+  const unit = units[i] || 'B/s';
 
   return {
     value,
