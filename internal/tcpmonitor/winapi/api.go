@@ -4,7 +4,6 @@
 package winapi
 
 import (
-	"encoding/binary"
 	"fmt"
 	"syscall"
 	"unsafe"
@@ -123,8 +122,11 @@ func (w *WindowsAPILayer) SetPerTcpConnectionEStats(row interface{}, statsType T
 		rwPtr = uintptr(unsafe.Pointer(&rwStruct))
 		rwSize = unsafe.Sizeof(rwStruct)
 	case TcpConnectionEstatsBandwidth:
-		// C# uses the same simple 1-byte struct for ALL types - let's match that
-		rwStruct := TCP_ESTATS_DATA_RW_v0{EnableCollection: enableValue}
+		// Bandwidth RW has TWO fields per MSDN - must enable both directions
+		rwStruct := TCP_ESTATS_BANDWIDTH_RW_v0{
+			EnableCollectionOutbound: enableValue,
+			EnableCollectionInbound:  enableValue,
+		}
 		rw = &rwStruct
 		rwPtr = uintptr(unsafe.Pointer(&rwStruct))
 		rwSize = unsafe.Sizeof(rwStruct)
@@ -253,16 +255,9 @@ func (w *WindowsAPILayer) GetPerTcpConnectionEStats(row interface{}, statsType T
 		result := *src
 		rod = &result
 	case TcpConnectionEstatsBandwidth:
-		// Buffer is 34 bytes, but Go struct is 40 bytes due to alignment
-		// We must manually extract the values from the buffer
-		result := TCP_ESTATS_BANDWIDTH_ROD_v0{
-			OutboundBandwidth:       binary.LittleEndian.Uint64(buffer[0:8]),
-			InboundBandwidth:        binary.LittleEndian.Uint64(buffer[8:16]),
-			OutboundInstability:     binary.LittleEndian.Uint64(buffer[16:24]),
-			InboundInstability:      binary.LittleEndian.Uint64(buffer[24:32]),
-			OutboundBandwidthPeaked: buffer[32],
-			InboundBandwidthPeaked:  buffer[33],
-		}
+		// Use same approach as other working stats
+		src := (*TCP_ESTATS_BANDWIDTH_ROD_v0)(unsafe.Pointer(&buffer[0]))
+		result := *src
 		rod = &result
 	case TcpConnectionEstatsFineRtt:
 		src := (*TCP_ESTATS_FINE_RTT_ROD_v0)(unsafe.Pointer(&buffer[0]))
