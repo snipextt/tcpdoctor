@@ -165,7 +165,6 @@ function App() {
         <div className="app-container">
             <header className="app-header">
                 <div className="logo">
-                    <img src="/src/assets/logo.png" alt="TCP Doctor" className="logo-img" />
                     <h1>TCP Doctor</h1>
                 </div>
                 <div className="header-actions">
