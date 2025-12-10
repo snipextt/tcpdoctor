@@ -4,6 +4,7 @@
 package winapi
 
 import (
+	"encoding/binary"
 	"fmt"
 	"runtime"
 	"syscall"
@@ -274,8 +275,9 @@ func (w *WindowsAPILayer) GetPerTcpConnectionEStats(row interface{}, statsType T
 	return rod, nil
 }
 
-// GetBandwidthStats retrieves bandwidth statistics using direct struct allocation
-// This is separate from GetPerTcpConnectionEStats to avoid buffer corruption issues
+// GetBandwidthStats retrieves bandwidth statistics using manual byte parsing
+// Windows struct is exactly 34 bytes (4x uint64 + 2x uint8), but Go struct is 40 due to alignment
+// We use a byte buffer to get exact size Windows expects
 func (w *WindowsAPILayer) GetBandwidthStats(row interface{}) (*TCP_ESTATS_BANDWIDTH_ROD_v0, error) {
 	var rowPtr uintptr
 	var version uint32 = 0
@@ -289,23 +291,27 @@ func (w *WindowsAPILayer) GetBandwidthStats(row interface{}) (*TCP_ESTATS_BANDWI
 		return nil, fmt.Errorf("unsupported row type")
 	}
 
-	// Create struct directly on stack - Windows will write to it
-	var rodStruct TCP_ESTATS_BANDWIDTH_ROD_v0
-	rodPtr := uintptr(unsafe.Pointer(&rodStruct))
-	rodSize := unsafe.Sizeof(rodStruct)
+	// Use exactly 34 bytes - the actual Windows struct size
+	// Layout: OutboundBandwidth(8) + InboundBandwidth(8) + OutboundInstability(8) + InboundInstability(8) + 2 bytes = 34
+	const windowsStructSize = 34
+	buffer := make([]byte, windowsStructSize)
+	// Zero the buffer like C# does
+	for i := range buffer {
+		buffer[i] = 0
+	}
 
 	ret, _, _ := procGetPerTcpConnectionEStats.Call(
 		rowPtr,
 		uintptr(TcpConnectionEstatsBandwidth),
-		0,                // Rw
-		uintptr(version), // RwVersion
-		0,                // RwSize
-		0,                // Ros
-		uintptr(version), // RosVersion
-		0,                // RosSize
-		rodPtr,           // Rod
-		uintptr(version), // RodVersion
-		rodSize,          // RodSize
+		0,                                   // Rw
+		uintptr(version),                    // RwVersion
+		0,                                   // RwSize
+		0,                                   // Ros
+		uintptr(version),                    // RosVersion
+		0,                                   // RosSize
+		uintptr(unsafe.Pointer(&buffer[0])), // Rod
+		uintptr(version),                    // RodVersion
+		windowsStructSize,                   // RodSize - exactly 34 bytes
 	)
 
 	if ret != 0 {
@@ -313,13 +319,20 @@ func (w *WindowsAPILayer) GetBandwidthStats(row interface{}) (*TCP_ESTATS_BANDWI
 		return nil, fmt.Errorf("GetBandwidthStats failed: %w", errno)
 	}
 
-	// Keep references alive until after syscall completes
+	// Keep row reference alive until after syscall completes
 	runtime.KeepAlive(row)
-	runtime.KeepAlive(&rodStruct)
 
-	// Return a copy of the struct
-	result := rodStruct
-	return &result, nil
+	// Manually parse the bytes using little-endian (Windows is little-endian)
+	result := &TCP_ESTATS_BANDWIDTH_ROD_v0{
+		OutboundBandwidth:       binary.LittleEndian.Uint64(buffer[0:8]),
+		InboundBandwidth:        binary.LittleEndian.Uint64(buffer[8:16]),
+		OutboundInstability:     binary.LittleEndian.Uint64(buffer[16:24]),
+		InboundInstability:      binary.LittleEndian.Uint64(buffer[24:32]),
+		OutboundBandwidthPeaked: buffer[32],
+		InboundBandwidthPeaked:  buffer[33],
+	}
+
+	return result, nil
 }
 
 // IsAdministrator checks if the current process has administrator privileges

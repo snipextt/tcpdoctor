@@ -129,6 +129,7 @@ const (
 )
 
 // TCP_ESTATS_DATA_ROD_v0 contains data transfer statistics
+// Go and Windows use same natural alignment rules - no explicit padding needed
 type TCP_ESTATS_DATA_ROD_v0 struct {
 	DataBytesOut      uint64
 	DataSegsOut       uint64
@@ -144,16 +145,26 @@ type TCP_ESTATS_DATA_ROD_v0 struct {
 	ThruBytesAcked    uint64
 	RcvNxt            uint32
 	ThruBytesReceived uint64
+	SegsRetrans       uint32
+	BytesRetrans      uint32
+	FastRetran        uint32
+	DupAcksIn         uint32
+	TimeoutEpisodes   uint32
+	SynRetrans        uint8
 }
 
 // TCP_ESTATS_SND_CONG_ROD_v0 contains congestion control statistics
+// Field order MUST match Windows API exactly: Trans/Time/Bytes for each limit type
 type TCP_ESTATS_SND_CONG_ROD_v0 struct {
 	SndLimTransRwin uint32
-	SndLimTransCwnd uint32
-	SndLimTransSnd  uint32
 	SndLimTimeRwin  uint32
+	SndLimBytesRwin uint32 // was missing
+	SndLimTransCwnd uint32
 	SndLimTimeCwnd  uint32
+	SndLimBytesCwnd uint32 // was missing
+	SndLimTransSnd  uint32
 	SndLimTimeSnd   uint32
+	SndLimBytesSnd  uint32 // was missing
 	SlowStart       uint32
 	CongAvoid       uint32
 	OtherReductions uint32
@@ -210,6 +221,7 @@ type TCP_ESTATS_PATH_ROD_v0 struct {
 }
 
 // TCP_ESTATS_REC_ROD_v0 contains receiver statistics
+// Layout must match Windows exactly: 13 uint32s, 2 bytes, then 3 more uint32s
 type TCP_ESTATS_REC_ROD_v0 struct {
 	CurRwinSent    uint32
 	MaxRwinSent    uint32
@@ -224,8 +236,12 @@ type TCP_ESTATS_REC_ROD_v0 struct {
 	MaxReasmQueue  uint32
 	CurAppRQueue   uint32
 	MaxAppRQueue   uint32
+	WinScaleRcvd   uint8 // was missing - comes before WinScaleSent
 	WinScaleSent   uint8
-	_              [3]byte // padding
+	_              [2]byte // padding to align next uint32
+	CurRwinRcvd    uint32  // was missing
+	MaxRwinRcvd    uint32  // was missing
+	MinRwinRcvd    uint32  // was missing
 }
 
 // TCP_ESTATS_SEND_BUFF_ROD_v0 contains send buffer statistics
