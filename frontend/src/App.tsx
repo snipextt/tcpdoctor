@@ -136,19 +136,19 @@ function App() {
     const handleQueryConnections = async (query: string) => {
         const result = await QueryConnections(query);
         return {
-            answer: result?.Answer || "No response",
-            success: result?.Success || false
+            answer: result?.answer || "No response",
+            success: result?.success || false
         };
     };
 
     const handleGenerateReport = async () => {
         const result = await GenerateHealthReport();
         return {
-            summary: result?.Summary || "",
-            highlights: result?.Highlights || [],
-            concerns: result?.Concerns || [],
-            suggestions: result?.Suggestions || [],
-            score: result?.Score || 0
+            summary: result?.summary || "",
+            highlights: result?.highlights || [],
+            concerns: result?.concerns || [],
+            suggestions: result?.suggestions || [],
+            score: result?.score || 0
         };
     };
 
@@ -163,11 +163,11 @@ function App() {
         );
 
         return {
-            summary: result?.Summary || "",
-            issues: result?.Issues || [],
-            possibleCauses: result?.PossibleCauses || [],
-            recommendations: result?.Recommendations || [],
-            severity: result?.Severity || "warning"
+            summary: result?.summary || "",
+            issues: result?.issues || [],
+            possibleCauses: result?.possibleCauses || [],
+            recommendations: result?.recommendations || [],
+            severity: result?.severity || "warning"
         };
     };
 
