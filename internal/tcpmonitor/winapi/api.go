@@ -291,9 +291,10 @@ func (w *WindowsAPILayer) GetBandwidthStats(row interface{}) (*TCP_ESTATS_BANDWI
 		return nil, fmt.Errorf("unsupported row type")
 	}
 
-	// Use exactly 34 bytes - the actual Windows struct size
-	// Layout: OutboundBandwidth(8) + InboundBandwidth(8) + OutboundInstability(8) + InboundInstability(8) + 2 bytes = 34
-	const windowsStructSize = 34
+	// Windows expects 40 bytes (the struct is padded to 8-byte alignment)
+	// C# Marshal.SizeOf also returns 40 bytes due to this same alignment
+	// Layout: 4x uint64 (32 bytes) + 2x uint8 (2 bytes) + 6 bytes padding = 40 bytes
+	const windowsStructSize = 40
 	buffer := make([]byte, windowsStructSize)
 	// Zero the buffer like C# does
 	for i := range buffer {
@@ -311,7 +312,7 @@ func (w *WindowsAPILayer) GetBandwidthStats(row interface{}) (*TCP_ESTATS_BANDWI
 		0,                                   // RosSize
 		uintptr(unsafe.Pointer(&buffer[0])), // Rod
 		uintptr(version),                    // RodVersion
-		windowsStructSize,                   // RodSize - exactly 34 bytes
+		windowsStructSize,                   // RodSize - 40 bytes aligned
 	)
 
 	if ret != 0 {
