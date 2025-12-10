@@ -226,6 +226,11 @@ func (w *WindowsAPILayer) GetPerTcpConnectionEStats(row interface{}, statsType T
 		rodSize,          // RodSize
 	)
 
+	// DEBUG: For bandwidth, log the raw buffer bytes
+	if statsType == TcpConnectionEstatsBandwidth && ret == 0 {
+		fmt.Printf("BANDWIDTH RAW BYTES [%d total]: %x\n", len(buffer), buffer)
+	}
+
 	if ret != 0 {
 		errno := syscall.Errno(ret)
 		return nil, fmt.Errorf("GetPerTcpConnectionEStats failed: %w", errno)
