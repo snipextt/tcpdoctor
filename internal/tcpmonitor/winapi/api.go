@@ -219,16 +219,19 @@ func (w *WindowsAPILayer) GetPerTcpConnectionEStats(row interface{}, statsType T
 		return nil, fmt.Errorf("unsupported statistics type: %d", statsType)
 	}
 
+	// GetPerTcpConnectionEStats params: Row, EstatsType, Rw, RwVersion, RwSize, Ros, RosVersion, RosSize, Rod, RodVersion, RodSize
 	ret, _, _ := procGetPerTcpConnectionEStats.Call(
 		rowPtr,
 		uintptr(statsType),
-		0, // pRos (NULL)
-		0, // RosSize
-		0, // RosVersion
-		rodPtr,
-		0, // RodOffset
-		rodSize,
-		uintptr(version),
+		0,                // Rw (NULL - not reading RW)
+		uintptr(version), // RwVersion
+		0,                // RwSize
+		0,                // Ros (NULL - not reading static)
+		uintptr(version), // RosVersion
+		0,                // RosSize
+		rodPtr,           // Rod
+		uintptr(version), // RodVersion
+		rodSize,          // RodSize
 	)
 
 	if ret != 0 {
