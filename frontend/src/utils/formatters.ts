@@ -46,16 +46,12 @@ export function formatMilliseconds(ms: number): FormattedValue {
  * Windows API returns bandwidth in bits per second
  */
 export function formatBandwidth(bitsPerSecond: number | undefined | null): FormattedValue {
-  // Sanity check: if null, undefined, NaN, negative, or unreasonably high (> 100 Gbps), treat as unavailable
-  // Windows API sometimes returns garbage values for bandwidth estimates
-  const MAX_REASONABLE_BPS = 100_000_000_000; // 100 Gbps - max reasonable for typical connections
-
-  if (bitsPerSecond === null || bitsPerSecond === undefined || isNaN(bitsPerSecond) ||
-    bitsPerSecond <= 0 || bitsPerSecond > MAX_REASONABLE_BPS) {
+  // Only reject null, undefined, NaN, or zero/negative values
+  if (bitsPerSecond === null || bitsPerSecond === undefined || isNaN(bitsPerSecond) || bitsPerSecond <= 0) {
     return { value: 0, unit: 'bps', formatted: 'N/A' };
   }
 
-  const units = ['bps', 'Kbps', 'Mbps', 'Gbps'];
+  const units = ['bps', 'Kbps', 'Mbps', 'Gbps', 'Tbps'];
   const k = 1000; // Use 1000 for bits (standard network convention)
 
   const i = Math.min(Math.floor(Math.log(bitsPerSecond) / Math.log(k)), units.length - 1);

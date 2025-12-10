@@ -165,16 +165,16 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
                 </div>
 
                 <div className="chart-container" style={{ background: 'var(--color-bg-secondary)', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column' }}>
-                  <div className="chart-title" style={{ fontSize: '0.8rem', color: 'var(--color-text-dim)', marginBottom: '5px' }}>Bandwidth (B/s)</div>
+                  <div className="chart-title" style={{ fontSize: '0.8rem', color: 'var(--color-text-dim)', marginBottom: '5px' }}>Bandwidth (bps)</div>
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={history}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
                       <XAxis dataKey="time" hide />
-                      <YAxis style={{ fontSize: '10px' }} stroke="var(--color-text-dim)" tickFormatter={(val) => formatBytes(val).formatted} />
+                      <YAxis style={{ fontSize: '10px' }} stroke="var(--color-text-dim)" tickFormatter={(val) => val != null ? formatBandwidth(val).formatted : 'N/A'} />
                       <Tooltip
                         contentStyle={{ backgroundColor: 'var(--color-bg)', borderColor: 'var(--color-border)' }}
                         itemStyle={{ color: 'var(--color-text)' }}
-                        formatter={(val: number) => [formatBytes(val).formatted, '']}
+                        formatter={(val) => [typeof val === 'number' ? formatBandwidth(val).formatted : 'N/A', '']}
                       />
                       <Area type="monotone" dataKey="bwIn" stackId="1" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.3} name="In" isAnimationActive={false} />
                       <Area type="monotone" dataKey="bwOut" stackId="1" stroke="#ffc658" fill="#ffc658" fillOpacity={0.3} name="Out" isAnimationActive={false} />
