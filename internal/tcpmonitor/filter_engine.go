@@ -115,11 +115,16 @@ func (fe *FilterEngine) matchesFilter(conn ConnectionInfo, filter FilterOptions)
 }
 
 // isInternalIP checks if an IP address is a private/internal address
-// Matches: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.0/8, ::1, fe80::/10
+// Matches: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.0/8, ::1, fe80::/10, 0.0.0.0, ::
 func isInternalIP(addr string) bool {
 	ip := net.ParseIP(addr)
 	if ip == nil {
 		return false
+	}
+
+	// Check for unspecified/wildcard (0.0.0.0 or ::) - used by LISTEN sockets
+	if ip.IsUnspecified() {
+		return true
 	}
 
 	// Check for loopback (127.x.x.x or ::1)
