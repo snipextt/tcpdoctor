@@ -122,7 +122,11 @@ func (w *WindowsAPILayer) SetPerTcpConnectionEStats(row interface{}, statsType T
 		rwPtr = uintptr(unsafe.Pointer(&rwStruct))
 		rwSize = unsafe.Sizeof(rwStruct)
 	case TcpConnectionEstatsBandwidth:
-		rwStruct := TCP_ESTATS_BANDWIDTH_RW_v0{EnableCollection: enableValue}
+		// Bandwidth has TWO enable fields - one for each direction
+		rwStruct := TCP_ESTATS_BANDWIDTH_RW_v0{
+			EnableCollectionOutbound: enableValue,
+			EnableCollectionInbound:  enableValue,
+		}
 		rw = &rwStruct
 		rwPtr = uintptr(unsafe.Pointer(&rwStruct))
 		rwSize = unsafe.Sizeof(rwStruct)

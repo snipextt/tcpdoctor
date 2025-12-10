@@ -282,8 +282,10 @@ type TCP_ESTATS_SEND_BUFF_RW_v0 struct {
 }
 
 // TCP_ESTATS_BANDWIDTH_RW_v0 is used to enable/disable bandwidth statistics
+// Note: Unlike other RW structs, this has TWO fields - one for each direction
 type TCP_ESTATS_BANDWIDTH_RW_v0 struct {
-	EnableCollection byte
+	EnableCollectionOutbound byte
+	EnableCollectionInbound  byte
 }
 
 // TCP_ESTATS_FINE_RTT_RW_v0 is used to enable/disable fine RTT statistics
