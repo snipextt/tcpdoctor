@@ -1,0 +1,236 @@
+.connection-table-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+/* Header */
+.connection-table-header {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+  padding: 0 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #374151;
+  user-select: none;
+}
+
+.health-indicator-header {
+  width: 8px;
+  flex-shrink: 0;
+}
+
+.header-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.75rem;
+  cursor: pointer;
+  transition: background-color 150ms ease-in-out;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-cell:hover {
+  background-color: #f3f4f6;
+}
+
+.header-cell.sorted {
+  color: #2563eb;
+}
+
+.sort-indicator {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+/* Table Body */
+.connection-table-body {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.table-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+/* Connection Row */
+.connection-row {
+  display: flex;
+  align-items: center;
+  padding: 0 0.5rem;
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  transition: background-color 150ms ease-in-out;
+  font-size: 0.875rem;
+}
+
+.connection-row:hover {
+  background-color: #f9fafb;
+}
+
+.connection-row.selected {
+  background-color: #dbeafe;
+  border-left: 3px solid #2563eb;
+}
+
+.connection-row.selected:hover {
+  background-color: #bfdbfe;
+}
+
+/* Health Indicator */
+.health-indicator {
+  width: 8px;
+  height: 24px;
+  border-radius: 4px;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+  transition: background-color 250ms ease-in-out;
+}
+
+/* Cell */
+.cell {
+  padding: 0 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #111827;
+}
+
+.state-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.state-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  transition: background-color 250ms ease-in-out;
+}
+
+/* Footer */
+.connection-table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 40px;
+  padding: 0 1rem;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .connection-table-header,
+  .connection-row {
+    font-size: 0.8125rem;
+  }
+  
+  .cell {
+    padding: 0 0.5rem;
+  }
+}
+
+/* Loading state */
+.connection-table-container.loading .connection-table-body {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Smooth transitions for metric updates */
+.cell {
+  transition: color 250ms ease-in-out;
+}
+
+.connection-row.updated .cell {
+  animation: cellUpdate 500ms ease-in-out;
+}
+
+@keyframes cellUpdate {
+  0% {
+    background-color: #dbeafe;
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+/* Accessibility improvements */
+.connection-row:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}
+
+.header-cell:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}
+
+/* Dark mode support (for future implementation) */
+@media (prefers-color-scheme: dark) {
+  .connection-table-container {
+    background: #1f2937;
+  }
+  
+  .connection-table-header {
+    background: #111827;
+    border-bottom-color: #374151;
+    color: #d1d5db;
+  }
+  
+  .header-cell:hover {
+    background-color: #1f2937;
+  }
+  
+  .connection-row {
+    border-bottom-color: #374151;
+  }
+  
+  .connection-row:hover {
+    background-color: #111827;
+  }
+  
+  .connection-row.selected {
+    background-color: #1e3a8a;
+  }
+  
+  .connection-row.selected:hover {
+    background-color: #1e40af;
+  }
+  
+  .cell {
+    color: #f9fafb;
+  }
+  
+  .connection-table-footer {
+    background: #111827;
+    border-top-color: #374151;
+    color: #9ca3af;
+  }
+  
+  .table-message {
+    color: #9ca3af;
+  }
+}
