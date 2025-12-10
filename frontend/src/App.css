@@ -136,83 +136,96 @@
     min-width: 350px;
 }
 
-/* Filter Controls */
+/* Filter Controls - Modern Inline Bar */
 .filter-controls {
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 0.75rem;
     display: flex;
-    gap: 1rem;
+    gap: 0.5rem;
     border-bottom: 1px solid var(--color-border);
-    background-color: var(--color-bg-secondary);
-    align-items: flex-end;
+    background-color: var(--color-bg);
+    align-items: center;
     flex-wrap: wrap;
 }
 
 .filter-group {
     display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+    align-items: center;
+    gap: 0.35rem;
 }
 
 .filter-group label {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: var(--color-text-dim);
     font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    display: none;
 }
 
 .filter-input,
 .filter-select {
-    padding: 0.4rem 0.6rem;
+    padding: 0.35rem 0.5rem;
     border: 1px solid var(--color-border);
     border-radius: 4px;
-    background-color: var(--color-input-bg);
+    background-color: var(--color-bg-secondary);
     color: var(--color-text);
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     outline: none;
+    transition: border-color 0.15s;
+}
+
+.filter-input::placeholder {
+    color: var(--color-text-dim);
+    opacity: 0.6;
 }
 
 .filter-input:focus,
 .filter-select:focus {
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px var(--color-primary-dim);
 }
 
 .filter-input.short {
-    width: 80px;
+    width: 70px;
 }
 
 .filter-select {
-    min-width: 140px;
+    min-width: 110px;
+    cursor: pointer;
 }
 
 .checkbox-group {
-    flex-direction: row;
-    align-self: center;
-    /* Center horizontally with inputs */
-    padding-bottom: 0.4rem;
-    /* Align with inputs */
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
     margin-left: auto;
-    /* Push to right */
 }
 
 .checkbox-label {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    font-size: 0.85rem;
+    gap: 0.3rem;
+    font-size: 0.75rem;
     cursor: pointer;
     user-select: none;
-    padding: 0.3rem 0.6rem;
+    padding: 0.3rem 0.5rem;
     border-radius: 4px;
-    transition: background-color 0.15s;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+    color: var(--color-text-dim);
+}
+
+.checkbox-label input[type="checkbox"] {
+    display: none;
 }
 
 .checkbox-label:hover {
-    background-color: var(--color-hover);
+    background-color: var(--color-bg-secondary);
 }
 
 .checkbox-label.active {
-    background-color: var(--color-primary-dim);
+    background-color: rgba(59, 130, 246, 0.15);
     color: var(--color-primary);
+    border-color: rgba(59, 130, 246, 0.3);
 }
 
 /* Stats Panel */
