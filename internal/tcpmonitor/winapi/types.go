@@ -237,6 +237,7 @@ type TCP_ESTATS_SEND_BUFF_ROD_v0 struct {
 }
 
 // TCP_ESTATS_BANDWIDTH_ROD_v0 contains bandwidth estimates
+// Note: No padding - Windows struct is packed
 type TCP_ESTATS_BANDWIDTH_ROD_v0 struct {
 	OutboundBandwidth       uint64
 	InboundBandwidth        uint64
@@ -244,7 +245,6 @@ type TCP_ESTATS_BANDWIDTH_ROD_v0 struct {
 	InboundInstability      uint64
 	OutboundBandwidthPeaked uint8
 	InboundBandwidthPeaked  uint8
-	_                       [6]byte // padding
 }
 
 // TCP_ESTATS_FINE_RTT_ROD_v0 contains fine-grained RTT statistics

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { FixedSizeList as List } from 'react-window';
+import AutoSizer from 'react-virtualized-auto-sizer';
 import { tcpmonitor } from '../../wailsjs/go/models';
 import { TCPStateNames, TCPState } from '../types';
 import { formatBytes, formatEndpoint, formatCount } from '../utils/formatters';
@@ -224,15 +225,19 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
         ) : connections.length === 0 ? (
           <div className="table-message">No connections found</div>
         ) : (
-          <List
-            height={600}
-            itemCount={sortedConnections.length}
-            itemSize={ROW_HEIGHT}
-            width={totalWidth}
-            overscanCount={5}
-          >
-            {Row}
-          </List>
+          <AutoSizer>
+            {({ height, width }) => (
+              <List
+                height={height}
+                itemCount={sortedConnections.length}
+                itemSize={ROW_HEIGHT}
+                width={Math.max(width, totalWidth)}
+                overscanCount={5}
+              >
+                {Row}
+              </List>
+            )}
+          </AutoSizer>
         )}
       </div>
 
