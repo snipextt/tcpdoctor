@@ -4,12 +4,19 @@ import {
     GetConnectionCount,
     IsAdministrator,
     GetUpdateInterval,
-    ExportToCSV
+    ExportToCSV,
+    ConfigureLLM,
+    IsLLMConfigured,
+    DiagnoseConnection,
+    QueryConnections,
+    GenerateHealthReport
 } from "../wailsjs/go/main/App";
 import { tcpmonitor } from "../wailsjs/go/models";
 import ConnectionTable from './components/ConnectionTable';
 import FilterControls from './components/FilterControls';
 import StatsPanel from './components/StatsPanel';
+import AIAssistant from './components/AIAssistant';
+import SettingsModal from './components/SettingsModal';
 import './App.css';
 
 function App() {
@@ -24,6 +31,38 @@ function App() {
         SearchText: ""
     }));
     const [isLoading, setIsLoading] = useState(true);
+
+    // AI State
+    const [isAIOpen, setIsAIOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isAIConfigured, setIsAIConfigured] = useState(false);
+
+    // Check if AI is configured on mount
+    useEffect(() => {
+        const checkAIConfig = async () => {
+            try {
+                const configured = await IsLLMConfigured();
+                setIsAIConfigured(configured);
+
+                // Try to load from localStorage if not configured
+                if (!configured) {
+                    const savedKey = localStorage.getItem('gemini_api_key');
+                    if (savedKey) {
+                        try {
+                            await ConfigureLLM(savedKey);
+                            setIsAIConfigured(true);
+                        } catch (e) {
+                            console.warn("Failed to restore API key:", e);
+                            localStorage.removeItem('gemini_api_key');
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to check AI config:", e);
+            }
+        };
+        checkAIConfig();
+    }, []);
 
     // Initial setup
     useEffect(() => {
@@ -66,11 +105,10 @@ function App() {
         } finally {
             setIsLoading(false);
         }
-    }, [filter]); // Removed selectedConnection from deps
+    }, [filter]);
 
     const handleExport = async () => {
         try {
-            // Call ExportToCSV with empty string to trigger backend dialoag
             await ExportToCSV("");
             console.log("Export initiated");
         } catch (e) {
@@ -80,17 +118,62 @@ function App() {
 
     // Polling effect
     useEffect(() => {
-        // Immediate refresh on mount or filter change
         refreshConnections();
-
         const intervalId = setInterval(refreshConnections, updateInterval);
         return () => clearInterval(intervalId);
     }, [refreshConnections, updateInterval]);
 
     const handleFilterChange = (newFilter: tcpmonitor.FilterOptions) => {
         setFilter(newFilter);
-        // Effect will trigger refresh
     };
+
+    // AI Handlers
+    const handleSaveAPIKey = async (apiKey: string) => {
+        await ConfigureLLM(apiKey);
+        setIsAIConfigured(true);
+    };
+
+    const handleQueryConnections = async (query: string) => {
+        const result = await QueryConnections(query);
+        return {
+            answer: result?.Answer || "No response",
+            success: result?.Success || false
+        };
+    };
+
+    const handleGenerateReport = async () => {
+        const result = await GenerateHealthReport();
+        return {
+            summary: result?.Summary || "",
+            highlights: result?.Highlights || [],
+            concerns: result?.Concerns || [],
+            suggestions: result?.Suggestions || [],
+            score: result?.Score || 0
+        };
+    };
+
+    const handleDiagnose = async () => {
+        if (!selectedConnection) return null;
+
+        const result = await DiagnoseConnection(
+            selectedConnection.LocalAddr,
+            selectedConnection.LocalPort,
+            selectedConnection.RemoteAddr,
+            selectedConnection.RemotePort
+        );
+
+        return {
+            summary: result?.Summary || "",
+            issues: result?.Issues || [],
+            possibleCauses: result?.PossibleCauses || [],
+            recommendations: result?.Recommendations || [],
+            severity: result?.Severity || "warning"
+        };
+    };
+
+    const selectedConnectionInfo = selectedConnection
+        ? `${selectedConnection.LocalAddr}:${selectedConnection.LocalPort}${selectedConnection.RemoteAddr}:${selectedConnection.RemotePort}`
+        : undefined;
 
     return (
         <div className="app-container">
@@ -101,6 +184,13 @@ function App() {
                 <div className="header-actions">
                     <button className="btn-export" onClick={handleExport}>
                         Export CSV
+                    </button>
+                    <button
+                        className={`btn-ai ${isAIConfigured ? 'configured' : ''}`}
+                        onClick={() => setIsAIOpen(true)}
+                        title={isAIConfigured ? "Open AI Assistant" : "Configure AI to enable"}
+                    >
+                        🤖 AI Assistant
                     </button>
                     <div className="header-stats">
                         <div className="stat-badge">
@@ -140,8 +230,31 @@ function App() {
                     />
                 </div>
             </main>
+
+            {/* AI Assistant Panel */}
+            <AIAssistant
+                isOpen={isAIOpen}
+                onClose={() => setIsAIOpen(false)}
+                onConfigureAPI={() => {
+                    setIsAIOpen(false);
+                    setIsSettingsOpen(true);
+                }}
+                isConfigured={isAIConfigured}
+                queryConnections={handleQueryConnections}
+                generateHealthReport={handleGenerateReport}
+                onDiagnose={selectedConnection ? handleDiagnose : undefined}
+                selectedConnectionInfo={selectedConnectionInfo}
+            />
+
+            {/* Settings Modal */}
+            <SettingsModal
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+                onSaveAPIKey={handleSaveAPIKey}
+            />
         </div>
     );
 }
 
 export default App;
+

@@ -63,6 +63,37 @@
     transform: translateY(1px);
 }
 
+.btn-ai {
+    padding: 0.5rem 1rem;
+    background-color: transparent;
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.btn-ai:hover {
+    background-color: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+.btn-ai.configured {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.btn-ai.configured:hover {
+    background-color: var(--color-primary);
+    color: white;
+}
+
 .header-stats {
     display: flex;
     gap: 1.5rem;

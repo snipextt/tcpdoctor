@@ -6,6 +6,8 @@ package tcpmonitor
 import (
 	"fmt"
 	"time"
+
+	"tcpdoctor/internal/llm"
 )
 
 // Stub types for non-Windows platforms (for development/testing purposes)
@@ -105,3 +107,16 @@ func (s *Service) GetHealthThresholds() HealthThresholds           { return Defa
 func (s *Service) SetRetransmissionThreshold(percent float64)      {}
 func (s *Service) SetRTTThreshold(milliseconds uint32)             {}
 func (s *Service) ExportToCSV(path string) error                   { return fmt.Errorf("not supported") }
+
+// LLM stubs
+func (s *Service) ConfigureLLM(apiKey string) error { return fmt.Errorf("not supported") }
+func (s *Service) IsLLMConfigured() bool            { return false }
+func (s *Service) DiagnoseConnection(localAddr string, localPort uint16, remoteAddr string, remotePort uint16) (*llm.DiagnosticResult, error) {
+	return nil, fmt.Errorf("not supported")
+}
+func (s *Service) QueryConnections(query string) (*llm.QueryResult, error) {
+	return nil, fmt.Errorf("not supported")
+}
+func (s *Service) GenerateHealthReport() (*llm.HealthReport, error) {
+	return nil, fmt.Errorf("not supported")
+}

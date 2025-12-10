@@ -7,6 +7,7 @@ import (
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
+	"tcpdoctor/internal/llm"
 	"tcpdoctor/internal/tcpmonitor"
 )
 
@@ -25,7 +26,7 @@ func NewApp() *App {
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	
+
 	// Create and initialize the TCP monitoring service
 	config := tcpmonitor.DefaultServiceConfig()
 	service, err := tcpmonitor.NewService(config)
@@ -33,12 +34,12 @@ func (a *App) startup(ctx context.Context) {
 		fmt.Printf("Failed to create TCP monitoring service: %v\n", err)
 		return
 	}
-	
+
 	a.service = service
-	
+
 	// Start the monitoring service
 	a.service.Start()
-	
+
 	fmt.Println("TCP monitoring service started successfully")
 }
 
@@ -162,4 +163,48 @@ func (a *App) SetHealthThresholds(thresholds tcpmonitor.HealthThresholds) {
 	if a.service != nil {
 		a.service.SetHealthThresholds(thresholds)
 	}
+}
+
+// ============================================================
+// LLM (AI) Methods - Exposed to Wails frontend
+// ============================================================
+
+// ConfigureLLM sets up the Gemini API with the provided API key
+func (a *App) ConfigureLLM(apiKey string) error {
+	if a.service == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	return a.service.ConfigureLLM(apiKey)
+}
+
+// IsLLMConfigured returns true if the LLM service has a valid API key
+func (a *App) IsLLMConfigured() bool {
+	if a.service == nil {
+		return false
+	}
+	return a.service.IsLLMConfigured()
+}
+
+// DiagnoseConnection analyzes a specific connection and returns AI-generated diagnosis
+func (a *App) DiagnoseConnection(localAddr string, localPort uint16, remoteAddr string, remotePort uint16) (*llm.DiagnosticResult, error) {
+	if a.service == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.service.DiagnoseConnection(localAddr, localPort, remoteAddr, remotePort)
+}
+
+// QueryConnections answers a natural language question about the connections
+func (a *App) QueryConnections(query string) (*llm.QueryResult, error) {
+	if a.service == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.service.QueryConnections(query)
+}
+
+// GenerateHealthReport creates an AI-generated network health report
+func (a *App) GenerateHealthReport() (*llm.HealthReport, error) {
+	if a.service == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.service.GenerateHealthReport()
 }

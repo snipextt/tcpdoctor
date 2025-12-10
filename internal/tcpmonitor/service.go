@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"tcpdoctor/internal/llm"
 	"tcpdoctor/internal/tcpmonitor/winapi"
 )
 
@@ -20,6 +21,9 @@ type Service struct {
 	statsCollector    *StatsCollector
 	filterEngine      *FilterEngine
 	apiLayer          *winapi.WindowsAPILayer
+
+	// LLM service for AI-powered analysis
+	llmService *llm.GeminiService
 
 	updateInterval time.Duration
 	isAdmin        bool
@@ -87,6 +91,7 @@ func NewService(config ServiceConfig) (*Service, error) {
 		statsCollector:    statsCollector,
 		filterEngine:      filterEngine,
 		apiLayer:          apiLayer,
+		llmService:        llm.NewGeminiService(),
 		updateInterval:    config.UpdateInterval,
 		isAdmin:           isAdmin,
 		healthThresholds:  DefaultHealthThresholds(),
@@ -565,4 +570,143 @@ func (s *Service) writeCSVFile(path string, content string) error {
 	}
 
 	return nil
+}
+
+// ============================================================
+// LLM (AI) Methods - Exposed to Wails frontend
+// ============================================================
+
+// ConfigureLLM sets up the Gemini API with the provided API key
+func (s *Service) ConfigureLLM(apiKey string) error {
+	s.logger.Info("Configuring LLM service")
+	if err := s.llmService.Configure(apiKey); err != nil {
+		s.logger.Error("Failed to configure LLM: %v", err)
+		return err
+	}
+	s.logger.Info("LLM service configured successfully")
+	return nil
+}
+
+// IsLLMConfigured returns true if the LLM service has a valid API key
+func (s *Service) IsLLMConfigured() bool {
+	return s.llmService.IsConfigured()
+}
+
+// DiagnoseConnection analyzes a specific connection and returns AI-generated diagnosis
+func (s *Service) DiagnoseConnection(localAddr string, localPort uint16, remoteAddr string, remotePort uint16) (*llm.DiagnosticResult, error) {
+	s.logger.Debug("Diagnosing connection %s:%d -> %s:%d", localAddr, localPort, remoteAddr, remotePort)
+
+	// Find the connection
+	isIPv6 := len(localAddr) > 15 || len(remoteAddr) > 15
+	key := ConnectionKey{
+		LocalAddr:  localAddr,
+		LocalPort:  localPort,
+		RemoteAddr: remoteAddr,
+		RemotePort: remotePort,
+		IsIPv6:     isIPv6,
+	}
+
+	conn, exists := s.connectionManager.Get(key)
+	if !exists {
+		return nil, ErrConnectionNotFound
+	}
+
+	// Build connection summary for LLM
+	summary := s.buildConnectionSummary(conn)
+
+	// Call LLM service
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	result, err := s.llmService.DiagnoseConnection(ctx, summary)
+	if err != nil {
+		s.logger.Error("LLM diagnosis failed: %v", err)
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// QueryConnections answers a natural language question about the connections
+func (s *Service) QueryConnections(query string) (*llm.QueryResult, error) {
+	s.logger.Debug("LLM Query: %s", query)
+
+	// Get all connections
+	allConnections := s.connectionManager.GetAll()
+
+	// Build summaries for LLM
+	summaries := make([]llm.ConnectionSummary, 0, len(allConnections))
+	for i := range allConnections {
+		summaries = append(summaries, s.buildConnectionSummary(&allConnections[i]))
+	}
+
+	// Call LLM service
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancel()
+
+	result, err := s.llmService.QueryConnections(ctx, query, summaries)
+	if err != nil {
+		s.logger.Error("LLM query failed: %v", err)
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// GenerateHealthReport creates an AI-generated network health report
+func (s *Service) GenerateHealthReport() (*llm.HealthReport, error) {
+	s.logger.Info("Generating AI health report")
+
+	// Get all connections
+	allConnections := s.connectionManager.GetAll()
+
+	// Build summaries for LLM
+	summaries := make([]llm.ConnectionSummary, 0, len(allConnections))
+	for i := range allConnections {
+		summaries = append(summaries, s.buildConnectionSummary(&allConnections[i]))
+	}
+
+	// Call LLM service
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	result, err := s.llmService.GenerateHealthReport(ctx, summaries)
+	if err != nil {
+		s.logger.Error("LLM health report failed: %v", err)
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// buildConnectionSummary converts a ConnectionInfo to an LLM-friendly summary
+func (s *Service) buildConnectionSummary(conn *ConnectionInfo) llm.ConnectionSummary {
+	summary := llm.ConnectionSummary{
+		LocalAddr:  conn.LocalAddr,
+		LocalPort:  conn.LocalPort,
+		RemoteAddr: conn.RemoteAddr,
+		RemotePort: conn.RemotePort,
+		State:      conn.State.String(),
+		HasWarning: conn.HighRetransmissionWarning || conn.HighRTTWarning,
+	}
+
+	if conn.BasicStats != nil {
+		summary.BytesIn = conn.BasicStats.DataBytesIn
+		summary.BytesOut = conn.BasicStats.DataBytesOut
+	}
+
+	if conn.ExtendedStats != nil {
+		// RTT in milliseconds
+		summary.RTTMs = float64(conn.ExtendedStats.SmoothedRTT) / 1000.0
+
+		// Calculate retransmission rate
+		if conn.ExtendedStats.TotalSegsOut > 0 {
+			summary.RetransmissionRate = float64(conn.ExtendedStats.SegsRetrans) / float64(conn.ExtendedStats.TotalSegsOut) * 100
+		}
+
+		summary.InboundBandwidthBps = conn.ExtendedStats.InboundBandwidth
+		summary.OutboundBandwidthBps = conn.ExtendedStats.OutboundBandwidth
+	}
+
+	return summary
 }
