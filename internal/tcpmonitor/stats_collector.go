@@ -336,8 +336,8 @@ func (sc *StatsCollector) GetExtendedStats(conn *ConnectionInfo) (*ExtendedStats
 
 	// Retrieve bandwidth statistics
 	if bwStats, err := sc.getBandwidthStats(row); err == nil {
-		// DEBUG: Log raw bandwidth values
-		sc.logger.Debug("RAW BANDWIDTH - Outbound: %d, Inbound: %d, OutInstab: %d, InInstab: %d",
+		// DEBUG: Log raw bandwidth values - using Info so it shows in console
+		sc.logger.Info("RAW BANDWIDTH - Outbound: %d, Inbound: %d, OutInstab: %d, InInstab: %d",
 			bwStats.OutboundBandwidth, bwStats.InboundBandwidth,
 			bwStats.OutboundInstability, bwStats.InboundInstability)
 		stats.OutboundBandwidth = bwStats.OutboundBandwidth
