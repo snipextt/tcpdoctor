@@ -4,6 +4,7 @@
 package winapi
 
 import (
+	"encoding/binary"
 	"fmt"
 	"syscall"
 	"unsafe"
@@ -253,8 +254,16 @@ func (w *WindowsAPILayer) GetPerTcpConnectionEStats(row interface{}, statsType T
 		result := *src
 		rod = &result
 	case TcpConnectionEstatsBandwidth:
-		src := (*TCP_ESTATS_BANDWIDTH_ROD_v0)(unsafe.Pointer(&buffer[0]))
-		result := *src
+		// Buffer is 34 bytes, but Go struct is 40 bytes due to alignment
+		// We must manually extract the values from the buffer
+		result := TCP_ESTATS_BANDWIDTH_ROD_v0{
+			OutboundBandwidth:       binary.LittleEndian.Uint64(buffer[0:8]),
+			InboundBandwidth:        binary.LittleEndian.Uint64(buffer[8:16]),
+			OutboundInstability:     binary.LittleEndian.Uint64(buffer[16:24]),
+			InboundInstability:      binary.LittleEndian.Uint64(buffer[24:32]),
+			OutboundBandwidthPeaked: buffer[32],
+			InboundBandwidthPeaked:  buffer[33],
+		}
 		rod = &result
 	case TcpConnectionEstatsFineRtt:
 		src := (*TCP_ESTATS_FINE_RTT_ROD_v0)(unsafe.Pointer(&buffer[0]))
