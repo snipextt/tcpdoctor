@@ -273,6 +273,50 @@ func (w *WindowsAPILayer) GetPerTcpConnectionEStats(row interface{}, statsType T
 	return rod, nil
 }
 
+// GetBandwidthStats retrieves bandwidth statistics using direct struct allocation
+// This is separate from GetPerTcpConnectionEStats to avoid buffer corruption issues
+func (w *WindowsAPILayer) GetBandwidthStats(row interface{}) (*TCP_ESTATS_BANDWIDTH_ROD_v0, error) {
+	var rowPtr uintptr
+	var version uint32 = 0
+
+	switch r := row.(type) {
+	case *MIB_TCPROW:
+		rowPtr = uintptr(unsafe.Pointer(r))
+	case *MIB_TCP6ROW:
+		rowPtr = uintptr(unsafe.Pointer(r))
+	default:
+		return nil, fmt.Errorf("unsupported row type")
+	}
+
+	// Create struct directly on stack - Windows will write to it
+	var rodStruct TCP_ESTATS_BANDWIDTH_ROD_v0
+	rodPtr := uintptr(unsafe.Pointer(&rodStruct))
+	rodSize := unsafe.Sizeof(rodStruct)
+
+	ret, _, _ := procGetPerTcpConnectionEStats.Call(
+		rowPtr,
+		uintptr(TcpConnectionEstatsBandwidth),
+		0,                // Rw
+		uintptr(version), // RwVersion
+		0,                // RwSize
+		0,                // Ros
+		uintptr(version), // RosVersion
+		0,                // RosSize
+		rodPtr,           // Rod
+		uintptr(version), // RodVersion
+		rodSize,          // RodSize
+	)
+
+	if ret != 0 {
+		errno := syscall.Errno(ret)
+		return nil, fmt.Errorf("GetBandwidthStats failed: %w", errno)
+	}
+
+	// Return a copy of the struct
+	result := rodStruct
+	return &result, nil
+}
+
 // IsAdministrator checks if the current process has administrator privileges
 func (w *WindowsAPILayer) IsAdministrator() bool {
 	var token syscall.Token

@@ -408,17 +408,8 @@ func (sc *StatsCollector) getSendBuffStats(row interface{}) (*winapi.TCP_ESTATS_
 }
 
 func (sc *StatsCollector) getBandwidthStats(row interface{}) (*winapi.TCP_ESTATS_BANDWIDTH_ROD_v0, error) {
-	result, err := sc.apiLayer.GetPerTcpConnectionEStats(row, winapi.TcpConnectionEstatsBandwidth)
-	if err != nil {
-		return nil, err
-	}
-
-	stats, ok := result.(*winapi.TCP_ESTATS_BANDWIDTH_ROD_v0)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type for bandwidth stats")
-	}
-
-	return stats, nil
+	// Use dedicated GetBandwidthStats function which avoids buffer corruption
+	return sc.apiLayer.GetBandwidthStats(row)
 }
 
 // Helper methods to create row structures for API calls
