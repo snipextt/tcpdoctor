@@ -137,13 +137,14 @@ func (w *WindowsAPILayer) SetPerTcpConnectionEStats(row interface{}, statsType T
 
 	_ = rw // Keep reference to prevent GC
 
+	// SetPerTcpConnectionEStats params: Row, EstatsType, Rw, RwVersion, RwSize, Offset
 	ret, _, _ := procSetPerTcpConnectionEStats.Call(
 		rowPtr,
 		uintptr(statsType),
 		rwPtr,
-		0,      // Offset
-		rwSize, // Size
-		uintptr(version),
+		uintptr(version), // RwVersion
+		rwSize,           // RwSize
+		0,                // Offset
 	)
 
 	if ret != 0 {
@@ -163,14 +164,14 @@ func (w *WindowsAPILayer) GetPerTcpConnectionEStats(row interface{}, statsType T
 	var rowPtr uintptr
 	var version uint32 = 0
 
-	// Determine the row pointer based on type
+	// Determine the row pointer based on type (must use MIB_TCPROW/MIB_TCP6ROW, not OWNER_PID variants)
 	switch r := row.(type) {
-	case *MIB_TCPROW_OWNER_PID:
+	case *MIB_TCPROW:
 		rowPtr = uintptr(unsafe.Pointer(r))
-	case *MIB_TCP6ROW_OWNER_PID:
+	case *MIB_TCP6ROW:
 		rowPtr = uintptr(unsafe.Pointer(r))
 	default:
-		return nil, fmt.Errorf("unsupported row type")
+		return nil, fmt.Errorf("unsupported row type: expected MIB_TCPROW or MIB_TCP6ROW")
 	}
 
 	// Create the ROD structure to receive statistics
