@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 package tcpmonitor
@@ -26,37 +27,38 @@ type ConnectionInfo struct {
 	ExtendedStats *ExtendedStats
 }
 type FilterOptions struct {
-	PID        *uint32
-	Port       *uint16
-	State      *TCPState
-	IPv4Only   bool
-	IPv6Only   bool
-	SearchText string
+	PID             *uint32
+	Port            *uint16
+	State           *TCPState
+	IPv4Only        bool
+	IPv6Only        bool
+	ExcludeInternal bool
+	SearchText      string
 }
 type ExtendedStats struct {
-	TotalSegsOut        uint64
-	TotalSegsIn         uint64
-	ThruBytesAcked      uint64
-	ThruBytesReceived   uint64
-	SegsRetrans         uint32
-	BytesRetrans        uint32
-	FastRetrans         uint32
-	TimeoutEpisodes     uint32
-	SampleRTT           uint32
-	SmoothedRTT         uint32
-	RTTVariance         uint32
-	MinRTT              uint32
-	MaxRTT              uint32
-	CurrentCwnd         uint32
-	CurrentSsthresh     uint32
-	SlowStartCount      uint32
-	CongAvoidCount      uint32
-	CurRetxQueue        uint32
-	MaxRetxQueue        uint32
-	CurAppWQueue        uint32
-	MaxAppWQueue        uint32
-	OutboundBandwidth   uint64
-	InboundBandwidth    uint64
+	TotalSegsOut      uint64
+	TotalSegsIn       uint64
+	ThruBytesAcked    uint64
+	ThruBytesReceived uint64
+	SegsRetrans       uint32
+	BytesRetrans      uint32
+	FastRetrans       uint32
+	TimeoutEpisodes   uint32
+	SampleRTT         uint32
+	SmoothedRTT       uint32
+	RTTVariance       uint32
+	MinRTT            uint32
+	MaxRTT            uint32
+	CurrentCwnd       uint32
+	CurrentSsthresh   uint32
+	SlowStartCount    uint32
+	CongAvoidCount    uint32
+	CurRetxQueue      uint32
+	MaxRetxQueue      uint32
+	CurAppWQueue      uint32
+	MaxAppWQueue      uint32
+	OutboundBandwidth uint64
+	InboundBandwidth  uint64
 }
 type BasicStats struct {
 	DataBytesOut uint64
@@ -85,19 +87,21 @@ func NewService(config ServiceConfig) (*Service, error) {
 	return nil, fmt.Errorf("TCP monitoring is only supported on Windows")
 }
 
-func (s *Service) Start()                                                                                  {}
-func (s *Service) Stop()                                                                                   {}
-func (s *Service) GetConnections(filter FilterOptions) ([]ConnectionInfo, error)                          { return nil, fmt.Errorf("not supported") }
+func (s *Service) Start() {}
+func (s *Service) Stop()  {}
+func (s *Service) GetConnections(filter FilterOptions) ([]ConnectionInfo, error) {
+	return nil, fmt.Errorf("not supported")
+}
 func (s *Service) GetConnectionStats(localAddr string, localPort uint16, remoteAddr string, remotePort uint16) (*ExtendedStats, error) {
 	return nil, fmt.Errorf("not supported")
 }
-func (s *Service) IsAdministrator() bool                              { return false }
-func (s *Service) SetUpdateInterval(interval time.Duration) error     { return fmt.Errorf("not supported") }
-func (s *Service) GetUpdateInterval() time.Duration                   { return 0 }
-func (s *Service) GetConnectionCount() int                            { return 0 }
-func (s *Service) ClearSelection()                                    {}
-func (s *Service) SetHealthThresholds(thresholds HealthThresholds)   {}
-func (s *Service) GetHealthThresholds() HealthThresholds             { return DefaultHealthThresholds() }
-func (s *Service) SetRetransmissionThreshold(percent float64)        {}
-func (s *Service) SetRTTThreshold(milliseconds uint32)               {}
-func (s *Service) ExportToCSV(path string) error                     { return fmt.Errorf("not supported") }
+func (s *Service) IsAdministrator() bool                           { return false }
+func (s *Service) SetUpdateInterval(interval time.Duration) error  { return fmt.Errorf("not supported") }
+func (s *Service) GetUpdateInterval() time.Duration                { return 0 }
+func (s *Service) GetConnectionCount() int                         { return 0 }
+func (s *Service) ClearSelection()                                 {}
+func (s *Service) SetHealthThresholds(thresholds HealthThresholds) {}
+func (s *Service) GetHealthThresholds() HealthThresholds           { return DefaultHealthThresholds() }
+func (s *Service) SetRetransmissionThreshold(percent float64)      {}
+func (s *Service) SetRTTThreshold(milliseconds uint32)             {}
+func (s *Service) ExportToCSV(path string) error                   { return fmt.Errorf("not supported") }

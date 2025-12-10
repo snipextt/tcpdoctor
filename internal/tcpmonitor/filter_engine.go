@@ -1,19 +1,22 @@
+//go:build windows
 // +build windows
 
 package tcpmonitor
 
 import (
+	"net"
 	"strings"
 )
 
 // FilterOptions defines the criteria for filtering connections
 type FilterOptions struct {
-	PID        *uint32   // Filter by process ID (nil means no filter)
-	Port       *uint16   // Filter by port number (local or remote, nil means no filter)
-	State      *TCPState // Filter by connection state (nil means no filter)
-	IPv4Only   bool      // Show only IPv4 connections
-	IPv6Only   bool      // Show only IPv6 connections
-	SearchText string    // Text search for addresses (empty means no filter)
+	PID             *uint32   // Filter by process ID (nil means no filter)
+	Port            *uint16   // Filter by port number (local or remote, nil means no filter)
+	State           *TCPState // Filter by connection state (nil means no filter)
+	IPv4Only        bool      // Show only IPv4 connections
+	IPv6Only        bool      // Show only IPv6 connections
+	ExcludeInternal bool      // Hide connections where both endpoints are internal/private IPs
+	SearchText      string    // Text search for addresses (empty means no filter)
 }
 
 // FilterEngine applies filters to connection lists
@@ -57,6 +60,7 @@ func (fe *FilterEngine) hasActiveFilters(filter FilterOptions) bool {
 		filter.State != nil ||
 		filter.IPv4Only ||
 		filter.IPv6Only ||
+		filter.ExcludeInternal ||
 		filter.SearchText != ""
 }
 
@@ -87,6 +91,13 @@ func (fe *FilterEngine) matchesFilter(conn ConnectionInfo, filter FilterOptions)
 		return false
 	}
 
+	// Internal traffic filter - hide connections where both endpoints are internal
+	if filter.ExcludeInternal {
+		if isInternalIP(conn.LocalAddr) && isInternalIP(conn.RemoteAddr) {
+			return false
+		}
+	}
+
 	// Text search filter (searches in local and remote addresses)
 	if filter.SearchText != "" {
 		searchLower := strings.ToLower(filter.SearchText)
@@ -101,4 +112,30 @@ func (fe *FilterEngine) matchesFilter(conn ConnectionInfo, filter FilterOptions)
 
 	// All filters passed
 	return true
+}
+
+// isInternalIP checks if an IP address is a private/internal address
+// Matches: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.0/8, ::1, fe80::/10
+func isInternalIP(addr string) bool {
+	ip := net.ParseIP(addr)
+	if ip == nil {
+		return false
+	}
+
+	// Check for loopback (127.x.x.x or ::1)
+	if ip.IsLoopback() {
+		return true
+	}
+
+	// Check for link-local (169.254.x.x or fe80::)
+	if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+		return true
+	}
+
+	// Check for private addresses (10.x, 172.16-31.x, 192.168.x, fc00::/7)
+	if ip.IsPrivate() {
+		return true
+	}
+
+	return false
 }

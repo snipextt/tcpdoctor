@@ -142,6 +142,17 @@ const FilterControls: React.FC<FilterControlsProps> = ({
           />
           IPv6 Only
         </label>
+        <label className={`checkbox-label ${filter.ExcludeInternal ? 'active' : ''}`}>
+          <input
+            type="checkbox"
+            checked={filter.ExcludeInternal || false}
+            onChange={() => onFilterChange(new tcpmonitor.FilterOptions({
+              ...filter,
+              ExcludeInternal: !filter.ExcludeInternal,
+            }))}
+          />
+          Hide Internal
+        </label>
       </div>
     </div>
   );
