@@ -193,9 +193,9 @@ func (w *WindowsAPILayer) GetPerTcpConnectionEStats(row interface{}, statsType T
 	case TcpConnectionEstatsSendBuff:
 		rodSize = unsafe.Sizeof(TCP_ESTATS_SEND_BUFF_ROD_v0{})
 	case TcpConnectionEstatsBandwidth:
-		// Windows struct is 34 bytes, but we allocate 40 (Go struct size)
-		// and tell Windows API to write only 34 bytes
-		rodSize = 34
+		// Use Go struct size (40 bytes) - Windows rejected 34 bytes
+		// Windows will write 34 bytes, we'll read them manually
+		rodSize = unsafe.Sizeof(TCP_ESTATS_BANDWIDTH_ROD_v0{})
 	case TcpConnectionEstatsFineRtt:
 		rodSize = unsafe.Sizeof(TCP_ESTATS_FINE_RTT_ROD_v0{})
 	default:
