@@ -20,7 +20,7 @@ type GeminiService struct {
 // NewGeminiService creates a new Gemini service
 func NewGeminiService() *GeminiService {
 	return &GeminiService{
-		model: "gemini-2.0-flash", // Fast and capable model
+		model: "gemini-2.5-flash-lite", // Fast and capable model
 	}
 }
 
