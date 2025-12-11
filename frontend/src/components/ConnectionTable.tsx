@@ -137,7 +137,7 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
       <div
         style={style}
         className={`connection-row ${selected ? 'selected' : ''}`}
-        onClick={() => onSelectConnection(conn)}
+        onMouseDown={() => onSelectConnection(conn)}
       >
         {/* Health Indicator */}
         <div className="health-indicator" style={{ backgroundColor: healthColor }} />
