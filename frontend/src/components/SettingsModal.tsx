@@ -5,14 +5,19 @@ interface SettingsModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSaveAPIKey: (apiKey: string) => Promise<void>;
+    refreshRate: number;
+    onRefreshRateChange: (rate: number) => void;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
     isOpen,
     onClose,
     onSaveAPIKey,
+    refreshRate,
+    onRefreshRateChange,
 }) => {
     const [apiKey, setApiKey] = useState('');
+    const [rateInput, setRateInput] = useState(refreshRate.toString());
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
@@ -21,10 +26,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         if (isOpen) {
             const savedKey = localStorage.getItem('gemini_api_key') || '';
             setApiKey(savedKey);
+            setRateInput(refreshRate.toString());
             setError(null);
             setSuccess(false);
         }
-    }, [isOpen]);
+    }, [isOpen, refreshRate]);
 
     const handleSave = async () => {
         if (!apiKey.trim()) {
@@ -47,17 +53,43 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         }
     };
 
+    const handleRateChange = (value: string) => {
+        setRateInput(value);
+        const rate = parseInt(value, 10);
+        if (!isNaN(rate) && rate >= 100) {
+            onRefreshRateChange(rate);
+            localStorage.setItem('refresh_rate', rate.toString());
+        }
+    };
+
     if (!isOpen) return null;
 
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
-                    <h2>⚙️ AI Settings</h2>
+                    <h2>⚙️ Settings</h2>
                     <button className="close-btn" onClick={onClose}>×</button>
                 </div>
 
                 <div className="modal-body">
+                    {/* Refresh Rate */}
+                    <div className="setting-group">
+                        <label>Refresh Rate (ms)</label>
+                        <div className="input-group">
+                            <input
+                                type="number"
+                                value={rateInput}
+                                onChange={(e) => handleRateChange(e.target.value)}
+                                min="100"
+                                step="100"
+                                placeholder="1000"
+                            />
+                        </div>
+                        <p className="setting-description">Minimum 100ms</p>
+                    </div>
+
+                    {/* API Key */}
                     <div className="setting-group">
                         <label>Gemini API Key</label>
                         <p className="setting-description">
@@ -78,7 +110,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
                     <div className="info-box">
                         <h4>🔒 Privacy</h4>
-                        <p>Key stored locally, data sent to Gemini for analysis.</p>
+                        <p>Settings stored locally. Connection data sent to Gemini for AI analysis.</p>
                     </div>
                 </div>
 

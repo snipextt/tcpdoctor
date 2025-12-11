@@ -20,7 +20,10 @@ import './App.css';
 function App() {
     const [connectionCount, setConnectionCount] = useState(0);
     const [isAdmin, setIsAdmin] = useState(false);
-    const [updateInterval, setUpdateInterval] = useState(1000);
+    const [updateInterval, setUpdateInterval] = useState(() => {
+        const saved = localStorage.getItem('refresh_rate');
+        return saved ? parseInt(saved, 10) : 1000;
+    });
     const [connections, setConnections] = useState<tcpmonitor.ConnectionInfo[]>([]);
     const [selectedConnection, setSelectedConnection] = useState<tcpmonitor.ConnectionInfo | null>(null);
     const [filter, setFilter] = useState<tcpmonitor.FilterOptions>(new tcpmonitor.FilterOptions({
@@ -235,6 +238,8 @@ function App() {
                 isOpen={isSettingsOpen}
                 onClose={() => setIsSettingsOpen(false)}
                 onSaveAPIKey={handleSaveAPIKey}
+                refreshRate={updateInterval}
+                onRefreshRateChange={setUpdateInterval}
             />
         </div>
     );
