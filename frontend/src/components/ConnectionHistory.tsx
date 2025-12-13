@@ -38,6 +38,7 @@ interface ConnectionHistoryProps {
     onClose: () => void;
     connectionKey: string; // "localAddr:localPort -> remoteAddr:remotePort"
     getHistory: () => Promise<ConnectionHistoryPoint[]>;
+    viewingHistorical?: boolean; // True if viewing a snapshot (history limited to that point)
 }
 
 type MetricTab = 'traffic' | 'segments' | 'rtt' | 'retrans' | 'bandwidth' | 'cwnd';
@@ -47,6 +48,7 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
     onClose,
     connectionKey,
     getHistory,
+    viewingHistorical = false,
 }) => {
     const [history, setHistory] = useState<ConnectionHistoryPoint[]>([]);
     const [isLoading, setIsLoading] = useState(false);
