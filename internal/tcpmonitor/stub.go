@@ -120,3 +120,54 @@ func (s *Service) QueryConnections(query string) (*llm.QueryResult, error) {
 func (s *Service) GenerateHealthReport() (*llm.HealthReport, error) {
 	return nil, fmt.Errorf("not supported")
 }
+
+// Snapshot stubs and types
+type CompactConnection struct {
+	LocalAddr  string `json:"localAddr"`
+	LocalPort  int    `json:"localPort"`
+	RemoteAddr string `json:"remoteAddr"`
+	RemotePort int    `json:"remotePort"`
+	State      int    `json:"state"`
+	PID        int    `json:"pid"`
+	BytesIn    int64  `json:"bytesIn"`
+	BytesOut   int64  `json:"bytesOut"`
+	RTT        int64  `json:"rtt"`
+	Retrans    int64  `json:"retrans"`
+}
+
+type Snapshot struct {
+	ID          int64               `json:"id"`
+	Timestamp   time.Time           `json:"timestamp"`
+	Connections []CompactConnection `json:"connections"`
+}
+
+type SnapshotMeta struct {
+	ID              int64     `json:"id"`
+	Timestamp       time.Time `json:"timestamp"`
+	ConnectionCount int       `json:"connectionCount"`
+}
+
+type ComparisonResult struct {
+	Snapshot1 int64               `json:"snapshot1"`
+	Snapshot2 int64               `json:"snapshot2"`
+	Added     []CompactConnection `json:"added"`
+	Removed   []CompactConnection `json:"removed"`
+	Changed   []ConnectionDiff    `json:"changed"`
+}
+
+type ConnectionDiff struct {
+	Connection CompactConnection `json:"connection"`
+	DeltaIn    int64             `json:"deltaIn"`
+	DeltaOut   int64             `json:"deltaOut"`
+	DeltaRTT   int64             `json:"deltaRtt"`
+}
+
+func (s *Service) StartRecording()                                   {}
+func (s *Service) StopRecording()                                    {}
+func (s *Service) IsRecording() bool                                 { return false }
+func (s *Service) GetSnapshotCount() int                             { return 0 }
+func (s *Service) GetSnapshotMeta() []SnapshotMeta                   { return nil }
+func (s *Service) GetSnapshot(id int64) *Snapshot                    { return nil }
+func (s *Service) CompareSnapshots(id1, id2 int64) *ComparisonResult { return nil }
+func (s *Service) ClearSnapshots()                                   {}
+func (s *Service) TakeSnapshot()                                     {}

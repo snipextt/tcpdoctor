@@ -7,7 +7,16 @@ import {
     ConfigureLLM,
     IsLLMConfigured,
     DiagnoseConnection,
-    GenerateHealthReport
+    GenerateHealthReport,
+    StartRecording,
+    StopRecording,
+    IsRecording,
+    GetSnapshotCount,
+    GetSnapshotMeta,
+    GetSnapshot,
+    CompareSnapshots,
+    ClearSnapshots,
+    TakeSnapshot
 } from "../wailsjs/go/main/App";
 import { tcpmonitor } from "../wailsjs/go/models";
 import ConnectionTable from './components/ConnectionTable';
@@ -15,6 +24,8 @@ import FilterControls from './components/FilterControls';
 import StatsPanel from './components/StatsPanel';
 import SettingsModal from './components/SettingsModal';
 import HealthReportModal from './components/HealthReportModal';
+import SnapshotControls from './components/SnapshotControls';
+import SnapshotTimeline from './components/SnapshotTimeline';
 import './App.css';
 
 function App() {
@@ -37,6 +48,11 @@ function App() {
     const [isHealthReportOpen, setIsHealthReportOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isAIConfigured, setIsAIConfigured] = useState(false);
+
+    // Snapshot State
+    const [isRecording, setIsRecording] = useState(false);
+    const [snapshotCount, setSnapshotCount] = useState(0);
+    const [isTimelineOpen, setIsTimelineOpen] = useState(false);
 
     // Check if AI is configured on mount
     useEffect(() => {
@@ -117,12 +133,18 @@ function App() {
         }
     };
 
-    // Polling effect
+    // Polling effect - also takes snapshots when recording
     useEffect(() => {
         refreshConnections();
-        const intervalId = setInterval(refreshConnections, updateInterval);
+        const intervalId = setInterval(() => {
+            refreshConnections();
+            if (isRecording) {
+                TakeSnapshot();
+                GetSnapshotCount().then(setSnapshotCount);
+            }
+        }, updateInterval);
         return () => clearInterval(intervalId);
-    }, [refreshConnections, updateInterval]);
+    }, [refreshConnections, updateInterval, isRecording]);
 
     const handleFilterChange = (newFilter: tcpmonitor.FilterOptions) => {
         setFilter(newFilter);
@@ -164,6 +186,24 @@ function App() {
         };
     };
 
+    // Snapshot Handlers
+    const handleStartRecording = async () => {
+        await StartRecording();
+        setIsRecording(true);
+    };
+
+    const handleStopRecording = async () => {
+        await StopRecording();
+        setIsRecording(false);
+        const count = await GetSnapshotCount();
+        setSnapshotCount(count);
+    };
+
+    const handleClearSnapshots = async () => {
+        await ClearSnapshots();
+        setSnapshotCount(0);
+    };
+
     return (
         <div className="app-container">
             <header className="app-header">
@@ -171,6 +211,13 @@ function App() {
                     <h1>TCP Doctor</h1>
                 </div>
                 <div className="header-actions">
+                    <SnapshotControls
+                        isRecording={isRecording}
+                        snapshotCount={snapshotCount}
+                        onStartRecording={handleStartRecording}
+                        onStopRecording={handleStopRecording}
+                        onOpenTimeline={() => setIsTimelineOpen(true)}
+                    />
                     <button className="btn-export" onClick={handleExport}>
                         Export CSV
                     </button>
@@ -240,6 +287,17 @@ function App() {
                 onSaveAPIKey={handleSaveAPIKey}
                 refreshRate={updateInterval}
                 onRefreshRateChange={setUpdateInterval}
+            />
+
+            {/* Snapshot Timeline Modal */}
+            <SnapshotTimeline
+                isOpen={isTimelineOpen}
+                onClose={() => setIsTimelineOpen(false)}
+                getMeta={GetSnapshotMeta}
+                getSnapshot={GetSnapshot}
+                compareSnapshots={CompareSnapshots}
+                onLoadSnapshot={(snap) => console.log('Load snapshot:', snap.id)}
+                onClear={handleClearSnapshots}
             />
         </div>
     );

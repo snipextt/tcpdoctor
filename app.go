@@ -208,3 +208,73 @@ func (a *App) GenerateHealthReport() (*llm.HealthReport, error) {
 	}
 	return a.service.GenerateHealthReport()
 }
+
+// === Snapshot Methods ===
+
+// StartRecording begins snapshot capture
+func (a *App) StartRecording() {
+	if a.service != nil {
+		a.service.StartRecording()
+	}
+}
+
+// StopRecording stops snapshot capture
+func (a *App) StopRecording() {
+	if a.service != nil {
+		a.service.StopRecording()
+	}
+}
+
+// IsRecording returns current recording state
+func (a *App) IsRecording() bool {
+	if a.service == nil {
+		return false
+	}
+	return a.service.IsRecording()
+}
+
+// GetSnapshotCount returns number of stored snapshots
+func (a *App) GetSnapshotCount() int {
+	if a.service == nil {
+		return 0
+	}
+	return a.service.GetSnapshotCount()
+}
+
+// GetSnapshotMeta returns lightweight metadata for timeline
+func (a *App) GetSnapshotMeta() []tcpmonitor.SnapshotMeta {
+	if a.service == nil {
+		return nil
+	}
+	return a.service.GetSnapshotMeta()
+}
+
+// GetSnapshot returns a specific snapshot by ID
+func (a *App) GetSnapshot(id int64) *tcpmonitor.Snapshot {
+	if a.service == nil {
+		return nil
+	}
+	return a.service.GetSnapshot(id)
+}
+
+// CompareSnapshots compares two snapshots
+func (a *App) CompareSnapshots(id1, id2 int64) *tcpmonitor.ComparisonResult {
+	if a.service == nil {
+		return nil
+	}
+	return a.service.CompareSnapshots(id1, id2)
+}
+
+// ClearSnapshots removes all stored snapshots
+func (a *App) ClearSnapshots() {
+	if a.service != nil {
+		a.service.ClearSnapshots()
+	}
+}
+
+// TakeSnapshot manually captures current state
+func (a *App) TakeSnapshot() {
+	if a.service != nil {
+		a.service.TakeSnapshot()
+	}
+}

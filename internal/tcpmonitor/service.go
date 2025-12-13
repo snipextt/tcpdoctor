@@ -25,6 +25,9 @@ type Service struct {
 	// LLM service for AI-powered analysis
 	llmService *llm.GeminiService
 
+	// Snapshot store for time-travel feature
+	snapshotStore *SnapshotStore
+
 	updateInterval time.Duration
 	isAdmin        bool
 
@@ -92,6 +95,7 @@ func NewService(config ServiceConfig) (*Service, error) {
 		filterEngine:      filterEngine,
 		apiLayer:          apiLayer,
 		llmService:        llm.NewGeminiService(),
+		snapshotStore:     NewSnapshotStore(20000), // ~20k snapshots for high-freq recording
 		updateInterval:    config.UpdateInterval,
 		isAdmin:           isAdmin,
 		healthThresholds:  DefaultHealthThresholds(),
@@ -709,4 +713,55 @@ func (s *Service) buildConnectionSummary(conn *ConnectionInfo) llm.ConnectionSum
 	}
 
 	return summary
+}
+
+// === Snapshot Methods (Wails-exposed) ===
+
+// StartRecording begins snapshot capture
+func (s *Service) StartRecording() {
+	s.snapshotStore.StartRecording()
+	s.logger.Info("Snapshot recording started")
+}
+
+// StopRecording stops snapshot capture
+func (s *Service) StopRecording() {
+	s.snapshotStore.StopRecording()
+	s.logger.Info("Snapshot recording stopped, %d snapshots captured", s.snapshotStore.Count())
+}
+
+// IsRecording returns current recording state
+func (s *Service) IsRecording() bool {
+	return s.snapshotStore.IsRecording()
+}
+
+// GetSnapshotCount returns number of stored snapshots
+func (s *Service) GetSnapshotCount() int {
+	return s.snapshotStore.Count()
+}
+
+// GetSnapshotMeta returns lightweight metadata for timeline
+func (s *Service) GetSnapshotMeta() []SnapshotMeta {
+	return s.snapshotStore.GetMeta()
+}
+
+// GetSnapshot returns a specific snapshot by ID
+func (s *Service) GetSnapshot(id int64) *Snapshot {
+	return s.snapshotStore.GetByID(id)
+}
+
+// CompareSnapshots compares two snapshots
+func (s *Service) CompareSnapshots(id1, id2 int64) *ComparisonResult {
+	return s.snapshotStore.Compare(id1, id2)
+}
+
+// ClearSnapshots removes all stored snapshots
+func (s *Service) ClearSnapshots() {
+	s.snapshotStore.Clear()
+	s.logger.Info("Snapshots cleared")
+}
+
+// TakeSnapshot manually captures current state (if recording)
+func (s *Service) TakeSnapshot() {
+	connections, _ := s.GetConnections(FilterOptions{})
+	s.snapshotStore.Take(connections)
 }

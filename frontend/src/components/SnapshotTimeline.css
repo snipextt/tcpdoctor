@@ -1,0 +1,252 @@
+/* Snapshot Timeline Modal */
+
+.timeline-modal {
+    background: var(--color-bg);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    max-width: 450px;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.timeline-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.timeline-modal .modal-header h2 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.timeline-modal .header-actions {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.clear-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-dim);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+}
+
+.clear-btn:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.timeline-modal .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--color-text-dim);
+}
+
+.empty-state p {
+    margin: 0.25rem 0;
+}
+
+.empty-state .hint {
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+/* Snapshot List */
+.snapshot-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.snapshot-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    background: var(--color-bg-secondary);
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.snapshot-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.snapshot-item.selected {
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.select-checkbox input {
+    cursor: pointer;
+}
+
+.snapshot-info {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.snapshot-info .time {
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.snapshot-info .count {
+    font-size: 0.75rem;
+    color: var(--color-text-dim);
+}
+
+/* Compare Action */
+.compare-action {
+    padding: 0.75rem;
+    border-top: 1px solid var(--color-border);
+    background: var(--color-bg);
+    position: sticky;
+    bottom: 0;
+}
+
+.compare-btn {
+    width: 100%;
+    padding: 0.6rem;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.compare-btn:hover {
+    opacity: 0.9;
+}
+
+.compare-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Comparison View */
+.comparison-view {
+    padding: 0.5rem;
+}
+
+.comparison-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.back-btn {
+    background: none;
+    border: none;
+    color: var(--color-primary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 0.25rem;
+}
+
+.comparison-stats {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.comparison-stats .stat {
+    flex: 1;
+    padding: 0.75rem;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.stat.added {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+.stat.removed {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.stat.changed {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.stat .count {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.stat .label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    opacity: 0.8;
+}
+
+/* Diff Section */
+.diff-section {
+    margin-top: 1rem;
+}
+
+.diff-section h4 {
+    margin: 0 0 0.5rem;
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+    text-transform: uppercase;
+}
+
+.diff-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.diff-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    background: var(--color-bg-secondary);
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+.conn-addr {
+    font-family: monospace;
+}
+
+.diff-delta {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.delta-in {
+    color: #22c55e;
+}
+
+.delta-out {
+    color: #3b82f6;
+}
