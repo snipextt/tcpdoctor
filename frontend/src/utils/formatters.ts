@@ -71,7 +71,8 @@ export function formatBandwidth(bitsPerSecond: number | undefined | null): Forma
 /**
  * Format a count with thousands separators
  */
-export function formatCount(count: number): string {
+export function formatCount(count: number | undefined | null): string {
+  if (count === undefined || count === null) return '0';
   return count.toLocaleString();
 }
 

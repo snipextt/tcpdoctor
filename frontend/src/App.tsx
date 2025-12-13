@@ -215,6 +215,7 @@ function App() {
     // Load a snapshot's connections into the view
     const handleLoadSnapshot = (snapshot: any) => {
         // Convert compact connections to display format
+        // Add all fields that StatsPanel might access with defaults
         const convertedConnections = snapshot.connections.map((c: any) => ({
             LocalAddr: c.localAddr,
             LocalPort: c.localPort,
@@ -223,21 +224,26 @@ function App() {
             State: c.state,
             PID: c.pid,
             BasicStats: {
-                DataBytesIn: c.bytesIn,
-                DataBytesOut: c.bytesOut,
+                DataBytesIn: c.bytesIn || 0,
+                DataBytesOut: c.bytesOut || 0,
                 DataSegsIn: c.segmentsIn || 0,
                 DataSegsOut: c.segmentsOut || 0,
             },
             ExtendedStats: {
-                SmoothedRTT: c.rtt,
+                SmoothedRTT: c.rtt || 0,
                 RTTVariance: c.rttVariance || 0,
                 MinRTT: c.minRtt || 0,
                 MaxRTT: c.maxRtt || 0,
-                BytesRetrans: c.retrans,
+                BytesRetrans: c.retrans || 0,
                 SegsRetrans: c.segsRetrans || 0,
+                FastRetrans: 0, // Not captured in snapshot
+                TimeoutEpisodes: 0, // Not captured in snapshot
                 CurrentCwnd: c.congestionWin || 0,
                 InboundBandwidth: c.inBandwidth || 0,
                 OutboundBandwidth: c.outBandwidth || 0,
+                // Add other fields StatsPanel might use
+                MaxCwnd: 0,
+                MaxSsthresh: 0,
             },
         }));
         setConnections(convertedConnections);
