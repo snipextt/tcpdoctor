@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     GetConnections,
     IsAdministrator,
@@ -157,6 +157,40 @@ function App() {
         setFilter(newFilter);
     };
 
+    // Client-side filtering for snapshot mode
+    const filteredConnections = useMemo(() => {
+        if (viewingSnapshotId === null) {
+            // Live mode - filtering is done on backend
+            return connections;
+        }
+
+        // Snapshot mode - apply filters client-side
+        return connections.filter(conn => {
+            // Text search
+            if (filter.SearchText) {
+                const search = filter.SearchText.toLowerCase();
+                const matchesSearch =
+                    conn.LocalAddr?.toLowerCase().includes(search) ||
+                    conn.RemoteAddr?.toLowerCase().includes(search) ||
+                    String(conn.LocalPort).includes(search) ||
+                    String(conn.RemotePort).includes(search) ||
+                    String(conn.PID).includes(search);
+                if (!matchesSearch) return false;
+            }
+
+            // IPv4/IPv6 filters
+            if (filter.IPv4Only && conn.LocalAddr?.includes(':')) return false;
+            if (filter.IPv6Only && !conn.LocalAddr?.includes(':')) return false;
+
+            // State filter
+            if (filter.State && filter.State > 0 && conn.State !== filter.State) {
+                return false;
+            }
+
+            return true;
+        });
+    }, [connections, filter, viewingSnapshotId]);
+
     // AI Handlers
     const handleSaveAPIKey = async (apiKey: string) => {
         await ConfigureLLM(apiKey);
@@ -312,7 +346,7 @@ function App() {
                         onFilterChange={handleFilterChange}
                     />
                     <ConnectionTable
-                        connections={connections}
+                        connections={filteredConnections}
                         selectedConnection={selectedConnection}
                         onSelectConnection={setSelectedConnection}
                         isLoading={isLoading}

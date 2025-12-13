@@ -10,7 +10,6 @@ import {
 import {
   LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
-import DiagnosisPanel from './DiagnosisPanel';
 
 interface TimeSeriesData {
   time: number;
@@ -114,19 +113,21 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
           </div>
         </div>
 
-        {/* AI Diagnose - Right in header */}
+        {/* Quick Actions - inline buttons */}
         <div className="header-actions">
           {onViewHistory && hasHistory && (
-            <button className="btn-history" onClick={onViewHistory} title="View History">
-              📈 History
+            <button className="btn-action" onClick={onViewHistory} title="View History">
+              📈
             </button>
           )}
           {onDiagnose && onConfigureAPI && (
-            <DiagnosisPanel
-              onDiagnose={onDiagnose}
-              isConfigured={isAIConfigured}
-              onConfigureAPI={onConfigureAPI}
-            />
+            <button
+              className={`btn-action ${!isAIConfigured ? 'setup' : ''}`}
+              onClick={() => isAIConfigured ? null : onConfigureAPI()}
+              title={isAIConfigured ? 'AI Configured' : 'Setup AI'}
+            >
+              {isAIConfigured ? '🤖' : '⚙️'}
+            </button>
           )}
         </div>
       </div>
