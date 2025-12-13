@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// CompactConnection stores minimal data for snapshots
+// CompactConnection stores data for snapshots - expanded for full history
 type CompactConnection struct {
 	LocalAddr  string `json:"localAddr"`
 	LocalPort  int    `json:"localPort"`
@@ -15,10 +15,21 @@ type CompactConnection struct {
 	RemotePort int    `json:"remotePort"`
 	State      int    `json:"state"`
 	PID        int    `json:"pid"`
-	BytesIn    int64  `json:"bytesIn"`
-	BytesOut   int64  `json:"bytesOut"`
-	RTT        int64  `json:"rtt"`
-	Retrans    int64  `json:"retrans"`
+	// Basic Stats
+	BytesIn     int64 `json:"bytesIn"`
+	BytesOut    int64 `json:"bytesOut"`
+	SegmentsIn  int64 `json:"segmentsIn"`
+	SegmentsOut int64 `json:"segmentsOut"`
+	// Extended Stats
+	RTT           int64 `json:"rtt"`
+	RTTVariance   int64 `json:"rttVariance"`
+	MinRTT        int64 `json:"minRtt"`
+	MaxRTT        int64 `json:"maxRtt"`
+	Retrans       int64 `json:"retrans"`
+	SegsRetrans   int64 `json:"segsRetrans"`
+	CongestionWin int64 `json:"congestionWin"`
+	InBandwidth   int64 `json:"inBandwidth"`
+	OutBandwidth  int64 `json:"outBandwidth"`
 }
 
 // Snapshot represents a point-in-time capture
@@ -90,10 +101,19 @@ func (s *SnapshotStore) Take(connections []ConnectionInfo) *Snapshot {
 		if c.BasicStats != nil {
 			compact[i].BytesIn = int64(c.BasicStats.DataBytesIn)
 			compact[i].BytesOut = int64(c.BasicStats.DataBytesOut)
+			compact[i].SegmentsIn = int64(c.BasicStats.DataSegsIn)
+			compact[i].SegmentsOut = int64(c.BasicStats.DataSegsOut)
 		}
 		if c.ExtendedStats != nil {
 			compact[i].RTT = int64(c.ExtendedStats.SmoothedRTT)
+			compact[i].RTTVariance = int64(c.ExtendedStats.RTTVariance)
+			compact[i].MinRTT = int64(c.ExtendedStats.MinRTT)
+			compact[i].MaxRTT = int64(c.ExtendedStats.MaxRTT)
 			compact[i].Retrans = int64(c.ExtendedStats.BytesRetrans)
+			compact[i].SegsRetrans = int64(c.ExtendedStats.SegsRetrans)
+			compact[i].CongestionWin = int64(c.ExtendedStats.CurrentCwnd)
+			compact[i].InBandwidth = int64(c.ExtendedStats.InboundBandwidth)
+			compact[i].OutBandwidth = int64(c.ExtendedStats.OutboundBandwidth)
 		}
 	}
 
@@ -187,14 +207,23 @@ func (s *SnapshotStore) Clear() {
 	s.snapshots = s.snapshots[:0]
 }
 
-// ConnectionHistoryPoint is a single data point for charting
+// ConnectionHistoryPoint is a single data point for charting - all metrics
 type ConnectionHistoryPoint struct {
-	Timestamp time.Time `json:"timestamp"`
-	BytesIn   int64     `json:"bytesIn"`
-	BytesOut  int64     `json:"bytesOut"`
-	RTT       int64     `json:"rtt"`
-	Retrans   int64     `json:"retrans"`
-	State     int       `json:"state"`
+	Timestamp     time.Time `json:"timestamp"`
+	State         int       `json:"state"`
+	BytesIn       int64     `json:"bytesIn"`
+	BytesOut      int64     `json:"bytesOut"`
+	SegmentsIn    int64     `json:"segmentsIn"`
+	SegmentsOut   int64     `json:"segmentsOut"`
+	RTT           int64     `json:"rtt"`
+	RTTVariance   int64     `json:"rttVariance"`
+	MinRTT        int64     `json:"minRtt"`
+	MaxRTT        int64     `json:"maxRtt"`
+	Retrans       int64     `json:"retrans"`
+	SegsRetrans   int64     `json:"segsRetrans"`
+	CongestionWin int64     `json:"congestionWin"`
+	InBandwidth   int64     `json:"inBandwidth"`
+	OutBandwidth  int64     `json:"outBandwidth"`
 }
 
 // GetConnectionHistory returns historical data for a specific connection
@@ -208,12 +237,21 @@ func (s *SnapshotStore) GetConnectionHistory(localAddr string, localPort int, re
 			if conn.LocalAddr == localAddr && conn.LocalPort == localPort &&
 				conn.RemoteAddr == remoteAddr && conn.RemotePort == remotePort {
 				history = append(history, ConnectionHistoryPoint{
-					Timestamp: snap.Timestamp,
-					BytesIn:   conn.BytesIn,
-					BytesOut:  conn.BytesOut,
-					RTT:       conn.RTT,
-					Retrans:   conn.Retrans,
-					State:     conn.State,
+					Timestamp:     snap.Timestamp,
+					State:         conn.State,
+					BytesIn:       conn.BytesIn,
+					BytesOut:      conn.BytesOut,
+					SegmentsIn:    conn.SegmentsIn,
+					SegmentsOut:   conn.SegmentsOut,
+					RTT:           conn.RTT,
+					RTTVariance:   conn.RTTVariance,
+					MinRTT:        conn.MinRTT,
+					MaxRTT:        conn.MaxRTT,
+					Retrans:       conn.Retrans,
+					SegsRetrans:   conn.SegsRetrans,
+					CongestionWin: conn.CongestionWin,
+					InBandwidth:   conn.InBandwidth,
+					OutBandwidth:  conn.OutBandwidth,
 				})
 				break
 			}

@@ -56,6 +56,7 @@ function App() {
     const [snapshotCount, setSnapshotCount] = useState(0);
     const [isTimelineOpen, setIsTimelineOpen] = useState(false);
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+    const [viewingSnapshotId, setViewingSnapshotId] = useState<number | null>(null); // null = live, number = viewing snapshot
 
     // Check if AI is configured on mount
     useEffect(() => {
@@ -137,7 +138,10 @@ function App() {
     };
 
     // Polling effect - also takes snapshots when recording
+    // Only poll when not viewing a historical snapshot
     useEffect(() => {
+        if (viewingSnapshotId !== null) return; // Viewing history, don't poll
+
         refreshConnections();
         const intervalId = setInterval(() => {
             refreshConnections();
@@ -147,7 +151,7 @@ function App() {
             }
         }, updateInterval);
         return () => clearInterval(intervalId);
-    }, [refreshConnections, updateInterval, isRecording]);
+    }, [refreshConnections, updateInterval, isRecording, viewingSnapshotId]);
 
     const handleFilterChange = (newFilter: tcpmonitor.FilterOptions) => {
         setFilter(newFilter);
@@ -205,6 +209,46 @@ function App() {
     const handleClearSnapshots = async () => {
         await ClearSnapshots();
         setSnapshotCount(0);
+        setViewingSnapshotId(null); // Go back to live if viewing was active
+    };
+
+    // Load a snapshot's connections into the view
+    const handleLoadSnapshot = (snapshot: any) => {
+        // Convert compact connections to display format
+        const convertedConnections = snapshot.connections.map((c: any) => ({
+            LocalAddr: c.localAddr,
+            LocalPort: c.localPort,
+            RemoteAddr: c.remoteAddr,
+            RemotePort: c.remotePort,
+            State: c.state,
+            PID: c.pid,
+            BasicStats: {
+                DataBytesIn: c.bytesIn,
+                DataBytesOut: c.bytesOut,
+                DataSegsIn: c.segmentsIn || 0,
+                DataSegsOut: c.segmentsOut || 0,
+            },
+            ExtendedStats: {
+                SmoothedRTT: c.rtt,
+                RTTVariance: c.rttVariance || 0,
+                MinRTT: c.minRtt || 0,
+                MaxRTT: c.maxRtt || 0,
+                BytesRetrans: c.retrans,
+                SegsRetrans: c.segsRetrans || 0,
+                CurrentCwnd: c.congestionWin || 0,
+                InboundBandwidth: c.inBandwidth || 0,
+                OutboundBandwidth: c.outBandwidth || 0,
+            },
+        }));
+        setConnections(convertedConnections);
+        setViewingSnapshotId(snapshot.id);
+        setSelectedConnection(null);
+        setIsTimelineOpen(false);
+    };
+
+    const handleBackToLive = () => {
+        setViewingSnapshotId(null);
+        // Polling will resume automatically due to useEffect dependency
     };
 
     return (
@@ -214,13 +258,22 @@ function App() {
                     <h1>TCP Doctor</h1>
                 </div>
                 <div className="header-actions">
-                    <SnapshotControls
-                        isRecording={isRecording}
-                        snapshotCount={snapshotCount}
-                        onStartRecording={handleStartRecording}
-                        onStopRecording={handleStopRecording}
-                        onOpenTimeline={() => setIsTimelineOpen(true)}
-                    />
+                    {viewingSnapshotId !== null ? (
+                        <div className="viewing-snapshot-indicator">
+                            <span className="snapshot-badge">📷 Viewing Snapshot #{viewingSnapshotId}</span>
+                            <button className="btn-back-live" onClick={handleBackToLive}>
+                                ← Back to Live
+                            </button>
+                        </div>
+                    ) : (
+                        <SnapshotControls
+                            isRecording={isRecording}
+                            snapshotCount={snapshotCount}
+                            onStartRecording={handleStartRecording}
+                            onStopRecording={handleStopRecording}
+                            onOpenTimeline={() => setIsTimelineOpen(true)}
+                        />
+                    )}
                     <button className="btn-export" onClick={handleExport}>
                         Export CSV
                     </button>
@@ -301,7 +354,7 @@ function App() {
                 getMeta={GetSnapshotMeta}
                 getSnapshot={GetSnapshot}
                 compareSnapshots={CompareSnapshots}
-                onLoadSnapshot={(snap) => console.log('Load snapshot:', snap.id)}
+                onLoadSnapshot={handleLoadSnapshot}
                 onClear={handleClearSnapshots}
             />
 

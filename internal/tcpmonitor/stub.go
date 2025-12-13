@@ -123,16 +123,25 @@ func (s *Service) GenerateHealthReport() (*llm.HealthReport, error) {
 
 // Snapshot stubs and types
 type CompactConnection struct {
-	LocalAddr  string `json:"localAddr"`
-	LocalPort  int    `json:"localPort"`
-	RemoteAddr string `json:"remoteAddr"`
-	RemotePort int    `json:"remotePort"`
-	State      int    `json:"state"`
-	PID        int    `json:"pid"`
-	BytesIn    int64  `json:"bytesIn"`
-	BytesOut   int64  `json:"bytesOut"`
-	RTT        int64  `json:"rtt"`
-	Retrans    int64  `json:"retrans"`
+	LocalAddr     string `json:"localAddr"`
+	LocalPort     int    `json:"localPort"`
+	RemoteAddr    string `json:"remoteAddr"`
+	RemotePort    int    `json:"remotePort"`
+	State         int    `json:"state"`
+	PID           int    `json:"pid"`
+	BytesIn       int64  `json:"bytesIn"`
+	BytesOut      int64  `json:"bytesOut"`
+	SegmentsIn    int64  `json:"segmentsIn"`
+	SegmentsOut   int64  `json:"segmentsOut"`
+	RTT           int64  `json:"rtt"`
+	RTTVariance   int64  `json:"rttVariance"`
+	MinRTT        int64  `json:"minRtt"`
+	MaxRTT        int64  `json:"maxRtt"`
+	Retrans       int64  `json:"retrans"`
+	SegsRetrans   int64  `json:"segsRetrans"`
+	CongestionWin int64  `json:"congestionWin"`
+	InBandwidth   int64  `json:"inBandwidth"`
+	OutBandwidth  int64  `json:"outBandwidth"`
 }
 
 type Snapshot struct {
@@ -172,14 +181,23 @@ func (s *Service) CompareSnapshots(id1, id2 int64) *ComparisonResult { return ni
 func (s *Service) ClearSnapshots()                                   {}
 func (s *Service) TakeSnapshot()                                     {}
 
-// ConnectionHistoryPoint is a single data point for charting
+// ConnectionHistoryPoint is a single data point for charting - all metrics
 type ConnectionHistoryPoint struct {
-	Timestamp time.Time `json:"timestamp"`
-	BytesIn   int64     `json:"bytesIn"`
-	BytesOut  int64     `json:"bytesOut"`
-	RTT       int64     `json:"rtt"`
-	Retrans   int64     `json:"retrans"`
-	State     int       `json:"state"`
+	Timestamp     time.Time `json:"timestamp"`
+	State         int       `json:"state"`
+	BytesIn       int64     `json:"bytesIn"`
+	BytesOut      int64     `json:"bytesOut"`
+	SegmentsIn    int64     `json:"segmentsIn"`
+	SegmentsOut   int64     `json:"segmentsOut"`
+	RTT           int64     `json:"rtt"`
+	RTTVariance   int64     `json:"rttVariance"`
+	MinRTT        int64     `json:"minRtt"`
+	MaxRTT        int64     `json:"maxRtt"`
+	Retrans       int64     `json:"retrans"`
+	SegsRetrans   int64     `json:"segsRetrans"`
+	CongestionWin int64     `json:"congestionWin"`
+	InBandwidth   int64     `json:"inBandwidth"`
+	OutBandwidth  int64     `json:"outBandwidth"`
 }
 
 func (s *Service) GetConnectionHistory(localAddr string, localPort int, remoteAddr string, remotePort int) []ConnectionHistoryPoint {

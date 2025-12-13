@@ -201,10 +201,17 @@ const SnapshotTimeline: React.FC<SnapshotTimelineProps> = ({
                                                 onChange={() => toggleSelect(snap.id)}
                                             />
                                         </label>
-                                        <div className="snapshot-info" onClick={() => handleLoad(snap.id)}>
+                                        <div className="snapshot-info">
                                             <span className="time">{formatTime(snap.timestamp)}</span>
                                             <span className="count">{snap.connectionCount} conn</span>
                                         </div>
+                                        <button
+                                            className="load-btn"
+                                            onClick={() => handleLoad(snap.id)}
+                                            title="Load this snapshot into main view"
+                                        >
+                                            Load
+                                        </button>
                                     </div>
                                 ))}
                             </div>

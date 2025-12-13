@@ -17,11 +17,20 @@ import './ConnectionHistory.css';
 
 interface ConnectionHistoryPoint {
     timestamp: string;
+    state: number;
     bytesIn: number;
     bytesOut: number;
+    segmentsIn: number;
+    segmentsOut: number;
     rtt: number;
+    rttVariance: number;
+    minRtt: number;
+    maxRtt: number;
     retrans: number;
-    state: number;
+    segsRetrans: number;
+    congestionWin: number;
+    inBandwidth: number;
+    outBandwidth: number;
 }
 
 interface ConnectionHistoryProps {
@@ -31,7 +40,7 @@ interface ConnectionHistoryProps {
     getHistory: () => Promise<ConnectionHistoryPoint[]>;
 }
 
-type MetricTab = 'traffic' | 'rtt' | 'retrans';
+type MetricTab = 'traffic' | 'segments' | 'rtt' | 'retrans' | 'bandwidth' | 'cwnd';
 
 const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
     isOpen,
@@ -63,6 +72,13 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                 bytesOutKB: point.bytesOut / 1024,
                 // RTT is in microseconds, convert to ms
                 rttMs: point.rtt / 1000,
+                minRttMs: point.minRtt / 1000,
+                maxRttMs: point.maxRtt / 1000,
+                // Bandwidth in Mbps
+                inBwMbps: point.inBandwidth / 1000000,
+                outBwMbps: point.outBandwidth / 1000000,
+                // Cwnd in KB
+                cwndKB: point.congestionWin / 1024,
             }));
             setHistory(formatted);
         } catch (e) {
@@ -97,6 +113,12 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                         Traffic
                     </button>
                     <button
+                        className={`tab ${activeTab === 'segments' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('segments')}
+                    >
+                        Segments
+                    </button>
+                    <button
                         className={`tab ${activeTab === 'rtt' ? 'active' : ''}`}
                         onClick={() => setActiveTab('rtt')}
                     >
@@ -106,7 +128,19 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                         className={`tab ${activeTab === 'retrans' ? 'active' : ''}`}
                         onClick={() => setActiveTab('retrans')}
                     >
-                        Retransmissions
+                        Retrans
+                    </button>
+                    <button
+                        className={`tab ${activeTab === 'bandwidth' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('bandwidth')}
+                    >
+                        Bandwidth
+                    </button>
+                    <button
+                        className={`tab ${activeTab === 'cwnd' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('cwnd')}
+                    >
+                        CWND
                     </button>
                 </div>
 
@@ -234,6 +268,71 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                                             opacity={0.7}
                                         />
                                     </ComposedChart>
+                                </ResponsiveContainer>
+                            )}
+
+                            {activeTab === 'segments' && (
+                                <ResponsiveContainer width="100%" height={280}>
+                                    <AreaChart data={history}>
+                                        <defs>
+                                            <linearGradient id="colorSegsIn" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                                            </linearGradient>
+                                            <linearGradient id="colorSegsOut" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                                        <XAxis dataKey="time" tick={{ fill: '#9ca3af', fontSize: 10 }} interval="preserveStartEnd" />
+                                        <YAxis tick={{ fill: '#9ca3af', fontSize: 10 }} />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '4px' }}
+                                            formatter={(value: number, name: string) => [value.toLocaleString(), name]}
+                                        />
+                                        <Legend />
+                                        <Area type="monotone" dataKey="segmentsIn" stroke="#8b5cf6" fill="url(#colorSegsIn)" name="Segs In" />
+                                        <Area type="monotone" dataKey="segmentsOut" stroke="#06b6d4" fill="url(#colorSegsOut)" name="Segs Out" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            )}
+
+                            {activeTab === 'bandwidth' && (
+                                <ResponsiveContainer width="100%" height={280}>
+                                    <LineChart data={history}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                                        <XAxis dataKey="time" tick={{ fill: '#9ca3af', fontSize: 10 }} interval="preserveStartEnd" />
+                                        <YAxis tick={{ fill: '#9ca3af', fontSize: 10 }} tickFormatter={(v) => `${v.toFixed(1)} Mbps`} />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '4px' }}
+                                            formatter={(value: number) => [`${value.toFixed(2)} Mbps`, '']}
+                                        />
+                                        <Legend />
+                                        <Line type="monotone" dataKey="inBwMbps" stroke="#22c55e" strokeWidth={2} dot={false} name="In" />
+                                        <Line type="monotone" dataKey="outBwMbps" stroke="#3b82f6" strokeWidth={2} dot={false} name="Out" />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            )}
+
+                            {activeTab === 'cwnd' && (
+                                <ResponsiveContainer width="100%" height={280}>
+                                    <AreaChart data={history}>
+                                        <defs>
+                                            <linearGradient id="colorCwnd" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                                        <XAxis dataKey="time" tick={{ fill: '#9ca3af', fontSize: 10 }} interval="preserveStartEnd" />
+                                        <YAxis tick={{ fill: '#9ca3af', fontSize: 10 }} tickFormatter={(v) => `${v.toFixed(0)} KB`} />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '4px' }}
+                                            formatter={(value: number) => [`${value.toFixed(1)} KB`, 'CWND']}
+                                        />
+                                        <Area type="monotone" dataKey="cwndKB" stroke="#f59e0b" fill="url(#colorCwnd)" name="Congestion Window" />
+                                    </AreaChart>
                                 </ResponsiveContainer>
                             )}
                         </div>

@@ -122,6 +122,38 @@
     background: var(--color-bg-secondary);
 }
 
+.viewing-snapshot-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.snapshot-badge {
+    padding: 0.4rem 0.75rem;
+    background: rgba(139, 92, 246, 0.15);
+    color: #a78bfa;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.btn-back-live {
+    padding: 0.4rem 0.75rem;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.btn-back-live:hover {
+    opacity: 0.9;
+}
+
 .admin-warning-badge {
     padding: 0.35rem 0.6rem;
     background: rgba(245, 158, 11, 0.15);
@@ -262,9 +294,25 @@
 }
 
 .stats-header {
-    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--color-border);
+}
+
+.stats-header .connection-summary {
+    flex: 1;
+    min-width: 0;
+}
+
+.stats-header .header-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex-shrink: 0;
 }
 
 .endpoints {
