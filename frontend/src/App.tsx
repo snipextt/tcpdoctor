@@ -16,7 +16,8 @@ import {
     GetSnapshot,
     CompareSnapshots,
     ClearSnapshots,
-    TakeSnapshot
+    TakeSnapshot,
+    GetConnectionHistory
 } from "../wailsjs/go/main/App";
 import { tcpmonitor } from "../wailsjs/go/models";
 import ConnectionTable from './components/ConnectionTable';
@@ -26,6 +27,7 @@ import SettingsModal from './components/SettingsModal';
 import HealthReportModal from './components/HealthReportModal';
 import SnapshotControls from './components/SnapshotControls';
 import SnapshotTimeline from './components/SnapshotTimeline';
+import ConnectionHistory from './components/ConnectionHistory';
 import './App.css';
 
 function App() {
@@ -53,6 +55,7 @@ function App() {
     const [isRecording, setIsRecording] = useState(false);
     const [snapshotCount, setSnapshotCount] = useState(0);
     const [isTimelineOpen, setIsTimelineOpen] = useState(false);
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
     // Check if AI is configured on mount
     useEffect(() => {
@@ -264,6 +267,8 @@ function App() {
                         onDiagnose={selectedConnection ? handleDiagnose : undefined}
                         isAIConfigured={isAIConfigured}
                         onConfigureAPI={() => setIsSettingsOpen(true)}
+                        onViewHistory={() => setIsHistoryOpen(true)}
+                        hasHistory={snapshotCount > 0}
                     />
                 </div>
             </main>
@@ -299,6 +304,21 @@ function App() {
                 onLoadSnapshot={(snap) => console.log('Load snapshot:', snap.id)}
                 onClear={handleClearSnapshots}
             />
+
+            {/* Connection History Modal */}
+            {selectedConnection && (
+                <ConnectionHistory
+                    isOpen={isHistoryOpen}
+                    onClose={() => setIsHistoryOpen(false)}
+                    connectionKey={`${selectedConnection.LocalAddr}:${selectedConnection.LocalPort} → ${selectedConnection.RemoteAddr}:${selectedConnection.RemotePort}`}
+                    getHistory={() => GetConnectionHistory(
+                        selectedConnection.LocalAddr,
+                        selectedConnection.LocalPort,
+                        selectedConnection.RemoteAddr,
+                        selectedConnection.RemotePort
+                    )}
+                />
+            )}
         </div>
     );
 }

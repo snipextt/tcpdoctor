@@ -765,3 +765,8 @@ func (s *Service) TakeSnapshot() {
 	connections, _ := s.GetConnections(FilterOptions{})
 	s.snapshotStore.Take(connections)
 }
+
+// GetConnectionHistory returns historical data for a specific connection
+func (s *Service) GetConnectionHistory(localAddr string, localPort int, remoteAddr string, remotePort int) []ConnectionHistoryPoint {
+	return s.snapshotStore.GetConnectionHistory(localAddr, localPort, remoteAddr, remotePort)
+}

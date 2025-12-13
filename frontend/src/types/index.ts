@@ -58,6 +58,8 @@ export interface StatsPanelProps {
   onDiagnose?: () => Promise<any>;
   isAIConfigured?: boolean;
   onConfigureAPI?: () => void;
+  onViewHistory?: () => void;
+  hasHistory?: boolean;
 }
 
 export interface FilterControlsProps {

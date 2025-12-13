@@ -171,3 +171,17 @@ func (s *Service) GetSnapshot(id int64) *Snapshot                    { return ni
 func (s *Service) CompareSnapshots(id1, id2 int64) *ComparisonResult { return nil }
 func (s *Service) ClearSnapshots()                                   {}
 func (s *Service) TakeSnapshot()                                     {}
+
+// ConnectionHistoryPoint is a single data point for charting
+type ConnectionHistoryPoint struct {
+	Timestamp time.Time `json:"timestamp"`
+	BytesIn   int64     `json:"bytesIn"`
+	BytesOut  int64     `json:"bytesOut"`
+	RTT       int64     `json:"rtt"`
+	Retrans   int64     `json:"retrans"`
+	State     int       `json:"state"`
+}
+
+func (s *Service) GetConnectionHistory(localAddr string, localPort int, remoteAddr string, remotePort int) []ConnectionHistoryPoint {
+	return nil
+}

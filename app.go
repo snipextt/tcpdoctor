@@ -278,3 +278,11 @@ func (a *App) TakeSnapshot() {
 		a.service.TakeSnapshot()
 	}
 }
+
+// GetConnectionHistory returns historical data for a specific connection
+func (a *App) GetConnectionHistory(localAddr string, localPort int, remoteAddr string, remotePort int) []tcpmonitor.ConnectionHistoryPoint {
+	if a.service == nil {
+		return nil
+	}
+	return a.service.GetConnectionHistory(localAddr, localPort, remoteAddr, remotePort)
+}

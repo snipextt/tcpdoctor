@@ -187,6 +187,41 @@ func (s *SnapshotStore) Clear() {
 	s.snapshots = s.snapshots[:0]
 }
 
+// ConnectionHistoryPoint is a single data point for charting
+type ConnectionHistoryPoint struct {
+	Timestamp time.Time `json:"timestamp"`
+	BytesIn   int64     `json:"bytesIn"`
+	BytesOut  int64     `json:"bytesOut"`
+	RTT       int64     `json:"rtt"`
+	Retrans   int64     `json:"retrans"`
+	State     int       `json:"state"`
+}
+
+// GetConnectionHistory returns historical data for a specific connection
+func (s *SnapshotStore) GetConnectionHistory(localAddr string, localPort int, remoteAddr string, remotePort int) []ConnectionHistoryPoint {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var history []ConnectionHistoryPoint
+	for _, snap := range s.snapshots {
+		for _, conn := range snap.Connections {
+			if conn.LocalAddr == localAddr && conn.LocalPort == localPort &&
+				conn.RemoteAddr == remoteAddr && conn.RemotePort == remotePort {
+				history = append(history, ConnectionHistoryPoint{
+					Timestamp: snap.Timestamp,
+					BytesIn:   conn.BytesIn,
+					BytesOut:  conn.BytesOut,
+					RTT:       conn.RTT,
+					Retrans:   conn.Retrans,
+					State:     conn.State,
+				})
+				break
+			}
+		}
+	}
+	return history
+}
+
 // Compare compares two snapshots and returns differences
 func (s *SnapshotStore) Compare(id1, id2 int64) *ComparisonResult {
 	snap1 := s.GetByID(id1)

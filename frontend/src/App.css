@@ -86,6 +86,25 @@
     border-color: var(--color-primary);
 }
 
+.btn-history {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.6rem;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    color: var(--color-text);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-history:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
 .btn-settings {
     padding: 0.4rem 0.5rem;
     background: transparent;

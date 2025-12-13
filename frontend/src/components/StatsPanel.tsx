@@ -25,6 +25,8 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
   onDiagnose,
   isAIConfigured = false,
   onConfigureAPI,
+  onViewHistory,
+  hasHistory = false,
 }) => {
   const [history, setHistory] = useState<TimeSeriesData[]>([]);
 
@@ -113,13 +115,20 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
         </div>
 
         {/* AI Diagnose - Right in header */}
-        {onDiagnose && onConfigureAPI && (
-          <DiagnosisPanel
-            onDiagnose={onDiagnose}
-            isConfigured={isAIConfigured}
-            onConfigureAPI={onConfigureAPI}
-          />
-        )}
+        <div className="header-actions">
+          {onViewHistory && hasHistory && (
+            <button className="btn-history" onClick={onViewHistory} title="View History">
+              📈 History
+            </button>
+          )}
+          {onDiagnose && onConfigureAPI && (
+            <DiagnosisPanel
+              onDiagnose={onDiagnose}
+              isConfigured={isAIConfigured}
+              onConfigureAPI={onConfigureAPI}
+            />
+          )}
+        </div>
       </div>
 
       {/* Admin Warning */}
