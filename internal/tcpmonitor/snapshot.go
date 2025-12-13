@@ -81,19 +81,19 @@ func (s *SnapshotStore) Take(connections []ConnectionInfo) *Snapshot {
 	for i, c := range connections {
 		compact[i] = CompactConnection{
 			LocalAddr:  c.LocalAddr,
-			LocalPort:  c.LocalPort,
+			LocalPort:  int(c.LocalPort),
 			RemoteAddr: c.RemoteAddr,
-			RemotePort: c.RemotePort,
-			State:      c.State,
-			PID:        c.PID,
+			RemotePort: int(c.RemotePort),
+			State:      int(c.State),
+			PID:        int(c.PID),
 		}
 		if c.BasicStats != nil {
-			compact[i].BytesIn = c.BasicStats.DataBytesIn
-			compact[i].BytesOut = c.BasicStats.DataBytesOut
+			compact[i].BytesIn = int64(c.BasicStats.DataBytesIn)
+			compact[i].BytesOut = int64(c.BasicStats.DataBytesOut)
 		}
 		if c.ExtendedStats != nil {
-			compact[i].RTT = c.ExtendedStats.SmoothedRTT
-			compact[i].Retrans = c.ExtendedStats.BytesRetrans
+			compact[i].RTT = int64(c.ExtendedStats.SmoothedRTT)
+			compact[i].Retrans = int64(c.ExtendedStats.BytesRetrans)
 		}
 	}
 
