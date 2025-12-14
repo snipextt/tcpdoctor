@@ -169,41 +169,42 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
             {/* Charts Section */}
             <div className="stats-section charts-section">
               <h3>Live Performance</h3>
-              <div className="charts-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', height: '200px' }}>
-                <div className="chart-container" style={{ background: 'var(--color-bg-secondary)', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column' }}>
-                  <div className="chart-title" style={{ fontSize: '0.8rem', color: 'var(--color-text-dim)', marginBottom: '5px' }}>RTT History (ms)</div>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={history}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-                      <XAxis dataKey="time" hide />
-                      <YAxis domain={['auto', 'auto']} style={{ fontSize: '10px' }} stroke="var(--color-text-dim)" />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: 'var(--color-bg)', borderColor: 'var(--color-border)' }}
-                        itemStyle={{ color: 'var(--color-text)' }}
-                        formatter={(val: number) => [val.toFixed(2) + ' ms', 'RTT']}
-                      />
-                      <Line type="monotone" dataKey="rtt" stroke="#8884d8" strokeWidth={2} dot={false} isAnimationActive={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
 
-                <div className="chart-container" style={{ background: 'var(--color-bg-secondary)', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column' }}>
-                  <div className="chart-title" style={{ fontSize: '0.8rem', color: 'var(--color-text-dim)', marginBottom: '5px' }}>Bandwidth (bps)</div>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={history}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-                      <XAxis dataKey="time" hide />
-                      <YAxis style={{ fontSize: '10px' }} stroke="var(--color-text-dim)" tickFormatter={(val) => val != null ? formatBandwidth(val).formatted : 'N/A'} />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: 'var(--color-bg)', borderColor: 'var(--color-border)' }}
-                        itemStyle={{ color: 'var(--color-text)' }}
-                        formatter={(val) => [typeof val === 'number' ? formatBandwidth(val).formatted : 'N/A', '']}
-                      />
-                      <Area type="monotone" dataKey="bwIn" stackId="1" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.3} name="In" isAnimationActive={false} />
-                      <Area type="monotone" dataKey="bwOut" stackId="1" stroke="#ffc658" fill="#ffc658" fillOpacity={0.3} name="Out" isAnimationActive={false} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
+              {/* RTT Chart - Own Row */}
+              <div className="chart-container" style={{ background: 'var(--color-bg-secondary)', borderRadius: '6px', padding: '10px', marginBottom: '1rem', height: '150px' }}>
+                <div className="chart-title" style={{ fontSize: '0.8rem', color: 'var(--color-text-dim)', marginBottom: '5px' }}>RTT History (ms)</div>
+                <ResponsiveContainer width="100%" height="85%">
+                  <LineChart data={history}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                    <XAxis dataKey="time" hide />
+                    <YAxis domain={['auto', 'auto']} style={{ fontSize: '10px' }} stroke="var(--color-text-dim)" />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: 'var(--color-bg)', borderColor: 'var(--color-border)' }}
+                      itemStyle={{ color: 'var(--color-text)' }}
+                      formatter={(val: number) => [val.toFixed(2) + ' ms', 'RTT']}
+                    />
+                    <Line type="monotone" dataKey="rtt" stroke="#8884d8" strokeWidth={2} dot={false} isAnimationActive={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Bandwidth Chart - Own Row */}
+              <div className="chart-container" style={{ background: 'var(--color-bg-secondary)', borderRadius: '6px', padding: '10px', height: '150px' }}>
+                <div className="chart-title" style={{ fontSize: '0.8rem', color: 'var(--color-text-dim)', marginBottom: '5px' }}>Bandwidth (bps)</div>
+                <ResponsiveContainer width="100%" height="85%">
+                  <AreaChart data={history}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                    <XAxis dataKey="time" hide />
+                    <YAxis style={{ fontSize: '10px' }} stroke="var(--color-text-dim)" tickFormatter={(val) => val != null ? formatBandwidth(val).formatted : 'N/A'} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: 'var(--color-bg)', borderColor: 'var(--color-border)' }}
+                      itemStyle={{ color: 'var(--color-text)' }}
+                      formatter={(val) => [typeof val === 'number' ? formatBandwidth(val).formatted : 'N/A', '']}
+                    />
+                    <Area type="monotone" dataKey="bwIn" stackId="1" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.3} name="In" isAnimationActive={false} />
+                    <Area type="monotone" dataKey="bwOut" stackId="1" stroke="#ffc658" fill="#ffc658" fillOpacity={0.3} name="Out" isAnimationActive={false} />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
             </div>
 
