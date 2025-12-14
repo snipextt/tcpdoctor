@@ -45,7 +45,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
     const now = Date.now();
     const newPoint: TimeSeriesData = {
       time: now,
-      rtt: connection.ExtendedStats.SmoothedRTT / 1000, // Convert to ms
+      rtt: connection.ExtendedStats.SmoothedRTT, // Already in ms from Windows API
       bwIn: connection.ExtendedStats.InboundBandwidth,
       bwOut: connection.ExtendedStats.OutboundBandwidth,
     };
