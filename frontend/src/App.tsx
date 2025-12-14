@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
     GetConnections,
     IsAdministrator,
@@ -57,6 +57,47 @@ function App() {
     const [isTimelineOpen, setIsTimelineOpen] = useState(false);
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const [viewingSnapshotId, setViewingSnapshotId] = useState<number | null>(null); // null = live, number = viewing snapshot
+
+    // Resizable panels
+    const [leftPanelWidth, setLeftPanelWidth] = useState(() => {
+        const saved = localStorage.getItem('left_panel_width');
+        return saved ? parseInt(saved, 10) : 55; // default 55%
+    });
+    const [isResizing, setIsResizing] = useState(false);
+    const containerRef = useRef<HTMLElement>(null);
+
+    // Handle mouse events for resizing
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!isResizing || !containerRef.current) return;
+            const containerRect = containerRef.current.getBoundingClientRect();
+            const newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
+            // Clamp between 25% and 75%
+            const clampedWidth = Math.max(25, Math.min(75, newWidth));
+            setLeftPanelWidth(clampedWidth);
+        };
+
+        const handleMouseUp = () => {
+            if (isResizing) {
+                setIsResizing(false);
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+                localStorage.setItem('left_panel_width', leftPanelWidth.toString());
+            }
+        };
+
+        if (isResizing) {
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+        }
+
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isResizing, leftPanelWidth]);
 
     // Check if AI is configured on mount
     useEffect(() => {
@@ -339,8 +380,8 @@ function App() {
                 </div>
             </header>
 
-            <main className="app-content">
-                <div className="left-panel">
+            <main className="app-content" ref={containerRef as React.RefObject<HTMLElement>}>
+                <div className="left-panel" style={{ width: `${leftPanelWidth}%` }}>
                     <FilterControls
                         filter={filter}
                         onFilterChange={handleFilterChange}
@@ -353,7 +394,12 @@ function App() {
                     />
                 </div>
 
-                <div className="right-panel">
+                <div
+                    className="resize-handle"
+                    onMouseDown={() => setIsResizing(true)}
+                />
+
+                <div className="right-panel" style={{ width: `${100 - leftPanelWidth}%` }}>
                     <StatsPanel
                         connection={selectedConnection}
                         isAdmin={isAdmin}

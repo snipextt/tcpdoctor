@@ -72,10 +72,10 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                 // Convert bytes to KB/MB for readability
                 bytesInKB: point.bytesIn / 1024,
                 bytesOutKB: point.bytesOut / 1024,
-                // RTT is in microseconds, convert to ms
-                rttMs: point.rtt / 1000,
-                minRttMs: point.minRtt / 1000,
-                maxRttMs: point.maxRtt / 1000,
+                // RTT is already in milliseconds from Windows API
+                rttMs: point.rtt,
+                minRttMs: point.minRtt,
+                maxRttMs: point.maxRtt,
                 // Bandwidth in Mbps
                 inBwMbps: point.inBandwidth / 1000000,
                 outBwMbps: point.outBandwidth / 1000000,

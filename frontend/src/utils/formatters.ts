@@ -95,14 +95,19 @@ export function formatEndpoint(address: string, port: number): string {
 }
 
 /**
- * Format RTT (Round Trip Time) in microseconds to milliseconds
+ * Format RTT (Round Trip Time)
+ * According to Microsoft docs, SmoothedRtt, RttVar, MinRtt, MaxRtt are in milliseconds
+ * https://learn.microsoft.com/en-us/windows/win32/api/tcpestats/ns-tcpestats-tcp_estats_path_rod_v0
  */
-export function formatRTT(microseconds: number): FormattedValue {
-  const ms = microseconds / 1000;
+export function formatRTT(milliseconds: number | undefined | null): FormattedValue {
+  if (milliseconds === undefined || milliseconds === null) {
+    return { value: 0, unit: 'ms', formatted: '0.00 ms' };
+  }
+  // Values are already in milliseconds from the Windows API
   return {
-    value: ms,
+    value: milliseconds,
     unit: 'ms',
-    formatted: `${ms.toFixed(2)} ms`,
+    formatted: `${milliseconds.toFixed(2)} ms`,
   };
 }
 
