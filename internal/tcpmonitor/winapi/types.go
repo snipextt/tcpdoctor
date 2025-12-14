@@ -147,13 +147,18 @@ type TCP_ESTATS_DATA_ROD_v0 struct {
 }
 
 // TCP_ESTATS_SND_CONG_ROD_v0 contains congestion control statistics
+// Must match Windows API struct exactly - SIZE_T is uintptr (8 bytes on 64-bit)
+// https://learn.microsoft.com/en-us/windows/win32/api/tcpestats/ns-tcpestats-tcp_estats_snd_cong_rod_v0
 type TCP_ESTATS_SND_CONG_ROD_v0 struct {
 	SndLimTransRwin uint32
-	SndLimTransCwnd uint32
-	SndLimTransSnd  uint32
 	SndLimTimeRwin  uint32
+	SndLimBytesRwin uintptr // SIZE_T
+	SndLimTransCwnd uint32
 	SndLimTimeCwnd  uint32
+	SndLimBytesCwnd uintptr // SIZE_T
+	SndLimTransSnd  uint32
 	SndLimTimeSnd   uint32
+	SndLimBytesSnd  uintptr // SIZE_T
 	SlowStart       uint32
 	CongAvoid       uint32
 	OtherReductions uint32
