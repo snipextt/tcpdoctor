@@ -584,6 +584,7 @@ function App() {
                         selectedConnection={selectedConnection}
                         onSelectConnection={setSelectedConnection}
                         isLoading={isLoading}
+                        viewingSnapshot={viewingSnapshotId !== null}
                     />
                 </div>
 

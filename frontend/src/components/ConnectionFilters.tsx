@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import './ConnectionFilters.css';
 
 export interface FilterState {
@@ -20,7 +20,6 @@ interface ConnectionFiltersProps {
 }
 
 const TCP_STATES = [
-    { value: '', label: 'All States' },
     { value: '5', label: 'Established' },
     { value: '4', label: 'SYN Sent' },
     { value: '3', label: 'SYN Received' },
@@ -34,143 +33,188 @@ const TCP_STATES = [
     { value: '2', label: 'Listen' },
 ];
 
+const METRIC_FILTERS = [
+    { key: 'rtt', label: 'RTT' },
+    { key: 'bytesIn', label: 'Bytes In' },
+    { key: 'bytesOut', label: 'Bytes Out' },
+    { key: 'bandwidth', label: 'Bandwidth' },
+];
+
 const ConnectionFilters: React.FC<ConnectionFiltersProps> = ({
     filters,
     onFiltersChange,
-    isExpanded,
-    onToggleExpand,
 }) => {
+    const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
+    const [editingMetric, setEditingMetric] = useState<{ key: keyof FilterState, label: string } | null>(null);
+    const [metricValue, setMetricValue] = useState('');
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
     const updateFilter = <K extends keyof FilterState>(key: K, value: FilterState[K]) => {
         onFiltersChange({ ...filters, [key]: value });
     };
 
-    const clearFilters = () => {
-        onFiltersChange({
-            hideInternal: false,
-            hideLocalhost: false,
-            stateFilter: '',
-            rtt: '',
-            bytesIn: '',
-            bytesOut: '',
-            bandwidth: '',
-            showOnlyRetrans: false,
-        });
+    const removeFilter = (key: keyof FilterState) => {
+        if (typeof filters[key] === 'boolean') {
+            onFiltersChange({ ...filters, [key]: false });
+        } else {
+            onFiltersChange({ ...filters, [key]: '' });
+        }
     };
 
-    const hasActiveFilters =
-        filters.hideInternal ||
-        filters.hideLocalhost ||
-        filters.stateFilter ||
-        filters.rtt ||
-        filters.bytesIn ||
-        filters.bytesOut ||
-        filters.bandwidth ||
-        filters.showOnlyRetrans;
+    const handleMetricSubmit = () => {
+        if (editingMetric && metricValue) {
+            updateFilter(editingMetric.key, metricValue);
+            setEditingMetric(null);
+            setMetricValue('');
+            setIsAddMenuOpen(false);
+        }
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsAddMenuOpen(false);
+                setEditingMetric(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     return (
-        <div className="connection-filters">
-            <div className="filters-header">
-                <button
-                    className={`filter-toggle ${isExpanded ? 'expanded' : ''} ${hasActiveFilters ? 'active' : ''}`}
-                    onClick={onToggleExpand}
-                >
-                    <span className="filter-icon">⚙</span>
-                    Filters
-                    {hasActiveFilters && <span className="filter-badge">●</span>}
-                </button>
-                {hasActiveFilters && (
-                    <button className="clear-filters" onClick={clearFilters}>
-                        Clear
-                    </button>
+        <div className="connection-filters-container">
+            {/* Active Filter Tags */}
+            <div className="active-filters-list">
+                {filters.hideInternal && (
+                    <div className="filter-tag">
+                        <span>Hide Internal</span>
+                        <button onClick={() => removeFilter('hideInternal')}>×</button>
+                    </div>
                 )}
-            </div>
-
-            {isExpanded && (
-                <div className="filters-panel">
-                    {/* Quick Filters Row */}
-                    <div className="filter-row quick-filters">
-                        <label className="checkbox-filter">
-                            <input
-                                type="checkbox"
-                                checked={filters.hideInternal}
-                                onChange={e => updateFilter('hideInternal', e.target.checked)}
-                            />
-                            Hide Internal
-                        </label>
-                        <label className="checkbox-filter">
-                            <input
-                                type="checkbox"
-                                checked={filters.hideLocalhost}
-                                onChange={e => updateFilter('hideLocalhost', e.target.checked)}
-                            />
-                            Hide Localhost
-                        </label>
-                        <label className="checkbox-filter">
-                            <input
-                                type="checkbox"
-                                checked={filters.showOnlyRetrans}
-                                onChange={e => updateFilter('showOnlyRetrans', e.target.checked)}
-                            />
-                            Retransmissions Only
-                        </label>
+                {filters.hideLocalhost && (
+                    <div className="filter-tag">
+                        <span>Hide Localhost</span>
+                        <button onClick={() => removeFilter('hideLocalhost')}>×</button>
                     </div>
+                )}
+                {filters.showOnlyRetrans && (
+                    <div className="filter-tag">
+                        <span>Retrans Only</span>
+                        <button onClick={() => removeFilter('showOnlyRetrans')}>×</button>
+                    </div>
+                )}
+                {filters.stateFilter && (
+                    <div className="filter-tag">
+                        <span>State: {TCP_STATES.find(s => s.value === filters.stateFilter)?.label || filters.stateFilter}</span>
+                        <button onClick={() => removeFilter('stateFilter')}>×</button>
+                    </div>
+                )}
+                {filters.rtt && (
+                    <div className="filter-tag">
+                        <span>RTT: {filters.rtt}</span>
+                        <button onClick={() => removeFilter('rtt')}>×</button>
+                    </div>
+                )}
+                {filters.bytesIn && (
+                    <div className="filter-tag">
+                        <span>In: {filters.bytesIn}</span>
+                        <button onClick={() => removeFilter('bytesIn')}>×</button>
+                    </div>
+                )}
+                {filters.bytesOut && (
+                    <div className="filter-tag">
+                        <span>Out: {filters.bytesOut}</span>
+                        <button onClick={() => removeFilter('bytesOut')}>×</button>
+                    </div>
+                )}
+                {filters.bandwidth && (
+                    <div className="filter-tag">
+                        <span>BW: {filters.bandwidth}</span>
+                        <button onClick={() => removeFilter('bandwidth')}>×</button>
+                    </div>
+                )}
 
-                    {/* State & Metrics Row */}
-                    <div className="filter-row metrics-filters">
-                        <div className="filter-group">
-                            <label>State</label>
-                            <select
-                                value={filters.stateFilter}
-                                onChange={e => updateFilter('stateFilter', e.target.value)}
-                            >
-                                {TCP_STATES.map(s => (
-                                    <option key={s.value} value={s.value}>{s.label}</option>
+                {/* Add Filter Button & Dropdown */}
+                <div className="add-filter-wrapper" ref={dropdownRef}>
+                    <button
+                        className={`btn-add-filter ${isAddMenuOpen ? 'active' : ''}`}
+                        onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
+                    >
+                        + Add Filter
+                    </button>
+
+                    {isAddMenuOpen && !editingMetric && (
+                        <div className="filter-dropdown-menu">
+                            <div className="menu-section">
+                                <span className="menu-header">Toggles</span>
+                                <button className="menu-item" onClick={() => updateFilter('hideInternal', !filters.hideInternal)}>
+                                    {filters.hideInternal ? '✓ ' : ''}Hide Internal
+                                </button>
+                                <button className="menu-item" onClick={() => updateFilter('hideLocalhost', !filters.hideLocalhost)}>
+                                    {filters.hideLocalhost ? '✓ ' : ''}Hide Localhost
+                                </button>
+                                <button className="menu-item" onClick={() => updateFilter('showOnlyRetrans', !filters.showOnlyRetrans)}>
+                                    {filters.showOnlyRetrans ? '✓ ' : ''}Retransmissions Only
+                                </button>
+                            </div>
+
+                            <div className="menu-section">
+                                <span className="menu-header">State</span>
+                                {TCP_STATES.map(state => (
+                                    <button
+                                        key={state.value}
+                                        className="menu-item"
+                                        onClick={() => {
+                                            updateFilter('stateFilter', state.value);
+                                            setIsAddMenuOpen(false);
+                                        }}
+                                    >
+                                        {filters.stateFilter === state.value ? '✓ ' : ''}{state.label}
+                                    </button>
                                 ))}
-                            </select>
-                        </div>
+                            </div>
 
-                        <div className="filter-group">
-                            <label>RTT (ms)</label>
-                            <input
-                                type="text"
-                                placeholder="e.g. > 50"
-                                value={filters.rtt}
-                                onChange={e => updateFilter('rtt', e.target.value)}
-                            />
+                            <div className="menu-section">
+                                <span className="menu-header">Metrics</span>
+                                {METRIC_FILTERS.map(m => (
+                                    <button
+                                        key={m.key}
+                                        className="menu-item"
+                                        onClick={() => {
+                                            setEditingMetric({ key: m.key as keyof FilterState, label: m.label });
+                                            setMetricValue('');
+                                        }}
+                                    >
+                                        {m.label}...
+                                    </button>
+                                ))}
+                            </div>
                         </div>
+                    )}
 
-                        <div className="filter-group">
-                            <label>Bytes In</label>
+                    {/* Metric Input Popover */}
+                    {isAddMenuOpen && editingMetric && (
+                        <div className="metric-input-popover">
+                            <div className="popover-header">
+                                <span>Filter by {editingMetric.label}</span>
+                                <button className="btn-close-popover" onClick={() => setEditingMetric(null)}>×</button>
+                            </div>
                             <input
+                                autoFocus
                                 type="text"
-                                placeholder="e.g. > 1000"
-                                value={filters.bytesIn}
-                                onChange={e => updateFilter('bytesIn', e.target.value)}
+                                placeholder="e.g. > 50, < 1M"
+                                value={metricValue}
+                                onChange={e => setMetricValue(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && handleMetricSubmit()}
                             />
+                            <div className="popover-actions">
+                                <button className="btn-cancel" onClick={() => setEditingMetric(null)}>Back</button>
+                                <button className="btn-apply" onClick={handleMetricSubmit}>Apply</button>
+                            </div>
                         </div>
-
-                        <div className="filter-group">
-                            <label>Bytes Out</label>
-                            <input
-                                type="text"
-                                placeholder="e.g. > 1000"
-                                value={filters.bytesOut}
-                                onChange={e => updateFilter('bytesOut', e.target.value)}
-                            />
-                        </div>
-
-                        <div className="filter-group">
-                            <label>Bandwidth (bps)</label>
-                            <input
-                                type="text"
-                                placeholder="e.g. > 1M"
-                                value={filters.bandwidth}
-                                onChange={e => updateFilter('bandwidth', e.target.value)}
-                            />
-                        </div>
-                    </div>
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     );
 };

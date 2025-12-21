@@ -12,9 +12,10 @@ interface ConnectionTableProps {
   selectedConnection: tcpmonitor.ConnectionInfo | null;
   onSelectConnection: (conn: tcpmonitor.ConnectionInfo) => void;
   isLoading?: boolean;
+  viewingSnapshot?: boolean;
 }
 
-type SortColumn = 'localAddr' | 'localPort' | 'remoteAddr' | 'remotePort' | 'state' | 'pid' | 'bytesIn' | 'bytesOut';
+type SortColumn = 'localAddr' | 'localPort' | 'remoteAddr' | 'remotePort' | 'state' | 'pid' | 'bytesIn' | 'bytesOut' | 'timestamp';
 type SortDirection = 'asc' | 'desc';
 
 interface ColumnDefinition {
@@ -24,23 +25,31 @@ interface ColumnDefinition {
   align?: 'left' | 'center' | 'right';
 }
 
-const COLUMNS: ColumnDefinition[] = [
-  { key: 'localAddr', label: 'Local Address', width: 180, align: 'left' },
-  { key: 'localPort', label: 'Local Port', width: 100, align: 'right' },
-  { key: 'remoteAddr', label: 'Remote Address', width: 180, align: 'left' },
-  { key: 'remotePort', label: 'Remote Port', width: 100, align: 'right' },
-  { key: 'state', label: 'State', width: 120, align: 'center' },
-  { key: 'pid', label: 'PID', width: 80, align: 'right' },
-  { key: 'bytesIn', label: 'Bytes In', width: 120, align: 'right' },
-  { key: 'bytesOut', label: 'Bytes Out', width: 120, align: 'right' },
+const BASE_COLUMNS: ColumnDefinition[] = [
+  { key: 'localAddr', label: 'Local Address', width: 170, align: 'left' },
+  { key: 'localPort', label: 'Local Port', width: 90, align: 'left' },
+  { key: 'remoteAddr', label: 'Remote Address', width: 170, align: 'left' },
+  { key: 'remotePort', label: 'Remote Port', width: 90, align: 'left' },
+  { key: 'state', label: 'State', width: 110, align: 'left' },
+  { key: 'pid', label: 'PID', width: 70, align: 'left' },
+  { key: 'bytesIn', label: 'Bytes In', width: 110, align: 'left' },
+  { key: 'bytesOut', label: 'Bytes Out', width: 110, align: 'left' },
 ];
+
+const TIME_COLUMN: ColumnDefinition = {
+  key: 'timestamp', label: 'Time', width: 100, align: 'left'
+};
 
 const ROW_HEIGHT = 48;
 const HEADER_HEIGHT = 44;
 
-function ConnectionTable({ connections, selectedConnection, onSelectConnection, isLoading = false }: ConnectionTableProps) {
-  const [sortColumn, setSortColumn] = useState<SortColumn>('localPort');
+function ConnectionTable({ connections, selectedConnection, onSelectConnection, isLoading = false, viewingSnapshot = false }: ConnectionTableProps) {
+  const [sortColumn, setSortColumn] = useState<SortColumn>(viewingSnapshot ? 'timestamp' : 'localPort');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+  const columns = useMemo(() => {
+    return viewingSnapshot ? [TIME_COLUMN, ...BASE_COLUMNS] : BASE_COLUMNS;
+  }, [viewingSnapshot]);
 
   // Handle column header click for sorting
   const handleSort = useCallback((column: SortColumn) => {
@@ -61,6 +70,10 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
       let bValue: any;
 
       switch (sortColumn) {
+        case 'timestamp':
+          aValue = (a as any).Timestamp || '';
+          bValue = (b as any).Timestamp || '';
+          break;
         case 'localAddr':
           aValue = a.LocalAddr;
           bValue = b.LocalAddr;
@@ -121,132 +134,148 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
     return (
       conn.LocalAddr === selectedConnection.LocalAddr &&
       conn.LocalPort === selectedConnection.LocalPort &&
-      conn.RemoteAddr === selectedConnection.RemoteAddr &&
-      conn.RemotePort === selectedConnection.RemotePort
-    );
-  }, [selectedConnection]);
-
   // Render a single row
-  const Row = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const conn = sortedConnections[index];
-    const selected = isSelected(conn);
-    const hasWarning = conn.HighRetransmissionWarning || conn.HighRTTWarning;
-    const healthColor = getHealthColor(hasWarning, false);
+  // Create a custom ItemData type for the list
+  const itemData = useMemo(() => ({
+        connections: sortedConnections,
+        columns, // Pass columns definition to the Row
+        selectedConnection,
+        onSelectConnection
+      }), [sortedConnections, columns, selectedConnection, onSelectConnection]);
+
+    // Render a single row
+    const Row = useCallback(({ index, style, data }: any) => {
+      const conn = data.connections[index];
+      const cols = data.columns as ColumnDefinition[];
+      const selected = data.selectedConnection &&
+        data.selectedConnection.LocalAddr === conn.LocalAddr &&
+        data.selectedConnection.LocalPort === conn.LocalPort &&
+        data.selectedConnection.RemoteAddr === conn.RemoteAddr &&
+        data.selectedConnection.RemotePort === conn.RemotePort;
+
+      // Just a basic check to prevent crashes if health is missing
+      const healthColor = getHealthColor(100);
+
+      return (
+        <div
+          style={style}
+          className={`connection-row ${selected ? 'selected' : ''}`}
+          onMouseDown={() => data.onSelectConnection(conn)}
+        >
+          {/* Health Indicator */}
+          <div className="health-indicator" style={{ backgroundColor: healthColor }} />
+
+          {cols.map((col: ColumnDefinition) => {
+            let content: React.ReactNode = null;
+            switch (col.key) {
+              case 'timestamp':
+                content = (conn as any).Timestamp || '-';
+                break;
+              case 'localAddr':
+                content = conn.LocalAddr;
+                break;
+              case 'localPort':
+                content = conn.LocalPort;
+                break;
+              case 'remoteAddr':
+                content = conn.RemoteAddr;
+                break;
+              case 'remotePort':
+                content = conn.RemotePort;
+                break;
+              case 'state':
+                content = (
+                  <span
+                    className="state-badge"
+                    style={{
+                      backgroundColor: getTCPStateColor(conn.State),
+                      color: '#ffffff'
+                    }}
+                  >
+                    {TCPStateNames[conn.State as TCPState] || 'UNKNOWN'}
+                  </span>
+                );
+                break;
+              case 'pid':
+                content = formatCount(conn.PID);
+                break;
+              case 'bytesIn':
+                content = conn.BasicStats ? formatBytes(conn.BasicStats.DataBytesIn).formatted : '—';
+                break;
+              case 'bytesOut':
+                content = conn.BasicStats ? formatBytes(conn.BasicStats.DataBytesOut).formatted : '—';
+                break;
+            }
+
+            return (
+              <div
+                key={col.key}
+                className={`cell ${col.key === 'state' ? 'state-cell' : ''}`}
+                style={{ width: col.width, textAlign: col.align }}
+              >
+                {content}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }, []); // Dependencies are handled via data prop
+
+    // Calculate total width for the table
+    const totalWidth = columns.reduce((sum, col) => sum + col.width, 0) + 8; // +8 for health indicator
 
     return (
-      <div
-        style={style}
-        className={`connection-row ${selected ? 'selected' : ''}`}
-        onMouseDown={() => onSelectConnection(conn)}
-      >
-        {/* Health Indicator */}
-        <div className="health-indicator" style={{ backgroundColor: healthColor }} />
-
-        {/* Local Address */}
-        <div className="cell" style={{ width: COLUMNS[0].width, textAlign: COLUMNS[0].align }}>
-          {conn.LocalAddr}
+      <div className="connection-table-container">
+        {/* Header */}
+        <div className="connection-table-header">
+          <div className="health-indicator-header" />
+          {columns.map(column => (
+            <div
+              key={column.key}
+              className={`header-cell ${sortColumn === column.key ? 'sorted' : ''}`}
+              style={{ width: column.width, textAlign: column.align }}
+              onClick={() => handleSort(column.key)}
+            >
+              <span>{column.label}</span>
+              {sortColumn === column.key && (
+                <span className="sort-indicator">
+                  {sortDirection === 'asc' ? '▲' : '▼'}
+                </span>
+              )}
+            </div>
+          ))}
         </div>
 
-        {/* Local Port */}
-        <div className="cell" style={{ width: COLUMNS[1].width, textAlign: COLUMNS[1].align }}>
-          {conn.LocalPort}
+        {/* Table Body */}
+        <div className="connection-table-body">
+          {isLoading ? (
+            <div className="table-message">Loading connections...</div>
+          ) : connections.length === 0 ? (
+            <div className="table-message">No connections found</div>
+          ) : (
+            <AutoSizer>
+              {({ height, width }: { height: number; width: number }) => (
+                <List
+                  height={height}
+                  itemCount={sortedConnections.length}
+                  itemSize={ROW_HEIGHT}
+                  width={Math.max(width, totalWidth)}
+                  overscanCount={5}
+                  itemData={itemData}
+                >
+                  {Row}
+                </List>
+              )}
+            </AutoSizer>
+          )}
         </div>
 
-        {/* Remote Address */}
-        <div className="cell" style={{ width: COLUMNS[2].width, textAlign: COLUMNS[2].align }}>
-          {conn.RemoteAddr}
-        </div>
-
-        {/* Remote Port */}
-        <div className="cell" style={{ width: COLUMNS[3].width, textAlign: COLUMNS[3].align }}>
-          {conn.RemotePort}
-        </div>
-
-        {/* State */}
-        <div className="cell state-cell" style={{ width: COLUMNS[4].width, textAlign: COLUMNS[4].align }}>
-          <span
-            className="state-badge"
-            style={{
-              backgroundColor: getTCPStateColor(conn.State),
-              color: '#ffffff'
-            }}
-          >
-            {TCPStateNames[conn.State as TCPState] || 'UNKNOWN'}
-          </span>
-        </div>
-
-        {/* PID */}
-        <div className="cell" style={{ width: COLUMNS[5].width, textAlign: COLUMNS[5].align }}>
-          {formatCount(conn.PID)}
-        </div>
-
-        {/* Bytes In */}
-        <div className="cell" style={{ width: COLUMNS[6].width, textAlign: COLUMNS[6].align }}>
-          {conn.BasicStats ? formatBytes(conn.BasicStats.DataBytesIn).formatted : '—'}
-        </div>
-
-        {/* Bytes Out */}
-        <div className="cell" style={{ width: COLUMNS[7].width, textAlign: COLUMNS[7].align }}>
-          {conn.BasicStats ? formatBytes(conn.BasicStats.DataBytesOut).formatted : '—'}
+        {/* Footer with connection count */}
+        <div className="connection-table-footer">
+          <span>{formatCount(connections.length)} connection{connections.length !== 1 ? 's' : ''}</span>
         </div>
       </div>
     );
-  }, [sortedConnections, isSelected, onSelectConnection]);
-
-  // Calculate total width for the table
-  const totalWidth = COLUMNS.reduce((sum, col) => sum + col.width, 0) + 8; // +8 for health indicator
-
-  return (
-    <div className="connection-table-container">
-      {/* Header */}
-      <div className="connection-table-header">
-        <div className="health-indicator-header" />
-        {COLUMNS.map(column => (
-          <div
-            key={column.key}
-            className={`header-cell ${sortColumn === column.key ? 'sorted' : ''}`}
-            style={{ width: column.width, textAlign: column.align }}
-            onClick={() => handleSort(column.key)}
-          >
-            <span>{column.label}</span>
-            {sortColumn === column.key && (
-              <span className="sort-indicator">
-                {sortDirection === 'asc' ? '▲' : '▼'}
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Table Body */}
-      <div className="connection-table-body">
-        {isLoading ? (
-          <div className="table-message">Loading connections...</div>
-        ) : connections.length === 0 ? (
-          <div className="table-message">No connections found</div>
-        ) : (
-          <AutoSizer>
-            {({ height, width }: { height: number; width: number }) => (
-              <List
-                height={height}
-                itemCount={sortedConnections.length}
-                itemSize={ROW_HEIGHT}
-                width={Math.max(width, totalWidth)}
-                overscanCount={5}
-              >
-                {Row}
-              </List>
-            )}
-          </AutoSizer>
-        )}
-      </div>
-
-      {/* Footer with connection count */}
-      <div className="connection-table-footer">
-        <span>{formatCount(connections.length)} connection{connections.length !== 1 ? 's' : ''}</span>
-      </div>
-    </div>
-  );
-}
+  }
 
 export default ConnectionTable;
