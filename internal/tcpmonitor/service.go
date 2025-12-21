@@ -787,3 +787,8 @@ func (s *Service) GetSessionCount() int {
 func (s *Service) GetSessionTimeline(sessionID int64) []TimelineConnection {
 	return s.snapshotStore.GetSessionTimeline(sessionID)
 }
+
+// GetConnectionHistoryForSession returns historical data for a connection within a specific session
+func (s *Service) GetConnectionHistoryForSession(sessionID int64, localAddr string, localPort int, remoteAddr string, remotePort int) []ConnectionHistoryPoint {
+	return s.snapshotStore.GetConnectionHistoryForSession(sessionID, localAddr, localPort, remoteAddr, remotePort)
+}

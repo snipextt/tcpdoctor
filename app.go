@@ -312,3 +312,11 @@ func (a *App) GetSessionTimeline(sessionID int64) []tcpmonitor.TimelineConnectio
 	}
 	return a.service.GetSessionTimeline(sessionID)
 }
+
+// GetConnectionHistoryForSession returns historical data for a connection within a specific session
+func (a *App) GetConnectionHistoryForSession(sessionID int64, localAddr string, localPort int, remoteAddr string, remotePort int) []tcpmonitor.ConnectionHistoryPoint {
+	if a.service == nil {
+		return nil
+	}
+	return a.service.GetConnectionHistoryForSession(sessionID, localAddr, localPort, remoteAddr, remotePort)
+}

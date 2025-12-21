@@ -219,3 +219,6 @@ type TimelineConnection struct {
 func (s *Service) GetSessions() []RecordingSession                         { return nil }
 func (s *Service) GetSessionCount() int                                    { return 0 }
 func (s *Service) GetSessionTimeline(sessionID int64) []TimelineConnection { return nil }
+func (s *Service) GetConnectionHistoryForSession(sessionID int64, localAddr string, localPort int, remoteAddr string, remotePort int) []ConnectionHistoryPoint {
+	return nil
+}

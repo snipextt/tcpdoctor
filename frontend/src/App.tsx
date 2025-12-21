@@ -18,6 +18,7 @@ import {
     ClearSnapshots,
     TakeSnapshot,
     GetConnectionHistory,
+    GetConnectionHistoryForSession,
     GetSessions,
     GetSessionTimeline
 } from "../wailsjs/go/main/App";
@@ -477,23 +478,23 @@ function App() {
                     onClose={() => setIsHistoryOpen(false)}
                     connectionKey={`${selectedConnection.LocalAddr}:${selectedConnection.LocalPort} → ${selectedConnection.RemoteAddr}:${selectedConnection.RemotePort}`}
                     getHistory={async () => {
-                        const history = await GetConnectionHistory(
+                        // If viewing a session, get history only from that session
+                        if (viewingSnapshotId !== null) {
+                            return GetConnectionHistoryForSession(
+                                viewingSnapshotId,
+                                selectedConnection.LocalAddr,
+                                selectedConnection.LocalPort,
+                                selectedConnection.RemoteAddr,
+                                selectedConnection.RemotePort
+                            );
+                        }
+                        // Live mode - get all history
+                        return GetConnectionHistory(
                             selectedConnection.LocalAddr,
                             selectedConnection.LocalPort,
                             selectedConnection.RemoteAddr,
                             selectedConnection.RemotePort
                         );
-                        // If viewing a snapshot, filter history to only show up to that snapshot
-                        if (viewingSnapshotId !== null && history) {
-                            // Find the snapshot metadata to get its timestamp
-                            const meta = await GetSnapshotMeta();
-                            const viewedSnap = meta?.find((s: { id: number }) => s.id === viewingSnapshotId);
-                            if (viewedSnap) {
-                                const cutoffTime = new Date(viewedSnap.timestamp).getTime();
-                                return history.filter((h: { timestamp: string }) => new Date(h.timestamp).getTime() <= cutoffTime);
-                            }
-                        }
-                        return history;
                     }}
                     viewingHistorical={viewingSnapshotId !== null}
                 />

@@ -350,6 +350,43 @@ func (s *SnapshotStore) GetConnectionHistory(localAddr string, localPort int, re
 	return history
 }
 
+// GetConnectionHistoryForSession returns historical data for a connection within a specific session
+func (s *SnapshotStore) GetConnectionHistoryForSession(sessionID int64, localAddr string, localPort int, remoteAddr string, remotePort int) []ConnectionHistoryPoint {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var history []ConnectionHistoryPoint
+	for _, snap := range s.snapshots {
+		if snap.SessionID != sessionID {
+			continue
+		}
+		for _, conn := range snap.Connections {
+			if conn.LocalAddr == localAddr && conn.LocalPort == localPort &&
+				conn.RemoteAddr == remoteAddr && conn.RemotePort == remotePort {
+				history = append(history, ConnectionHistoryPoint{
+					Timestamp:     snap.Timestamp,
+					State:         conn.State,
+					BytesIn:       conn.BytesIn,
+					BytesOut:      conn.BytesOut,
+					SegmentsIn:    conn.SegmentsIn,
+					SegmentsOut:   conn.SegmentsOut,
+					RTT:           conn.RTT,
+					RTTVariance:   conn.RTTVariance,
+					MinRTT:        conn.MinRTT,
+					MaxRTT:        conn.MaxRTT,
+					Retrans:       conn.Retrans,
+					SegsRetrans:   conn.SegsRetrans,
+					CongestionWin: conn.CongestionWin,
+					InBandwidth:   conn.InBandwidth,
+					OutBandwidth:  conn.OutBandwidth,
+				})
+				break
+			}
+		}
+	}
+	return history
+}
+
 // Compare compares two snapshots and returns differences
 func (s *SnapshotStore) Compare(id1, id2 int64) *ComparisonResult {
 	snap1 := s.GetByID(id1)
