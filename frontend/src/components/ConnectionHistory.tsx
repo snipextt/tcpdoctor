@@ -43,7 +43,7 @@ interface ConnectionHistoryProps {
     viewingHistorical?: boolean;
 }
 
-const CHART_HEIGHT = 140;
+const CHART_HEIGHT = 160;
 const SYNC_ID = 'connection-history-sync';
 
 const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
@@ -136,7 +136,7 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                                             </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                                        <XAxis dataKey="time" tick={{ fill: '#9ca3af', fontSize: 9 }} hide />
+                                        <XAxis dataKey="time" tick={{ fill: '#9ca3af', fontSize: 9 }} />
                                         <YAxis tick={{ fill: '#9ca3af', fontSize: 9 }} tickFormatter={(v) => formatBytes(v * 1024)} width={60} />
                                         <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: '#fff' }}
                                             formatter={(value: number, name: string) => [formatBytes(value * 1024), name === 'bytesInKB' ? 'In' : 'Out']} />
@@ -162,9 +162,9 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                                             </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                                        <XAxis dataKey="time" tick={{ fill: '#9ca3af', fontSize: 9 }} hide />
+                                        <XAxis dataKey="time" tick={{ fill: '#9ca3af', fontSize: 9 }} />
                                         <YAxis tick={{ fill: '#9ca3af', fontSize: 9 }} width={60} />
-                                        <Tooltip contentStyle={tooltipStyle} formatter={(value: number, name: string) => [value.toLocaleString(), name]} />
+                                        <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: '#fff' }} formatter={(value: number, name: string) => [value.toLocaleString(), name]} />
                                         <Area type="monotone" dataKey="segmentsIn" stroke="#8b5cf6" fill="url(#colorSegsIn)" name="Segs In" />
                                         <Area type="monotone" dataKey="segmentsOut" stroke="#06b6d4" fill="url(#colorSegsOut)" name="Segs Out" />
                                     </AreaChart>
@@ -177,9 +177,9 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                                 <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
                                     <LineChart data={history} syncId={SYNC_ID}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                                        <XAxis dataKey="time" tick={{ fill: '#9ca3af', fontSize: 9 }} hide />
+                                        <XAxis dataKey="time" tick={{ fill: '#9ca3af', fontSize: 9 }} />
                                         <YAxis tick={{ fill: '#9ca3af', fontSize: 9 }} tickFormatter={(v) => `${v.toFixed(0)}ms`} width={60} />
-                                        <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${value.toFixed(2)} ms`, 'RTT']} />
+                                        <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: '#fff' }} formatter={(value: number) => [`${value.toFixed(2)} ms`, 'RTT']} />
                                         <Line type="monotone" dataKey="rttMs" stroke="#f59e0b" strokeWidth={2} dot={false} name="RTT" />
                                     </LineChart>
                                 </ResponsiveContainer>
@@ -191,9 +191,9 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                                 <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
                                     <LineChart data={history} syncId={SYNC_ID}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                                        <XAxis dataKey="time" tick={{ fill: '#9ca3af', fontSize: 9 }} hide />
+                                        <XAxis dataKey="time" tick={{ fill: '#9ca3af', fontSize: 9 }} />
                                         <YAxis tick={{ fill: '#9ca3af', fontSize: 9 }} tickFormatter={(v) => `${v.toFixed(1)} Mbps`} width={60} />
-                                        <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${value.toFixed(2)} Mbps`, '']} />
+                                        <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: '#fff' }} formatter={(value: number, name: string) => [`${value.toFixed(2)} Mbps`, name]} />
                                         <Line type="monotone" dataKey="inBwMbps" stroke="#22c55e" strokeWidth={2} dot={false} name="In" />
                                         <Line type="monotone" dataKey="outBwMbps" stroke="#3b82f6" strokeWidth={2} dot={false} name="Out" />
                                     </LineChart>
@@ -206,9 +206,9 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                                 <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
                                     <ComposedChart data={history} syncId={SYNC_ID}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                                        <XAxis dataKey="time" tick={{ fill: '#9ca3af', fontSize: 9 }} hide />
+                                        <XAxis dataKey="time" tick={{ fill: '#9ca3af', fontSize: 9 }} />
                                         <YAxis tick={{ fill: '#9ca3af', fontSize: 9 }} tickFormatter={(v) => formatBytes(v)} width={60} />
-                                        <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [formatBytes(value), 'Bytes Retrans']} />
+                                        <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: '#fff' }} formatter={(value: number) => [formatBytes(value), 'Bytes Retrans']} />
                                         <Bar dataKey="retrans" fill="#ef4444" name="Retrans" opacity={0.7} />
                                     </ComposedChart>
                                 </ResponsiveContainer>
@@ -228,7 +228,7 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                                         <XAxis dataKey="time" tick={{ fill: '#9ca3af', fontSize: 9 }} />
                                         <YAxis tick={{ fill: '#9ca3af', fontSize: 9 }} tickFormatter={(v) => `${v.toFixed(0)} KB`} width={60} />
-                                        <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${value.toFixed(1)} KB`, 'CWND']} />
+                                        <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: '#fff' }} formatter={(value: number) => [`${value.toFixed(1)} KB`, 'CWND']} />
                                         <Area type="monotone" dataKey="cwndKB" stroke="#f59e0b" fill="url(#colorCwnd)" name="CWND" />
                                         <Brush dataKey="time" height={25} stroke="#3b82f6" fill="#1f2937" />
                                     </AreaChart>
