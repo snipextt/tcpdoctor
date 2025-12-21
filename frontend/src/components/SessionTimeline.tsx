@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './SessionTimeline.css';
 
 interface RecordingSession {
@@ -55,12 +55,27 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
     const [sessions, setSessions] = useState<RecordingSession[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [loadingSessionId, setLoadingSessionId] = useState<number | null>(null);
+    const popoverRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (isOpen) {
             loadSessions();
         }
     }, [isOpen]);
+
+    // Close on click outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+                onClose();
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isOpen, onClose]);
 
     const loadSessions = async () => {
         const data = await getSessions();
@@ -83,21 +98,13 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
 
     const formatTime = (ts: string) => {
         const d = new Date(ts);
-        return d.toLocaleTimeString();
-    };
-
-    const formatDate = (ts: string) => {
-        const d = new Date(ts);
-        return d.toLocaleDateString();
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     };
 
     const formatDuration = (start: string, end: string) => {
-        const startDate = new Date(start);
-        const endDate = new Date(end);
-        const diffMs = endDate.getTime() - startDate.getTime();
-
+        const diffMs = new Date(end).getTime() - new Date(start).getTime();
         if (diffMs < 1000) return `${diffMs}ms`;
-        if (diffMs < 60000) return `${(diffMs / 1000).toFixed(1)}s`;
+        if (diffMs < 60000) return `${(diffMs / 1000).toFixed(0)}s`;
         const mins = Math.floor(diffMs / 60000);
         const secs = Math.floor((diffMs % 60000) / 1000);
         return `${mins}m ${secs}s`;
@@ -106,65 +113,42 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="timeline-modal" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
-                    <h2>🎬 Recording Sessions ({sessions.length})</h2>
-                    <button className="modal-close" onClick={onClose}>×</button>
-                </div>
-
-                <div className="modal-content">
-                    {sessions.length === 0 ? (
-                        <div className="empty-state">
-                            <p>No recording sessions yet.</p>
-                            <p>Click <strong>Record</strong> to start capturing connections over time.</p>
-                        </div>
-                    ) : (
-                        <div className="sessions-list">
-                            {sessions.map((session) => (
-                                <div key={session.id} className="session-item">
-                                    <div className="session-header">
-                                        <span className="session-id">Session #{session.id}</span>
-                                        <span className="session-date">{formatDate(session.startTime)}</span>
-                                    </div>
-                                    <div className="session-details">
-                                        <div className="session-time">
-                                            <span className="time-label">Start:</span>
-                                            <span className="time-value">{formatTime(session.startTime)}</span>
-                                        </div>
-                                        <div className="session-time">
-                                            <span className="time-label">End:</span>
-                                            <span className="time-value">{formatTime(session.endTime)}</span>
-                                        </div>
-                                        <div className="session-time">
-                                            <span className="time-label">Duration:</span>
-                                            <span className="time-value">{formatDuration(session.startTime, session.endTime)}</span>
-                                        </div>
-                                        <div className="session-time">
-                                            <span className="time-label">Snapshots:</span>
-                                            <span className="time-value">{session.snapshotCount}</span>
-                                        </div>
-                                    </div>
-                                    <div className="session-actions">
-                                        <button
-                                            className="btn-load-session"
-                                            onClick={() => handleLoadSession(session.id)}
-                                            disabled={isLoading}
-                                        >
-                                            {loadingSessionId === session.id ? 'Loading...' : '▶ Load Timeline'}
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                <div className="modal-footer">
-                    <button className="btn-clear" onClick={onClear} disabled={sessions.length === 0}>
-                        🗑️ Clear All
+        <div className="session-popover" ref={popoverRef}>
+            <div className="popover-header">
+                <span>Sessions</span>
+                {sessions.length > 0 && (
+                    <button className="clear-btn" onClick={onClear} title="Clear all">
+                        🗑️
                     </button>
-                </div>
+                )}
+            </div>
+
+            <div className="popover-content">
+                {sessions.length === 0 ? (
+                    <div className="empty-msg">No recordings yet</div>
+                ) : (
+                    sessions.map((session) => (
+                        <div key={session.id} className="session-row">
+                            <div className="session-info">
+                                <div className="session-main">
+                                    <span className="session-time">
+                                        {formatTime(session.startTime)} - {formatTime(session.endTime)}
+                                    </span>
+                                </div>
+                                <div className="session-meta">
+                                    {formatDuration(session.startTime, session.endTime)} · {session.snapshotCount} snapshots
+                                </div>
+                            </div>
+                            <button
+                                className="load-btn"
+                                onClick={() => handleLoadSession(session.id)}
+                                disabled={isLoading}
+                            >
+                                {loadingSessionId === session.id ? '...' : 'Load'}
+                            </button>
+                        </div>
+                    ))
+                )}
             </div>
         </div>
     );

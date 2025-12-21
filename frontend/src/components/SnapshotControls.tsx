@@ -1,10 +1,17 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
+import SessionTimeline from './SessionTimeline';
 import './SnapshotControls.css';
 
-interface SnapshotMeta {
+interface RecordingSession {
     id: number;
+    startTime: string;
+    endTime: string;
+    snapshotCount: number;
+}
+
+interface TimelineConnection {
     timestamp: string;
-    connectionCount: number;
+    connection: any;
 }
 
 interface SnapshotControlsProps {
@@ -12,7 +19,13 @@ interface SnapshotControlsProps {
     snapshotCount: number;
     onStartRecording: () => void;
     onStopRecording: () => void;
+    isTimelineOpen: boolean;
     onOpenTimeline: () => void;
+    onCloseTimeline: () => void;
+    getSessions: () => Promise<RecordingSession[]>;
+    getSessionTimeline: (sessionId: number) => Promise<TimelineConnection[]>;
+    onLoadSession: (sessionId: number, timeline: TimelineConnection[]) => void;
+    onClear: () => void;
 }
 
 const SnapshotControls: React.FC<SnapshotControlsProps> = ({
@@ -20,7 +33,13 @@ const SnapshotControls: React.FC<SnapshotControlsProps> = ({
     snapshotCount,
     onStartRecording,
     onStopRecording,
+    isTimelineOpen,
     onOpenTimeline,
+    onCloseTimeline,
+    getSessions,
+    getSessionTimeline,
+    onLoadSession,
+    onClear,
 }) => {
     return (
         <div className="snapshot-controls">
@@ -34,13 +53,24 @@ const SnapshotControls: React.FC<SnapshotControlsProps> = ({
             </button>
 
             {snapshotCount > 0 && (
-                <button
-                    className="timeline-btn"
-                    onClick={onOpenTimeline}
-                    title="View Snapshots"
-                >
-                    📊 {snapshotCount.toLocaleString()}
-                </button>
+                <div className="timeline-container">
+                    <button
+                        className="timeline-btn"
+                        onClick={onOpenTimeline}
+                        title="View Sessions"
+                    >
+                        📊 {snapshotCount}
+                    </button>
+
+                    <SessionTimeline
+                        isOpen={isTimelineOpen}
+                        onClose={onCloseTimeline}
+                        getSessions={getSessions}
+                        getSessionTimeline={getSessionTimeline}
+                        onLoadSession={onLoadSession}
+                        onClear={onClear}
+                    />
+                </div>
             )}
         </div>
     );

@@ -1,113 +1,105 @@
-/* Session Timeline - Clean & Simple */
+/* Session Timeline Popover - Clean & Simple */
 
-/* Reuse base modal styles from SnapshotTimeline.css - just import it */
-@import './SnapshotTimeline.css';
-
-/* Sessions List */
-.sessions-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.5rem;
-}
-
-/* Session Card - Simple & Clean */
-.session-item {
-    background: var(--color-bg-secondary);
+.session-popover {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.5rem;
+    background: var(--color-bg);
     border: 1px solid var(--color-border);
-    border-radius: 6px;
-    padding: 0.75rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    min-width: 320px;
+    max-width: 400px;
+    z-index: 1000;
 }
 
-.session-header {
+.popover-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.5rem;
-}
-
-.session-id {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-border);
     font-weight: 600;
     font-size: 0.9rem;
-    color: var(--color-text);
 }
 
-.session-date {
-    font-size: 0.75rem;
+.popover-header .clear-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    opacity: 0.6;
+    font-size: 0.9rem;
+}
+
+.popover-header .clear-btn:hover {
+    opacity: 1;
+}
+
+.popover-content {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.empty-msg {
+    padding: 2rem;
+    text-align: center;
     color: var(--color-text-dim);
+    font-size: 0.85rem;
 }
 
-/* Session Details - Simple Grid */
-.session-details {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.25rem 1rem;
-    font-size: 0.8rem;
-    margin-bottom: 0.75rem;
+.session-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.session-row:last-child {
+    border-bottom: none;
+}
+
+.session-row:hover {
+    background: var(--color-bg-secondary);
+}
+
+.session-info {
+    flex: 1;
+}
+
+.session-main {
+    margin-bottom: 0.25rem;
 }
 
 .session-time {
-    display: flex;
-    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-text);
 }
 
-.time-label {
+.session-meta {
+    font-size: 0.75rem;
     color: var(--color-text-dim);
 }
 
-.time-value {
-    color: var(--color-text);
-    font-weight: 500;
-}
-
-/* Load Button */
-.session-actions {
-    display: flex;
-    justify-content: flex-end;
-}
-
-.btn-load-session {
+.load-btn {
     background: var(--color-primary);
     color: white;
     border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    cursor: pointer;
-}
-
-.btn-load-session:hover:not(:disabled) {
-    opacity: 0.9;
-}
-
-.btn-load-session:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* Footer Clear Button */
-.modal-footer {
-    padding: 0.5rem 1rem;
-    border-top: 1px solid var(--color-border);
-    display: flex;
-    justify-content: flex-end;
-}
-
-.btn-clear {
-    background: none;
-    border: 1px solid var(--color-border);
-    color: var(--color-text-dim);
     padding: 0.4rem 0.75rem;
     border-radius: 4px;
     font-size: 0.75rem;
+    font-weight: 500;
     cursor: pointer;
+    margin-left: 0.75rem;
 }
 
-.btn-clear:hover:not(:disabled) {
-    color: #dc3545;
-    border-color: #dc3545;
+.load-btn:hover:not(:disabled) {
+    opacity: 0.9;
 }
 
-.btn-clear:disabled {
+.load-btn:disabled {
     opacity: 0.5;
+    cursor: not-allowed;
 }

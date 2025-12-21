@@ -28,7 +28,6 @@ import StatsPanel from './components/StatsPanel';
 import SettingsModal from './components/SettingsModal';
 import HealthReportModal from './components/HealthReportModal';
 import SnapshotControls from './components/SnapshotControls';
-import SessionTimeline from './components/SessionTimeline';
 import ConnectionHistory from './components/ConnectionHistory';
 import './App.css';
 
@@ -384,7 +383,13 @@ function App() {
                             snapshotCount={snapshotCount}
                             onStartRecording={handleStartRecording}
                             onStopRecording={handleStopRecording}
+                            isTimelineOpen={isTimelineOpen}
                             onOpenTimeline={() => setIsTimelineOpen(true)}
+                            onCloseTimeline={() => setIsTimelineOpen(false)}
+                            getSessions={GetSessions}
+                            getSessionTimeline={GetSessionTimeline}
+                            onLoadSession={handleLoadSession}
+                            onClear={handleClearSnapshots}
                         />
                     )}
                     <button className="btn-export" onClick={handleExport}>
@@ -463,16 +468,6 @@ function App() {
                 onSaveAPIKey={handleSaveAPIKey}
                 refreshRate={updateInterval}
                 onRefreshRateChange={setUpdateInterval}
-            />
-
-            {/* Session Timeline Modal */}
-            <SessionTimeline
-                isOpen={isTimelineOpen}
-                onClose={() => setIsTimelineOpen(false)}
-                getSessions={GetSessions}
-                getSessionTimeline={GetSessionTimeline}
-                onLoadSession={handleLoadSession}
-                onClear={handleClearSnapshots}
             />
 
             {/* Connection History Modal */}

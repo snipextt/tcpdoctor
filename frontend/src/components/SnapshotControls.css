@@ -68,3 +68,8 @@
     color: var(--color-text);
     border-color: var(--color-text-dim);
 }
+
+/* Container for timeline button + popover */
+.timeline-container {
+    position: relative;
+}
