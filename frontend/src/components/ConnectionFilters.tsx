@@ -202,7 +202,7 @@ const ConnectionFilters: React.FC<ConnectionFiltersProps> = ({
                             <input
                                 autoFocus
                                 type="text"
-                                placeholder="e.g. > 50, < 1M"
+                                placeholder={editingMetric.key === 'rtt' ? 'e.g. > 50 (ms)' : 'e.g. > 1M, < 500K'}
                                 value={metricValue}
                                 onChange={e => setMetricValue(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && handleMetricSubmit()}

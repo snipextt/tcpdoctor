@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { tcpmonitor } from '../../wailsjs/go/models';
@@ -23,21 +23,22 @@ interface ColumnDefinition {
   label: string;
   width: number;
   align?: 'left' | 'center' | 'right';
+  minWidth?: number;
 }
 
 const BASE_COLUMNS: ColumnDefinition[] = [
-  { key: 'localAddr', label: 'Local Address', width: 170, align: 'left' },
-  { key: 'localPort', label: 'Local Port', width: 90, align: 'left' },
-  { key: 'remoteAddr', label: 'Remote Address', width: 170, align: 'left' },
-  { key: 'remotePort', label: 'Remote Port', width: 90, align: 'left' },
-  { key: 'state', label: 'State', width: 110, align: 'left' },
-  { key: 'pid', label: 'PID', width: 70, align: 'left' },
-  { key: 'bytesIn', label: 'Bytes In', width: 110, align: 'left' },
-  { key: 'bytesOut', label: 'Bytes Out', width: 110, align: 'left' },
+  { key: 'localAddr', label: 'Local Address', width: 170, align: 'left', minWidth: 100 },
+  { key: 'localPort', label: 'Local Port', width: 90, align: 'left', minWidth: 70 },
+  { key: 'remoteAddr', label: 'Remote Address', width: 170, align: 'left', minWidth: 100 },
+  { key: 'remotePort', label: 'Remote Port', width: 90, align: 'left', minWidth: 70 },
+  { key: 'state', label: 'State', width: 110, align: 'left', minWidth: 80 },
+  { key: 'pid', label: 'PID', width: 70, align: 'left', minWidth: 50 },
+  { key: 'bytesIn', label: 'Bytes In', width: 110, align: 'left', minWidth: 80 },
+  { key: 'bytesOut', label: 'Bytes Out', width: 110, align: 'left', minWidth: 80 },
 ];
 
 const TIME_COLUMN: ColumnDefinition = {
-  key: 'timestamp', label: 'Time', width: 100, align: 'left'
+  key: 'timestamp', label: 'Time', width: 100, align: 'left', minWidth: 80
 };
 
 const ROW_HEIGHT = 48;
@@ -47,17 +48,72 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
   const [sortColumn, setSortColumn] = useState<SortColumn>(viewingSnapshot ? 'timestamp' : 'localPort');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
-  const columns = useMemo(() => {
-    return viewingSnapshot ? [TIME_COLUMN, ...BASE_COLUMNS] : BASE_COLUMNS;
-  }, [viewingSnapshot]);
+  // Initialize column widths from defaults
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => {
+    const widths: Record<string, number> = {};
+    [TIME_COLUMN, ...BASE_COLUMNS].forEach(col => {
+      widths[col.key] = col.width;
+    });
+    return widths;
+  });
 
-  // Handle column header click for sorting
+  const columns = useMemo(() => {
+    const activeColumns = viewingSnapshot ? [TIME_COLUMN, ...BASE_COLUMNS] : BASE_COLUMNS;
+    // Map current widths to columns
+    return activeColumns.map(col => ({
+      ...col,
+      width: columnWidths[col.key] || col.width
+    }));
+  }, [viewingSnapshot, columnWidths]);
+
+  // Handle resizing
+  const resizeRef = useRef<{ isResizing: boolean, startX: number, startWidth: number, columnKey: string | null }>({
+    isResizing: false,
+    startX: 0,
+    startWidth: 0,
+    columnKey: null
+  });
+
+  const handleResizeStart = (e: React.MouseEvent, columnKey: string, currentWidth: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resizeRef.current = {
+      isResizing: true,
+      startX: e.pageX,
+      startWidth: currentWidth,
+      columnKey
+    };
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeEnd);
+    document.body.style.cursor = 'col-resize';
+  };
+
+  const handleResizeMove = useCallback((e: MouseEvent) => {
+    if (!resizeRef.current.isResizing || !resizeRef.current.columnKey) return;
+
+    const diff = e.pageX - resizeRef.current.startX;
+    const newWidth = Math.max(50, resizeRef.current.startWidth + diff); // Minimum 50px
+
+    setColumnWidths(prev => ({
+      ...prev,
+      [resizeRef.current.columnKey!]: newWidth
+    }));
+  }, []);
+
+  const handleResizeEnd = useCallback(() => {
+    resizeRef.current = { isResizing: false, startX: 0, startWidth: 0, columnKey: null };
+    document.removeEventListener('mousemove', handleResizeMove);
+    document.removeEventListener('mouseup', handleResizeEnd);
+    document.body.style.cursor = '';
+  }, [handleResizeMove]);
+
+  // Handle column header click for sorting (only if not resizing)
   const handleSort = useCallback((column: SortColumn) => {
+    if (resizeRef.current.isResizing) return;
+
     if (sortColumn === column) {
-      // Toggle direction if clicking the same column
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
-      // Set new column with ascending direction
       setSortColumn(column);
       setSortDirection('asc');
     }
@@ -131,7 +187,12 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
   // Check if a connection is selected
   const isSelected = useCallback((conn: tcpmonitor.ConnectionInfo) => {
     if (!selectedConnection) return false;
+    // Use local + remote addr/port + PID for uniqueness if possible, 
+    // or just local/remote pair if that's what we have.
+    // Assuming Local+Remote tuple is unique enough for now.
     return (
+      conn.LocalAddr === selectedConnection.LocalAddr &&
+      conn.LocalPort === selectedConnection.LocalPort &&
       conn.RemoteAddr === selectedConnection.RemoteAddr &&
       conn.RemotePort === selectedConnection.RemotePort
     );
@@ -244,6 +305,13 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
                 {sortDirection === 'asc' ? '▲' : '▼'}
               </span>
             )}
+
+            {/* Resize Handle */}
+            <div
+              className="resize-handle"
+              onMouseDown={(e) => handleResizeStart(e, column.key, column.width)}
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
         ))}
       </div>
@@ -272,7 +340,7 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
         )}
       </div>
 
-      /* Footer with connection count */
+      {/* Footer with connection count */}
       <div className="connection-table-footer">
         <span>{formatCount(connections.length)} connection{connections.length !== 1 ? 's' : ''}</span>
       </div>

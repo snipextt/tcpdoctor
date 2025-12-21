@@ -34,39 +34,32 @@
   flex-shrink: 0;
 }
 
-.header-cell {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0 0.5rem;
-  cursor: pointer;
-  transition: color 0.15s;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.header-cell:hover {
-  color: var(--color-text);
-}
-
-.header-cell:last-child {
-  flex-grow: 1;
-}
-
-.header-cell.sorted {
-  color: var(--color-primary);
-}
-
 .sort-indicator {
   font-size: 0.6rem;
   opacity: 0.8;
 }
 
-/* Table Body */
-.connection-table-body {
-  flex: 1;
-  overflow: hidden;
+.resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.2s;
+  z-index: 10;
+}
+
+.resize-handle:hover,
+.header-cell:hover .resize-handle {
+  background: var(--color-primary);
+  opacity: 0.5;
+}
+
+.header-cell {
+  position: relative;
+  /* For absolute positioning of resize handle */
   position: relative;
 }
 
