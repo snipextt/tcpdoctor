@@ -58,6 +58,13 @@
   color: var(--color-primary);
 }
 
+/* Table Body */
+.connection-table-body {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
 .table-message {
   display: flex;
   align-items: center;
