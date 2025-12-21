@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './SnapshotTimeline.css';
+import './SessionTimeline.css';
 
 interface RecordingSession {
     id: number;

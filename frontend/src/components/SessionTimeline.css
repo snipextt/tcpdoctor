@@ -1,0 +1,177 @@
+/* Session Timeline Modal - Modern Design */
+
+/* Sessions List */
+.sessions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.5rem;
+}
+
+/* Individual Session Card */
+.session-item {
+    background: linear-gradient(135deg, var(--color-bg-secondary), var(--color-bg-tertiary));
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    padding: 1rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.session-item:hover {
+    border-color: var(--color-primary);
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
+    transform: translateY(-2px);
+}
+
+/* Session Header */
+.session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.session-id {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.session-id::before {
+    content: '🎬';
+    font-size: 1.1rem;
+}
+
+.session-date {
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+    background: var(--color-bg);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+/* Session Details Grid */
+.session-details {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.session-time {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.time-label {
+    font-size: 0.75rem;
+    color: var(--color-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 60px;
+}
+
+.time-value {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-text);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Session Actions */
+.session-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 0.5rem;
+}
+
+.btn-load-session {
+    background: linear-gradient(135deg, var(--color-primary), #2563eb);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.btn-load-session:hover:not(:disabled) {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-load-session:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Modal Content Override */
+.timeline-modal .modal-content {
+    padding: 0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Modal Footer */
+.timeline-modal .modal-footer {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.btn-clear {
+    background: transparent;
+    color: var(--color-text-dim);
+    border: 1px solid var(--color-border);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-clear:hover:not(:disabled) {
+    color: #ef4444;
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.08);
+}
+
+.btn-clear:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Empty State */
+.timeline-modal .empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--color-text-dim);
+}
+
+.timeline-modal .empty-state p {
+    margin: 0.5rem 0;
+}
+
+.timeline-modal .empty-state strong {
+    color: var(--color-primary);
+}
