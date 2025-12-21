@@ -101,10 +101,14 @@ const SnapshotControls: React.FC<SnapshotControlsProps> = ({
         } else {
             onStartRecording();
         }
-        // Refresh sessions after stopping
         if (isRecording) {
             setTimeout(loadSessions, 100);
         }
+    };
+
+    const handleClear = () => {
+        onClear();
+        setSessions([]);
     };
 
     return (
@@ -112,82 +116,71 @@ const SnapshotControls: React.FC<SnapshotControlsProps> = ({
             <button
                 className={`sessions-btn ${isRecording ? 'recording' : ''}`}
                 onClick={() => setIsOpen(!isOpen)}
-                title="Sessions"
             >
-                {isRecording ? '⏺' : '📊'} Sessions {sessionCount > 0 && `(${sessionCount})`}
+                {isRecording && <span className="recording-dot" />}
+                Sessions {sessionCount > 0 && `(${sessionCount})`}
             </button>
 
             {isOpen && (
                 <div className="sessions-popover">
-                    {/* Recording Control */}
-                    <div className="popover-section">
+                    {/* Record Button */}
+                    <button
+                        className={`record-btn ${isRecording ? 'stop' : 'start'}`}
+                        onClick={handleRecordToggle}
+                    >
+                        {isRecording ? '⏹ Stop Recording' : '⏺ Start Recording'}
+                    </button>
+
+                    {/* Action Buttons */}
+                    <div className="action-row">
+                        <button className="action-btn" onClick={onImportSession}>
+                            Import
+                        </button>
                         <button
-                            className={`record-control ${isRecording ? 'recording' : ''}`}
-                            onClick={handleRecordToggle}
+                            className="action-btn danger"
+                            onClick={handleClear}
+                            disabled={sessions.length === 0}
                         >
-                            <span className="record-dot">{isRecording ? '⏹' : '⏺'}</span>
-                            {isRecording ? 'Stop Recording' : 'Start Recording'}
+                            Clear All
                         </button>
                     </div>
 
                     {/* Sessions List */}
-                    <div className="popover-section sessions-section">
-                        <div className="section-header">
-                            <span>Recordings</span>
-                            <div className="section-actions">
-                                <button
-                                    className="icon-btn"
-                                    onClick={onImportSession}
-                                    title="Import"
-                                >
-                                    📥
-                                </button>
-                                {sessions.length > 0 && (
-                                    <button
-                                        className="icon-btn danger"
-                                        onClick={() => { onClear(); loadSessions(); }}
-                                        title="Clear All"
-                                    >
-                                        🗑️
-                                    </button>
-                                )}
+                    <div className="sessions-list">
+                        {sessions.length === 0 ? (
+                            <div className="empty-state">
+                                No recordings yet.<br />
+                                Click "Start Recording" to begin.
                             </div>
-                        </div>
-
-                        <div className="sessions-list">
-                            {sessions.length === 0 ? (
-                                <div className="empty-msg">No recordings yet</div>
-                            ) : (
-                                sessions.map((session) => (
-                                    <div key={session.id} className="session-row">
-                                        <div className="session-info">
-                                            <div className="session-time">
-                                                {formatTime(session.startTime)} - {formatTime(session.endTime)}
-                                            </div>
-                                            <div className="session-meta">
-                                                {formatDuration(session.startTime, session.endTime)} · {session.snapshotCount} snapshots
-                                            </div>
+                        ) : (
+                            sessions.map((session) => (
+                                <div key={session.id} className="session-card">
+                                    <div className="session-info">
+                                        <div className="session-time">
+                                            {formatTime(session.startTime)} → {formatTime(session.endTime)}
                                         </div>
-                                        <div className="session-actions">
-                                            <button
-                                                className="icon-btn"
-                                                onClick={() => onExportSession(session.id)}
-                                                title="Export"
-                                            >
-                                                📤
-                                            </button>
-                                            <button
-                                                className="load-btn"
-                                                onClick={() => handleLoadSession(session.id)}
-                                                disabled={isLoading}
-                                            >
-                                                {loadingSessionId === session.id ? '...' : 'Load'}
-                                            </button>
+                                        <div className="session-meta">
+                                            Duration: {formatDuration(session.startTime, session.endTime)} · {session.snapshotCount} snapshots
                                         </div>
                                     </div>
-                                ))
-                            )}
-                        </div>
+                                    <div className="session-buttons">
+                                        <button
+                                            className="session-action-btn"
+                                            onClick={() => onExportSession(session.id)}
+                                        >
+                                            Export
+                                        </button>
+                                        <button
+                                            className="session-action-btn primary"
+                                            onClick={() => handleLoadSession(session.id)}
+                                            disabled={isLoading}
+                                        >
+                                            {loadingSessionId === session.id ? 'Loading...' : 'Load'}
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
             )}
