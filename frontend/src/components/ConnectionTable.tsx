@@ -132,150 +132,152 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
   const isSelected = useCallback((conn: tcpmonitor.ConnectionInfo) => {
     if (!selectedConnection) return false;
     return (
-      conn.LocalAddr === selectedConnection.LocalAddr &&
-      conn.LocalPort === selectedConnection.LocalPort &&
-  // Render a single row
+      conn.RemoteAddr === selectedConnection.RemoteAddr &&
+      conn.RemotePort === selectedConnection.RemotePort
+    );
+  }, [selectedConnection]);
+
   // Create a custom ItemData type for the list
   const itemData = useMemo(() => ({
-        connections: sortedConnections,
-        columns, // Pass columns definition to the Row
-        selectedConnection,
-        onSelectConnection
-      }), [sortedConnections, columns, selectedConnection, onSelectConnection]);
+    connections: sortedConnections,
+    columns, // Pass columns definition to the Row
+    selectedConnection,
+    onSelectConnection
+  }), [sortedConnections, columns, selectedConnection, onSelectConnection]);
 
-    // Render a single row
-    const Row = useCallback(({ index, style, data }: any) => {
-      const conn = data.connections[index];
-      const cols = data.columns as ColumnDefinition[];
-      const selected = data.selectedConnection &&
-        data.selectedConnection.LocalAddr === conn.LocalAddr &&
-        data.selectedConnection.LocalPort === conn.LocalPort &&
-        data.selectedConnection.RemoteAddr === conn.RemoteAddr &&
-        data.selectedConnection.RemotePort === conn.RemotePort;
+  // Render a single row
+  const Row = useCallback(({ index, style, data }: any) => {
+    const conn = data.connections[index];
+    const cols = data.columns as ColumnDefinition[];
+    const selected = data.selectedConnection &&
+      data.selectedConnection.LocalAddr === conn.LocalAddr &&
+      data.selectedConnection.LocalPort === conn.LocalPort &&
+      data.selectedConnection.RemoteAddr === conn.RemoteAddr &&
+      data.selectedConnection.RemotePort === conn.RemotePort;
 
-      // Just a basic check to prevent crashes if health is missing
-      const healthColor = getHealthColor(100);
-
-      return (
-        <div
-          style={style}
-          className={`connection-row ${selected ? 'selected' : ''}`}
-          onMouseDown={() => data.onSelectConnection(conn)}
-        >
-          {/* Health Indicator */}
-          <div className="health-indicator" style={{ backgroundColor: healthColor }} />
-
-          {cols.map((col: ColumnDefinition) => {
-            let content: React.ReactNode = null;
-            switch (col.key) {
-              case 'timestamp':
-                content = (conn as any).Timestamp || '-';
-                break;
-              case 'localAddr':
-                content = conn.LocalAddr;
-                break;
-              case 'localPort':
-                content = conn.LocalPort;
-                break;
-              case 'remoteAddr':
-                content = conn.RemoteAddr;
-                break;
-              case 'remotePort':
-                content = conn.RemotePort;
-                break;
-              case 'state':
-                content = (
-                  <span
-                    className="state-badge"
-                    style={{
-                      backgroundColor: getTCPStateColor(conn.State),
-                      color: '#ffffff'
-                    }}
-                  >
-                    {TCPStateNames[conn.State as TCPState] || 'UNKNOWN'}
-                  </span>
-                );
-                break;
-              case 'pid':
-                content = formatCount(conn.PID);
-                break;
-              case 'bytesIn':
-                content = conn.BasicStats ? formatBytes(conn.BasicStats.DataBytesIn).formatted : '—';
-                break;
-              case 'bytesOut':
-                content = conn.BasicStats ? formatBytes(conn.BasicStats.DataBytesOut).formatted : '—';
-                break;
-            }
-
-            return (
-              <div
-                key={col.key}
-                className={`cell ${col.key === 'state' ? 'state-cell' : ''}`}
-                style={{ width: col.width, textAlign: col.align }}
-              >
-                {content}
-              </div>
-            );
-          })}
-        </div>
-      );
-    }, []); // Dependencies are handled via data prop
-
-    // Calculate total width for the table
-    const totalWidth = columns.reduce((sum, col) => sum + col.width, 0) + 8; // +8 for health indicator
+    // Just a basic check to prevent crashes if health is missing
+    const healthColor = getHealthColor(100);
 
     return (
-      <div className="connection-table-container">
-        {/* Header */}
-        <div className="connection-table-header">
-          <div className="health-indicator-header" />
-          {columns.map(column => (
-            <div
-              key={column.key}
-              className={`header-cell ${sortColumn === column.key ? 'sorted' : ''}`}
-              style={{ width: column.width, textAlign: column.align }}
-              onClick={() => handleSort(column.key)}
-            >
-              <span>{column.label}</span>
-              {sortColumn === column.key && (
-                <span className="sort-indicator">
-                  {sortDirection === 'asc' ? '▲' : '▼'}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
+      <div
+        style={style}
+        className={`connection-row ${selected ? 'selected' : ''}`}
+        onMouseDown={() => data.onSelectConnection(conn)}
+      >
+        {/* Health Indicator */}
+        <div className="health-indicator" style={{ backgroundColor: healthColor }} />
 
-        {/* Table Body */}
-        <div className="connection-table-body">
-          {isLoading ? (
-            <div className="table-message">Loading connections...</div>
-          ) : connections.length === 0 ? (
-            <div className="table-message">No connections found</div>
-          ) : (
-            <AutoSizer>
-              {({ height, width }: { height: number; width: number }) => (
-                <List
-                  height={height}
-                  itemCount={sortedConnections.length}
-                  itemSize={ROW_HEIGHT}
-                  width={Math.max(width, totalWidth)}
-                  overscanCount={5}
-                  itemData={itemData}
+        {cols.map((col: ColumnDefinition) => {
+          let content: React.ReactNode = null;
+          switch (col.key) {
+            case 'timestamp':
+              content = (conn as any).Timestamp || '-';
+              break;
+            case 'localAddr':
+              content = conn.LocalAddr;
+              break;
+            case 'localPort':
+              content = conn.LocalPort;
+              break;
+            case 'remoteAddr':
+              content = conn.RemoteAddr;
+              break;
+            case 'remotePort':
+              content = conn.RemotePort;
+              break;
+            case 'state':
+              content = (
+                <span
+                  className="state-badge"
+                  style={{
+                    backgroundColor: getTCPStateColor(conn.State),
+                    color: '#ffffff'
+                  }}
                 >
-                  {Row}
-                </List>
-              )}
-            </AutoSizer>
-          )}
-        </div>
+                  {TCPStateNames[conn.State as TCPState] || 'UNKNOWN'}
+                </span>
+              );
+              break;
+            case 'pid':
+              content = formatCount(conn.PID);
+              break;
+            case 'bytesIn':
+              content = conn.BasicStats ? formatBytes(conn.BasicStats.DataBytesIn).formatted : '—';
+              break;
+            case 'bytesOut':
+              content = conn.BasicStats ? formatBytes(conn.BasicStats.DataBytesOut).formatted : '—';
+              break;
+          }
 
-        {/* Footer with connection count */}
-        <div className="connection-table-footer">
-          <span>{formatCount(connections.length)} connection{connections.length !== 1 ? 's' : ''}</span>
-        </div>
+          return (
+            <div
+              key={col.key}
+              className={`cell ${col.key === 'state' ? 'state-cell' : ''}`}
+              style={{ width: col.width, textAlign: col.align }}
+            >
+              {content}
+            </div>
+          );
+        })}
       </div>
     );
-  }
+  }, []); // Dependencies are handled via data prop
+
+  // Calculate total width for the table
+  const totalWidth = columns.reduce((sum, col) => sum + col.width, 0) + 8; // +8 for health indicator
+
+  return (
+    <div className="connection-table-container">
+      {/* Header */}
+      <div className="connection-table-header">
+        <div className="health-indicator-header" />
+        {columns.map(column => (
+          <div
+            key={column.key}
+            className={`header-cell ${sortColumn === column.key ? 'sorted' : ''}`}
+            style={{ width: column.width, textAlign: column.align }}
+            onClick={() => handleSort(column.key)}
+          >
+            <span>{column.label}</span>
+            {sortColumn === column.key && (
+              <span className="sort-indicator">
+                {sortDirection === 'asc' ? '▲' : '▼'}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Table Body */}
+      <div className="connection-table-body">
+        {isLoading ? (
+          <div className="table-message">Loading connections...</div>
+        ) : connections.length === 0 ? (
+          <div className="table-message">No connections found</div>
+        ) : (
+          <AutoSizer>
+            {({ height, width }: { height: number; width: number }) => (
+              <List
+                height={height}
+                itemCount={sortedConnections.length}
+                itemSize={ROW_HEIGHT}
+                width={Math.max(width, totalWidth)}
+                overscanCount={5}
+                itemData={itemData}
+              >
+                {Row}
+              </List>
+            )}
+          </AutoSizer>
+        )}
+      </div>
+
+      /* Footer with connection count */
+      <div className="connection-table-footer">
+        <span>{formatCount(connections.length)} connection{connections.length !== 1 ? 's' : ''}</span>
+      </div>
+    </div>
+  );
+}
 
 export default ConnectionTable;
