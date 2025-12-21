@@ -770,3 +770,20 @@ func (s *Service) TakeSnapshot() {
 func (s *Service) GetConnectionHistory(localAddr string, localPort int, remoteAddr string, remotePort int) []ConnectionHistoryPoint {
 	return s.snapshotStore.GetConnectionHistory(localAddr, localPort, remoteAddr, remotePort)
 }
+
+// === Session Methods ===
+
+// GetSessions returns all recording sessions
+func (s *Service) GetSessions() []RecordingSession {
+	return s.snapshotStore.GetSessions()
+}
+
+// GetSessionCount returns number of sessions
+func (s *Service) GetSessionCount() int {
+	return s.snapshotStore.SessionCount()
+}
+
+// GetSessionTimeline returns all connection snapshots from a session as timeline rows
+func (s *Service) GetSessionTimeline(sessionID int64) []TimelineConnection {
+	return s.snapshotStore.GetSessionTimeline(sessionID)
+}

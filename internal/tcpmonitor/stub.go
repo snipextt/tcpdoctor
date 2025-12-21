@@ -203,3 +203,19 @@ type ConnectionHistoryPoint struct {
 func (s *Service) GetConnectionHistory(localAddr string, localPort int, remoteAddr string, remotePort int) []ConnectionHistoryPoint {
 	return nil
 }
+
+type RecordingSession struct {
+	ID            int64     `json:"id"`
+	StartTime     time.Time `json:"startTime"`
+	EndTime       time.Time `json:"endTime"`
+	SnapshotCount int       `json:"snapshotCount"`
+}
+
+type TimelineConnection struct {
+	Timestamp  time.Time         `json:"timestamp"`
+	Connection CompactConnection `json:"connection"`
+}
+
+func (s *Service) GetSessions() []RecordingSession                         { return nil }
+func (s *Service) GetSessionCount() int                                    { return 0 }
+func (s *Service) GetSessionTimeline(sessionID int64) []TimelineConnection { return nil }

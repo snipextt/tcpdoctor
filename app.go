@@ -286,3 +286,29 @@ func (a *App) GetConnectionHistory(localAddr string, localPort int, remoteAddr s
 	}
 	return a.service.GetConnectionHistory(localAddr, localPort, remoteAddr, remotePort)
 }
+
+// === Session Methods ===
+
+// GetSessions returns all recording sessions
+func (a *App) GetSessions() []tcpmonitor.RecordingSession {
+	if a.service == nil {
+		return nil
+	}
+	return a.service.GetSessions()
+}
+
+// GetSessionCount returns number of sessions
+func (a *App) GetSessionCount() int {
+	if a.service == nil {
+		return 0
+	}
+	return a.service.GetSessionCount()
+}
+
+// GetSessionTimeline returns all connection snapshots from a session as timeline rows
+func (a *App) GetSessionTimeline(sessionID int64) []tcpmonitor.TimelineConnection {
+	if a.service == nil {
+		return nil
+	}
+	return a.service.GetSessionTimeline(sessionID)
+}

@@ -35,40 +35,87 @@ type CompactConnection struct {
 // Snapshot represents a point-in-time capture
 type Snapshot struct {
 	ID          int64               `json:"id"`
+	SessionID   int64               `json:"sessionId"` // Which recording session this belongs to
 	Timestamp   time.Time           `json:"timestamp"`
 	Connections []CompactConnection `json:"connections"`
 }
 
-// SnapshotStore manages snapshot recording with ring buffer
+// RecordingSession represents a Start/Stop recording duration
+type RecordingSession struct {
+	ID            int64     `json:"id"`
+	StartTime     time.Time `json:"startTime"`
+	EndTime       time.Time `json:"endTime"`
+	SnapshotCount int       `json:"snapshotCount"`
+}
+
+// SnapshotStore manages snapshot recording with sessions
 type SnapshotStore struct {
-	mu          sync.RWMutex
-	snapshots   []Snapshot
-	maxSize     int
-	nextID      int64
-	isRecording bool
+	mu               sync.RWMutex
+	snapshots        []Snapshot
+	sessions         []RecordingSession
+	maxSize          int
+	nextSnapshotID   int64
+	nextSessionID    int64
+	isRecording      bool
+	currentSessionID int64 // Active session during recording
 }
 
 // NewSnapshotStore creates a store with fixed capacity
 func NewSnapshotStore(maxSnapshots int) *SnapshotStore {
 	return &SnapshotStore{
-		snapshots: make([]Snapshot, 0, maxSnapshots),
-		maxSize:   maxSnapshots,
-		nextID:    1,
+		snapshots:      make([]Snapshot, 0, maxSnapshots),
+		sessions:       make([]RecordingSession, 0),
+		maxSize:        maxSnapshots,
+		nextSnapshotID: 1,
+		nextSessionID:  1,
 	}
 }
 
-// StartRecording enables snapshot capture
-func (s *SnapshotStore) StartRecording() {
+// StartRecording enables snapshot capture and creates a new session
+func (s *SnapshotStore) StartRecording() int64 {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	// Create new session
+	session := RecordingSession{
+		ID:        s.nextSessionID,
+		StartTime: time.Now(),
+	}
+	s.sessions = append(s.sessions, session)
+	s.currentSessionID = s.nextSessionID
+	s.nextSessionID++
 	s.isRecording = true
+
+	return s.currentSessionID
 }
 
-// StopRecording disables snapshot capture
+// StopRecording disables snapshot capture and closes current session
 func (s *SnapshotStore) StopRecording() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	if !s.isRecording {
+		return
+	}
+
+	// Update session with end time and snapshot count
+	for i := range s.sessions {
+		if s.sessions[i].ID == s.currentSessionID {
+			s.sessions[i].EndTime = time.Now()
+			// Count snapshots in this session
+			count := 0
+			for _, snap := range s.snapshots {
+				if snap.SessionID == s.currentSessionID {
+					count++
+				}
+			}
+			s.sessions[i].SnapshotCount = count
+			break
+		}
+	}
+
 	s.isRecording = false
+	s.currentSessionID = 0
 }
 
 // IsRecording returns current recording state
@@ -118,11 +165,12 @@ func (s *SnapshotStore) Take(connections []ConnectionInfo) *Snapshot {
 	}
 
 	snapshot := Snapshot{
-		ID:          s.nextID,
+		ID:          s.nextSnapshotID,
+		SessionID:   s.currentSessionID,
 		Timestamp:   time.Now(),
 		Connections: compact,
 	}
-	s.nextID++
+	s.nextSnapshotID++
 
 	// Ring buffer: remove oldest if at capacity
 	if len(s.snapshots) >= s.maxSize {
@@ -200,11 +248,53 @@ type SnapshotMeta struct {
 	ConnectionCount int       `json:"connectionCount"`
 }
 
-// Clear removes all snapshots
+// Clear removes all snapshots and sessions
 func (s *SnapshotStore) Clear() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.snapshots = s.snapshots[:0]
+	s.sessions = s.sessions[:0]
+}
+
+// GetSessions returns all recording sessions
+func (s *SnapshotStore) GetSessions() []RecordingSession {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	result := make([]RecordingSession, len(s.sessions))
+	copy(result, s.sessions)
+	return result
+}
+
+// SessionCount returns number of sessions
+func (s *SnapshotStore) SessionCount() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return len(s.sessions)
+}
+
+// TimelineConnection represents a connection snapshot with its timestamp for timeline view
+type TimelineConnection struct {
+	Timestamp  time.Time         `json:"timestamp"`
+	Connection CompactConnection `json:"connection"`
+}
+
+// GetSessionTimeline returns all connection snapshots from a session as timeline rows
+func (s *SnapshotStore) GetSessionTimeline(sessionID int64) []TimelineConnection {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var timeline []TimelineConnection
+	for _, snap := range s.snapshots {
+		if snap.SessionID == sessionID {
+			for _, conn := range snap.Connections {
+				timeline = append(timeline, TimelineConnection{
+					Timestamp:  snap.Timestamp,
+					Connection: conn,
+				})
+			}
+		}
+	}
+	return timeline
 }
 
 // ConnectionHistoryPoint is a single data point for charting - all metrics

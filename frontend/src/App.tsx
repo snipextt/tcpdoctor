@@ -11,13 +11,15 @@ import {
     StartRecording,
     StopRecording,
     IsRecording,
-    GetSnapshotCount,
+    GetSessionCount,
     GetSnapshotMeta,
     GetSnapshot,
     CompareSnapshots,
     ClearSnapshots,
     TakeSnapshot,
-    GetConnectionHistory
+    GetConnectionHistory,
+    GetSessions,
+    GetSessionTimeline
 } from "../wailsjs/go/main/App";
 import { tcpmonitor } from "../wailsjs/go/models";
 import ConnectionTable from './components/ConnectionTable';
@@ -26,7 +28,7 @@ import StatsPanel from './components/StatsPanel';
 import SettingsModal from './components/SettingsModal';
 import HealthReportModal from './components/HealthReportModal';
 import SnapshotControls from './components/SnapshotControls';
-import SnapshotTimeline from './components/SnapshotTimeline';
+import SessionTimeline from './components/SessionTimeline';
 import ConnectionHistory from './components/ConnectionHistory';
 import './App.css';
 
@@ -188,7 +190,7 @@ function App() {
             refreshConnections();
             if (isRecording) {
                 TakeSnapshot();
-                GetSnapshotCount().then(setSnapshotCount);
+                GetSessionCount().then(setSnapshotCount);
             }
         }, updateInterval);
         return () => clearInterval(intervalId);
@@ -277,7 +279,7 @@ function App() {
     const handleStopRecording = async () => {
         await StopRecording();
         setIsRecording(false);
-        const count = await GetSnapshotCount();
+        const count = await GetSessionCount();
         setSnapshotCount(count);
     };
 
@@ -287,42 +289,72 @@ function App() {
         setViewingSnapshotId(null); // Go back to live if viewing was active
     };
 
-    // Load a snapshot's connections into the view
-    const handleLoadSnapshot = (snapshot: any) => {
-        // Convert compact connections to display format
-        // Add all fields that StatsPanel might access with defaults
-        const convertedConnections = snapshot.connections.map((c: any) => ({
-            LocalAddr: c.localAddr,
-            LocalPort: c.localPort,
-            RemoteAddr: c.remoteAddr,
-            RemotePort: c.remotePort,
-            State: c.state,
-            PID: c.pid,
+    // Load a session's timeline into the view (all connections with timestamps)
+    interface TimelineConnection {
+        timestamp: string;
+        connection: {
+            localAddr: string;
+            localPort: number;
+            remoteAddr: string;
+            remotePort: number;
+            state: number;
+            pid: number;
+            bytesIn: number;
+            bytesOut: number;
+            segmentsIn: number;
+            segmentsOut: number;
+            rtt: number;
+            rttVariance: number;
+            minRtt: number;
+            maxRtt: number;
+            retrans: number;
+            segsRetrans: number;
+            congestionWin: number;
+            inBandwidth: number;
+            outBandwidth: number;
+        };
+    }
+
+    const handleLoadSession = (sessionId: number, timeline: TimelineConnection[]) => {
+        // Convert timeline connections to display format
+        // Each row includes the timestamp from when it was captured
+        const convertedConnections = timeline.map((item) => ({
+            Timestamp: item.timestamp, // Add timestamp for timeline view
+            LocalAddr: item.connection.localAddr,
+            LocalPort: item.connection.localPort,
+            RemoteAddr: item.connection.remoteAddr,
+            RemotePort: item.connection.remotePort,
+            State: item.connection.state,
+            PID: item.connection.pid,
+            IsIPv6: item.connection.localAddr.includes(':'),
+            LastSeen: item.timestamp,
+            HighRetransmissionWarning: false,
+            HighRTTWarning: false,
             BasicStats: {
-                DataBytesIn: c.bytesIn || 0,
-                DataBytesOut: c.bytesOut || 0,
-                DataSegsIn: c.segmentsIn || 0,
-                DataSegsOut: c.segmentsOut || 0,
+                DataBytesIn: item.connection.bytesIn || 0,
+                DataBytesOut: item.connection.bytesOut || 0,
+                DataSegsIn: item.connection.segmentsIn || 0,
+                DataSegsOut: item.connection.segmentsOut || 0,
             },
             ExtendedStats: {
-                SmoothedRTT: c.rtt || 0,
-                RTTVariance: c.rttVariance || 0,
-                MinRTT: c.minRtt || 0,
-                MaxRTT: c.maxRtt || 0,
-                BytesRetrans: c.retrans || 0,
-                SegsRetrans: c.segsRetrans || 0,
-                FastRetrans: 0, // Not captured in snapshot
-                TimeoutEpisodes: 0, // Not captured in snapshot
-                CurrentCwnd: c.congestionWin || 0,
-                InboundBandwidth: c.inBandwidth || 0,
-                OutboundBandwidth: c.outBandwidth || 0,
-                // Add other fields StatsPanel might use
+                SmoothedRTT: item.connection.rtt || 0,
+                RTTVariance: item.connection.rttVariance || 0,
+                MinRTT: item.connection.minRtt || 0,
+                MaxRTT: item.connection.maxRtt || 0,
+                BytesRetrans: item.connection.retrans || 0,
+                SegsRetrans: item.connection.segsRetrans || 0,
+                FastRetrans: 0,
+                TimeoutEpisodes: 0,
+                CurrentCwnd: item.connection.congestionWin || 0,
+                InboundBandwidth: item.connection.inBandwidth || 0,
+                OutboundBandwidth: item.connection.outBandwidth || 0,
                 MaxCwnd: 0,
                 MaxSsthresh: 0,
             },
-        }));
+            convertValues: () => { },
+        })) as any[];
         setConnections(convertedConnections);
-        setViewingSnapshotId(snapshot.id);
+        setViewingSnapshotId(sessionId); // Reuse this state for session viewing
         setSelectedConnection(null);
         setIsTimelineOpen(false);
     };
@@ -341,7 +373,7 @@ function App() {
                 <div className="header-actions">
                     {viewingSnapshotId !== null ? (
                         <div className="viewing-snapshot-indicator">
-                            <span className="snapshot-badge">📷 Viewing Snapshot #{viewingSnapshotId}</span>
+                            <span className="snapshot-badge">🎬 Viewing Session #{viewingSnapshotId}</span>
                             <button className="btn-back-live" onClick={handleBackToLive}>
                                 ← Back to Live
                             </button>
@@ -433,14 +465,13 @@ function App() {
                 onRefreshRateChange={setUpdateInterval}
             />
 
-            {/* Snapshot Timeline Modal */}
-            <SnapshotTimeline
+            {/* Session Timeline Modal */}
+            <SessionTimeline
                 isOpen={isTimelineOpen}
                 onClose={() => setIsTimelineOpen(false)}
-                getMeta={GetSnapshotMeta}
-                getSnapshot={GetSnapshot}
-                compareSnapshots={CompareSnapshots}
-                onLoadSnapshot={handleLoadSnapshot}
+                getSessions={GetSessions}
+                getSessionTimeline={GetSessionTimeline}
+                onLoadSession={handleLoadSession}
                 onClear={handleClearSnapshots}
             />
 
