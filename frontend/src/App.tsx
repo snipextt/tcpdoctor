@@ -66,11 +66,10 @@ function App() {
         hideInternal: false,
         hideLocalhost: false,
         stateFilter: '',
-        minRtt: '',
-        maxRtt: '',
-        minBytesIn: '',
-        minBytesOut: '',
-        minBandwidth: '',
+        rtt: '',
+        bytesIn: '',
+        bytesOut: '',
+        bandwidth: '',
         showOnlyRetrans: false,
     });
     const [filtersExpanded, setFiltersExpanded] = useState(false);
@@ -275,30 +274,55 @@ function App() {
                 return false;
             }
 
-            // RTT filters
+            // Helper to parse condition string (e.g. "> 50", "<= 100")
+            const checkMetric = (value: number, condition: string): boolean => {
+                if (!condition) return true;
+                const match = condition.trim().match(/^([<>]=?|=)?\s*(\d+(\.\d+)?([KMG]B?)?)$/i);
+                if (!match) return true; // Invalid format treated as pass or could be false
+
+                const operator = match[1] || '>='; // Default to >= if no operator
+                let threshold = parseFloat(match[2]);
+
+                // Handle suffixes for bytes/bandwidth
+                const suffix = match[2].match(/[KMG]B?$/i)?.[0].toUpperCase();
+                if (suffix) {
+                    const num = parseFloat(match[2]);
+                    if (suffix.startsWith('K')) threshold = num * 1024;
+                    if (suffix.startsWith('M')) threshold = num * 1024 * 1024;
+                    if (suffix.startsWith('G')) threshold = num * 1024 * 1024 * 1024;
+                }
+
+                switch (operator) {
+                    case '>': return value > threshold;
+                    case '>=': return value >= threshold;
+                    case '<': return value < threshold;
+                    case '<=': return value <= threshold;
+                    case '=': return value === threshold;
+                    default: return value >= threshold;
+                }
+            };
+
+            // RTT filter
             const rtt = conn.ExtendedStats?.SmoothedRTT || 0;
-            if (advancedFilters.minRtt && rtt < parseFloat(advancedFilters.minRtt)) {
-                return false;
-            }
-            if (advancedFilters.maxRtt && rtt > parseFloat(advancedFilters.maxRtt)) {
+            if (advancedFilters.rtt && !checkMetric(rtt, advancedFilters.rtt)) {
                 return false;
             }
 
             // Bytes filters
-            if (advancedFilters.minBytesIn && (conn.BasicStats?.DataBytesIn || 0) < parseFloat(advancedFilters.minBytesIn)) {
+            if (advancedFilters.bytesIn && !checkMetric(conn.BasicStats?.DataBytesIn || 0, advancedFilters.bytesIn)) {
                 return false;
             }
-            if (advancedFilters.minBytesOut && (conn.BasicStats?.DataBytesOut || 0) < parseFloat(advancedFilters.minBytesOut)) {
+            if (advancedFilters.bytesOut && !checkMetric(conn.BasicStats?.DataBytesOut || 0, advancedFilters.bytesOut)) {
                 return false;
             }
 
             // Bandwidth filter
-            if (advancedFilters.minBandwidth) {
-                const bw = Math.max(
-                    conn.ExtendedStats?.InboundBandwidth || 0,
-                    conn.ExtendedStats?.OutboundBandwidth || 0
-                );
-                if (bw < parseFloat(advancedFilters.minBandwidth)) return false;
+            const bw = Math.max(
+                conn.ExtendedStats?.InboundBandwidth || 0,
+                conn.ExtendedStats?.OutboundBandwidth || 0
+            );
+            if (advancedFilters.bandwidth && !checkMetric(bw, advancedFilters.bandwidth)) {
+                return false;
             }
 
             // Retransmissions only

@@ -5,11 +5,10 @@ export interface FilterState {
     hideInternal: boolean;
     hideLocalhost: boolean;
     stateFilter: string;
-    minRtt: string;
-    maxRtt: string;
-    minBytesIn: string;
-    minBytesOut: string;
-    minBandwidth: string;
+    rtt: string;
+    bytesIn: string;
+    bytesOut: string;
+    bandwidth: string;
     showOnlyRetrans: boolean;
 }
 
@@ -50,11 +49,10 @@ const ConnectionFilters: React.FC<ConnectionFiltersProps> = ({
             hideInternal: false,
             hideLocalhost: false,
             stateFilter: '',
-            minRtt: '',
-            maxRtt: '',
-            minBytesIn: '',
-            minBytesOut: '',
-            minBandwidth: '',
+            rtt: '',
+            bytesIn: '',
+            bytesOut: '',
+            bandwidth: '',
             showOnlyRetrans: false,
         });
     };
@@ -63,11 +61,10 @@ const ConnectionFilters: React.FC<ConnectionFiltersProps> = ({
         filters.hideInternal ||
         filters.hideLocalhost ||
         filters.stateFilter ||
-        filters.minRtt ||
-        filters.maxRtt ||
-        filters.minBytesIn ||
-        filters.minBytesOut ||
-        filters.minBandwidth ||
+        filters.rtt ||
+        filters.bytesIn ||
+        filters.bytesOut ||
+        filters.bandwidth ||
         filters.showOnlyRetrans;
 
     return (
@@ -98,7 +95,7 @@ const ConnectionFilters: React.FC<ConnectionFiltersProps> = ({
                                 checked={filters.hideInternal}
                                 onChange={e => updateFilter('hideInternal', e.target.checked)}
                             />
-                            Hide Internal (10.x, 192.168.x, 172.16-31.x)
+                            Hide Internal
                         </label>
                         <label className="checkbox-filter">
                             <input
@@ -133,52 +130,42 @@ const ConnectionFilters: React.FC<ConnectionFiltersProps> = ({
                         </div>
 
                         <div className="filter-group">
-                            <label>Min RTT (ms)</label>
+                            <label>RTT (ms)</label>
                             <input
-                                type="number"
-                                placeholder="e.g. 50"
-                                value={filters.minRtt}
-                                onChange={e => updateFilter('minRtt', e.target.value)}
+                                type="text"
+                                placeholder="e.g. > 50"
+                                value={filters.rtt}
+                                onChange={e => updateFilter('rtt', e.target.value)}
                             />
                         </div>
 
                         <div className="filter-group">
-                            <label>Max RTT (ms)</label>
+                            <label>Bytes In</label>
                             <input
-                                type="number"
-                                placeholder="e.g. 200"
-                                value={filters.maxRtt}
-                                onChange={e => updateFilter('maxRtt', e.target.value)}
+                                type="text"
+                                placeholder="e.g. > 1000"
+                                value={filters.bytesIn}
+                                onChange={e => updateFilter('bytesIn', e.target.value)}
                             />
                         </div>
 
                         <div className="filter-group">
-                            <label>Min Bytes In</label>
+                            <label>Bytes Out</label>
                             <input
-                                type="number"
-                                placeholder="e.g. 1000"
-                                value={filters.minBytesIn}
-                                onChange={e => updateFilter('minBytesIn', e.target.value)}
+                                type="text"
+                                placeholder="e.g. > 1000"
+                                value={filters.bytesOut}
+                                onChange={e => updateFilter('bytesOut', e.target.value)}
                             />
                         </div>
 
                         <div className="filter-group">
-                            <label>Min Bytes Out</label>
+                            <label>Bandwidth (bps)</label>
                             <input
-                                type="number"
-                                placeholder="e.g. 1000"
-                                value={filters.minBytesOut}
-                                onChange={e => updateFilter('minBytesOut', e.target.value)}
-                            />
-                        </div>
-
-                        <div className="filter-group">
-                            <label>Min Bandwidth (bps)</label>
-                            <input
-                                type="number"
-                                placeholder="e.g. 1000000"
-                                value={filters.minBandwidth}
-                                onChange={e => updateFilter('minBandwidth', e.target.value)}
+                                type="text"
+                                placeholder="e.g. > 1M"
+                                value={filters.bandwidth}
+                                onChange={e => updateFilter('bandwidth', e.target.value)}
                             />
                         </div>
                     </div>
