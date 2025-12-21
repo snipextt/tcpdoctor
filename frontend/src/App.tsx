@@ -60,6 +60,7 @@ function App() {
     const [isTimelineOpen, setIsTimelineOpen] = useState(false);
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const [viewingSnapshotId, setViewingSnapshotId] = useState<number | null>(null);
+    const viewingSnapshotRef = useRef<number | null>(null); // Ref to check in async callbacks
 
     // Advanced Filters
     const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
@@ -157,10 +158,17 @@ function App() {
         init();
     }, []);
 
-    // Refresh connections
+    // Refresh connections - only updates state if not viewing a snapshot
     const refreshConnections = useCallback(async () => {
+        // Skip if viewing a snapshot (check ref before starting)
+        if (viewingSnapshotRef.current !== null) return;
+
         try {
             const conns = await GetConnections(filter);
+
+            // Check AFTER async call - if user loaded a session while fetching, don't overwrite
+            if (viewingSnapshotRef.current !== null) return;
+
             setConnections(conns);
             setConnectionCount(conns.length);
 
@@ -389,6 +397,7 @@ function App() {
     const handleClearSnapshots = async () => {
         await ClearSnapshots();
         setSnapshotCount(0);
+        viewingSnapshotRef.current = null;
         setViewingSnapshotId(null); // Go back to live if viewing was active
     };
 
@@ -507,12 +516,14 @@ function App() {
             convertValues: () => { },
         })) as any[];
         setConnections(convertedConnections);
+        viewingSnapshotRef.current = sessionId; // Update ref FIRST (prevents race conditions)
         setViewingSnapshotId(sessionId); // Reuse this state for session viewing
         setSelectedConnection(null);
         setIsTimelineOpen(false);
     };
 
     const handleBackToLive = () => {
+        viewingSnapshotRef.current = null; // Clear ref FIRST
         setViewingSnapshotId(null);
         // Polling will resume automatically due to useEffect dependency
     };
