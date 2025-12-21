@@ -13,15 +13,20 @@
   display: flex;
   align-items: center;
   height: 36px;
+  min-height: 36px;
   background: var(--color-bg-secondary);
   border-bottom: 1px solid var(--color-border);
   padding: 0 0.5rem;
+  padding-right: 1rem;
+  /* Account for scrollbar */
   font-weight: 500;
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--color-text-dim);
   user-select: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .health-indicator-header {
@@ -43,6 +48,10 @@
 
 .header-cell:hover {
   color: var(--color-text);
+}
+
+.header-cell:last-child {
+  flex-grow: 1;
 }
 
 .header-cell.sorted {

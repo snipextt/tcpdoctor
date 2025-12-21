@@ -199,7 +199,7 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
   return (
     <div className="connection-table-container">
       {/* Header */}
-      <div className="connection-table-header" style={{ width: totalWidth }}>
+      <div className="connection-table-header">
         <div className="health-indicator-header" />
         {COLUMNS.map(column => (
           <div

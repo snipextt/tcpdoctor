@@ -25,6 +25,7 @@ import {
 import { tcpmonitor } from "../wailsjs/go/models";
 import ConnectionTable from './components/ConnectionTable';
 import FilterControls from './components/FilterControls';
+import ConnectionFilters, { FilterState } from './components/ConnectionFilters';
 import StatsPanel from './components/StatsPanel';
 import SettingsModal from './components/SettingsModal';
 import HealthReportModal from './components/HealthReportModal';
@@ -58,7 +59,21 @@ function App() {
     const [snapshotCount, setSnapshotCount] = useState(0);
     const [isTimelineOpen, setIsTimelineOpen] = useState(false);
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-    const [viewingSnapshotId, setViewingSnapshotId] = useState<number | null>(null); // null = live, number = viewing snapshot
+    const [viewingSnapshotId, setViewingSnapshotId] = useState<number | null>(null);
+
+    // Advanced Filters
+    const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
+        hideInternal: false,
+        hideLocalhost: false,
+        stateFilter: '',
+        minRtt: '',
+        maxRtt: '',
+        minBytesIn: '',
+        minBytesOut: '',
+        minBandwidth: '',
+        showOnlyRetrans: false,
+    });
+    const [filtersExpanded, setFiltersExpanded] = useState(false);
 
     // Resizable panels
     const [leftPanelWidth, setLeftPanelWidth] = useState(() => {
@@ -200,39 +215,103 @@ function App() {
         setFilter(newFilter);
     };
 
-    // Client-side filtering for snapshot mode
+    // Client-side filtering for snapshot mode and advanced filters
     const filteredConnections = useMemo(() => {
-        if (viewingSnapshotId === null) {
-            // Live mode - filtering is done on backend
-            return connections;
+        let result = connections;
+
+        // Apply basic filter first (backend already does this in live mode for text search)
+        if (viewingSnapshotId !== null) {
+            result = result.filter(conn => {
+                // Text search
+                if (filter.SearchText) {
+                    const search = filter.SearchText.toLowerCase();
+                    const matchesSearch =
+                        conn.LocalAddr?.toLowerCase().includes(search) ||
+                        conn.RemoteAddr?.toLowerCase().includes(search) ||
+                        String(conn.LocalPort).includes(search) ||
+                        String(conn.RemotePort).includes(search) ||
+                        String(conn.PID).includes(search);
+                    if (!matchesSearch) return false;
+                }
+
+                // IPv4/IPv6 filters
+                if (filter.IPv4Only && conn.LocalAddr?.includes(':')) return false;
+                if (filter.IPv6Only && !conn.LocalAddr?.includes(':')) return false;
+
+                // State filter from basic filters
+                if (filter.State && filter.State > 0 && conn.State !== filter.State) {
+                    return false;
+                }
+
+                return true;
+            });
         }
 
-        // Snapshot mode - apply filters client-side
-        return connections.filter(conn => {
-            // Text search
-            if (filter.SearchText) {
-                const search = filter.SearchText.toLowerCase();
-                const matchesSearch =
-                    conn.LocalAddr?.toLowerCase().includes(search) ||
-                    conn.RemoteAddr?.toLowerCase().includes(search) ||
-                    String(conn.LocalPort).includes(search) ||
-                    String(conn.RemotePort).includes(search) ||
-                    String(conn.PID).includes(search);
-                if (!matchesSearch) return false;
+        // Apply advanced filters (always, both live and snapshot)
+        return result.filter(conn => {
+            // Hide localhost
+            if (advancedFilters.hideLocalhost) {
+                if (conn.LocalAddr === '127.0.0.1' || conn.RemoteAddr === '127.0.0.1' ||
+                    conn.LocalAddr === '::1' || conn.RemoteAddr === '::1') {
+                    return false;
+                }
             }
 
-            // IPv4/IPv6 filters
-            if (filter.IPv4Only && conn.LocalAddr?.includes(':')) return false;
-            if (filter.IPv6Only && !conn.LocalAddr?.includes(':')) return false;
+            // Hide internal/private IPs
+            if (advancedFilters.hideInternal) {
+                const isPrivate = (ip: string) => {
+                    if (!ip) return false;
+                    return ip.startsWith('10.') ||
+                        ip.startsWith('192.168.') ||
+                        ip.match(/^172\.(1[6-9]|2[0-9]|3[0-1])\./) ||
+                        ip.startsWith('127.') ||
+                        ip === '::1';
+                };
+                if (isPrivate(conn.RemoteAddr)) return false;
+            }
 
             // State filter
-            if (filter.State && filter.State > 0 && conn.State !== filter.State) {
+            if (advancedFilters.stateFilter && conn.State !== parseInt(advancedFilters.stateFilter)) {
                 return false;
+            }
+
+            // RTT filters
+            const rtt = conn.ExtendedStats?.SmoothedRTT || 0;
+            if (advancedFilters.minRtt && rtt < parseFloat(advancedFilters.minRtt)) {
+                return false;
+            }
+            if (advancedFilters.maxRtt && rtt > parseFloat(advancedFilters.maxRtt)) {
+                return false;
+            }
+
+            // Bytes filters
+            if (advancedFilters.minBytesIn && (conn.BasicStats?.DataBytesIn || 0) < parseFloat(advancedFilters.minBytesIn)) {
+                return false;
+            }
+            if (advancedFilters.minBytesOut && (conn.BasicStats?.DataBytesOut || 0) < parseFloat(advancedFilters.minBytesOut)) {
+                return false;
+            }
+
+            // Bandwidth filter
+            if (advancedFilters.minBandwidth) {
+                const bw = Math.max(
+                    conn.ExtendedStats?.InboundBandwidth || 0,
+                    conn.ExtendedStats?.OutboundBandwidth || 0
+                );
+                if (bw < parseFloat(advancedFilters.minBandwidth)) return false;
+            }
+
+            // Retransmissions only
+            if (advancedFilters.showOnlyRetrans) {
+                if ((conn.ExtendedStats?.BytesRetrans || 0) === 0 &&
+                    (conn.ExtendedStats?.SegsRetrans || 0) === 0) {
+                    return false;
+                }
             }
 
             return true;
         });
-    }, [connections, filter, viewingSnapshotId]);
+    }, [connections, filter, viewingSnapshotId, advancedFilters]);
 
     // AI Handlers
     const handleSaveAPIKey = async (apiKey: string) => {
@@ -469,6 +548,12 @@ function App() {
                     <FilterControls
                         filter={filter}
                         onFilterChange={handleFilterChange}
+                    />
+                    <ConnectionFilters
+                        filters={advancedFilters}
+                        onFiltersChange={setAdvancedFilters}
+                        isExpanded={filtersExpanded}
+                        onToggleExpand={() => setFiltersExpanded(!filtersExpanded)}
                     />
                     <ConnectionTable
                         connections={filteredConnections}
