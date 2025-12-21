@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import './ConnectionFilters.css';
 
 export interface FilterState {
@@ -33,26 +33,10 @@ const TCP_STATES = [
     { value: '2', label: 'Listen' },
 ];
 
-const METRIC_FILTERS = [
-    { key: 'rtt', label: 'RTT' },
-    { key: 'bytesIn', label: 'Bytes In' },
-    { key: 'bytesOut', label: 'Bytes Out' },
-    { key: 'bandwidth', label: 'Bandwidth' },
-];
-
 const ConnectionFilters: React.FC<ConnectionFiltersProps> = ({
     filters,
     onFiltersChange,
 }) => {
-    const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
-    const [editingMetric, setEditingMetric] = useState<{ key: keyof FilterState, label: string } | null>(null);
-    const [metricValue, setMetricValue] = useState('');
-    const dropdownRef = useRef<HTMLDivElement>(null);
-
-    const updateFilter = <K extends keyof FilterState>(key: K, value: FilterState[K]) => {
-        onFiltersChange({ ...filters, [key]: value });
-    };
-
     const removeFilter = (key: keyof FilterState) => {
         if (typeof filters[key] === 'boolean') {
             onFiltersChange({ ...filters, [key]: false });
@@ -61,25 +45,13 @@ const ConnectionFilters: React.FC<ConnectionFiltersProps> = ({
         }
     };
 
-    const handleMetricSubmit = () => {
-        if (editingMetric && metricValue) {
-            updateFilter(editingMetric.key, metricValue);
-            setEditingMetric(null);
-            setMetricValue('');
-            setIsAddMenuOpen(false);
-        }
-    };
+    // Check if any filter is active
+    const hasActiveFilters = filters.hideInternal || filters.hideLocalhost || filters.showOnlyRetrans ||
+        filters.stateFilter || filters.rtt || filters.bytesIn || filters.bytesOut || filters.bandwidth;
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsAddMenuOpen(false);
-                setEditingMetric(null);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    if (!hasActiveFilters) {
+        return null; // Don't render anything if no filters active
+    }
 
     return (
         <div className="connection-filters-container">
@@ -133,87 +105,6 @@ const ConnectionFilters: React.FC<ConnectionFiltersProps> = ({
                         <button onClick={() => removeFilter('bandwidth')}>×</button>
                     </div>
                 )}
-
-                {/* Add Filter Button & Dropdown */}
-                <div className="add-filter-wrapper" ref={dropdownRef}>
-                    <button
-                        className={`btn-add-filter ${isAddMenuOpen ? 'active' : ''}`}
-                        onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
-                    >
-                        + Add Filter
-                    </button>
-
-                    {isAddMenuOpen && !editingMetric && (
-                        <div className="filter-dropdown-menu">
-                            <div className="menu-section">
-                                <span className="menu-header">Toggles</span>
-                                <button className="menu-item" onClick={() => updateFilter('hideInternal', !filters.hideInternal)}>
-                                    {filters.hideInternal ? '✓ ' : ''}Hide Internal
-                                </button>
-                                <button className="menu-item" onClick={() => updateFilter('hideLocalhost', !filters.hideLocalhost)}>
-                                    {filters.hideLocalhost ? '✓ ' : ''}Hide Localhost
-                                </button>
-                                <button className="menu-item" onClick={() => updateFilter('showOnlyRetrans', !filters.showOnlyRetrans)}>
-                                    {filters.showOnlyRetrans ? '✓ ' : ''}Retransmissions Only
-                                </button>
-                            </div>
-
-                            <div className="menu-section">
-                                <span className="menu-header">State</span>
-                                {TCP_STATES.map(state => (
-                                    <button
-                                        key={state.value}
-                                        className="menu-item"
-                                        onClick={() => {
-                                            updateFilter('stateFilter', state.value);
-                                            setIsAddMenuOpen(false);
-                                        }}
-                                    >
-                                        {filters.stateFilter === state.value ? '✓ ' : ''}{state.label}
-                                    </button>
-                                ))}
-                            </div>
-
-                            <div className="menu-section">
-                                <span className="menu-header">Metrics</span>
-                                {METRIC_FILTERS.map(m => (
-                                    <button
-                                        key={m.key}
-                                        className="menu-item"
-                                        onClick={() => {
-                                            setEditingMetric({ key: m.key as keyof FilterState, label: m.label });
-                                            setMetricValue('');
-                                        }}
-                                    >
-                                        {m.label}...
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Metric Input Popover */}
-                    {isAddMenuOpen && editingMetric && (
-                        <div className="metric-input-popover">
-                            <div className="popover-header">
-                                <span>Filter by {editingMetric.label}</span>
-                                <button className="btn-close-popover" onClick={() => setEditingMetric(null)}>×</button>
-                            </div>
-                            <input
-                                autoFocus
-                                type="text"
-                                placeholder={editingMetric.key === 'rtt' ? 'e.g. > 50 (ms)' : 'e.g. > 1M, < 500K'}
-                                value={metricValue}
-                                onChange={e => setMetricValue(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && handleMetricSubmit()}
-                            />
-                            <div className="popover-actions">
-                                <button className="btn-cancel" onClick={() => setEditingMetric(null)}>Back</button>
-                                <button className="btn-apply" onClick={handleMetricSubmit}>Apply</button>
-                            </div>
-                        </div>
-                    )}
-                </div>
             </div>
         </div>
     );

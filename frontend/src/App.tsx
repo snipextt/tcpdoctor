@@ -572,6 +572,8 @@ function App() {
                     <FilterControls
                         filter={filter}
                         onFilterChange={handleFilterChange}
+                        advancedFilters={advancedFilters}
+                        onAdvancedFiltersChange={setAdvancedFilters}
                     />
                     <ConnectionFilters
                         filters={advancedFilters}
