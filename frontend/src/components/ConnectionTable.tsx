@@ -156,7 +156,7 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
       data.selectedConnection.RemotePort === conn.RemotePort;
 
     // Just a basic check to prevent crashes if health is missing
-    const healthColor = getHealthColor(100);
+    const healthColor = getHealthColor(false, false);
 
     return (
       <div
