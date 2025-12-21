@@ -26,6 +26,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
   onConfigureAPI,
   onViewHistory,
   hasHistory = false,
+  initialHistory,
 }) => {
   const [history, setHistory] = useState<TimeSeriesData[]>([]);
 
@@ -35,11 +36,18 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
     : '';
 
   useEffect(() => {
-    // Reset history when connection changes
-    setHistory([]);
-  }, [connectionKey]);
+    // When connection changes, use initialHistory if provided (session mode)
+    // Otherwise reset history (live mode will build it up)
+    if (initialHistory && initialHistory.length > 0) {
+      setHistory(initialHistory);
+    } else {
+      setHistory([]);
+    }
+  }, [connectionKey, initialHistory]);
 
   useEffect(() => {
+    // Only accumulate history in live mode (when no initialHistory)
+    if (initialHistory && initialHistory.length > 0) return;
     if (!connection || !connection.ExtendedStats) return;
 
     const now = Date.now();
@@ -56,7 +64,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
       if (newHistory.length > 60) return newHistory.slice(newHistory.length - 60);
       return newHistory;
     });
-  }, [connection]); // Updates whenever connection data updates (polling)
+  }, [connection, initialHistory]); // Updates whenever connection data updates (polling)
 
   if (!connection) {
     return (

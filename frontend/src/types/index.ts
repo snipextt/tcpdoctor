@@ -60,6 +60,7 @@ export interface StatsPanelProps {
   onConfigureAPI?: () => void;
   onViewHistory?: () => void;
   hasHistory?: boolean;
+  initialHistory?: Array<{ time: number; rtt?: number; bwIn?: number; bwOut?: number }>; // For session mode
 }
 
 export interface FilterControlsProps {

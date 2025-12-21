@@ -61,6 +61,7 @@ function App() {
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const [viewingSnapshotId, setViewingSnapshotId] = useState<number | null>(null);
     const viewingSnapshotRef = useRef<number | null>(null); // Ref to check in async callbacks
+    const [sessionTimeline, setSessionTimeline] = useState<TimelineConnection[]>([]); // Store timeline for session mode
 
     // Advanced Filters
     const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
@@ -345,6 +346,29 @@ function App() {
         });
     }, [connections, filter, viewingSnapshotId, advancedFilters]);
 
+    // Compute history for selected connection in session mode
+    const selectedConnectionHistory = useMemo(() => {
+        if (!selectedConnection || !viewingSnapshotId || sessionTimeline.length === 0) {
+            return undefined;
+        }
+
+        // Filter timeline to get all entries for the selected connection
+        const connectionEntries = sessionTimeline.filter(item =>
+            item.connection.localAddr === selectedConnection.LocalAddr &&
+            item.connection.localPort === selectedConnection.LocalPort &&
+            item.connection.remoteAddr === selectedConnection.RemoteAddr &&
+            item.connection.remotePort === selectedConnection.RemotePort
+        );
+
+        // Convert to StatsPanel history format
+        return connectionEntries.map(item => ({
+            time: new Date(item.timestamp).getTime(),
+            rtt: item.connection.rtt || 0,
+            bwIn: item.connection.inBandwidth || 0,
+            bwOut: item.connection.outBandwidth || 0,
+        }));
+    }, [selectedConnection, viewingSnapshotId, sessionTimeline]);
+
     // AI Handlers
     const handleSaveAPIKey = async (apiKey: string) => {
         await ConfigureLLM(apiKey);
@@ -516,6 +540,7 @@ function App() {
             convertValues: () => { },
         })) as any[];
         setConnections(convertedConnections);
+        setSessionTimeline(timeline); // Store timeline for StatsPanel
         viewingSnapshotRef.current = sessionId; // Update ref FIRST (prevents race conditions)
         setViewingSnapshotId(sessionId); // Reuse this state for session viewing
         setSelectedConnection(null);
@@ -525,6 +550,7 @@ function App() {
     const handleBackToLive = () => {
         viewingSnapshotRef.current = null; // Clear ref FIRST
         setViewingSnapshotId(null);
+        setSessionTimeline([]); // Clear timeline
         // Polling will resume automatically due to useEffect dependency
     };
 
@@ -615,6 +641,7 @@ function App() {
                         onConfigureAPI={() => setIsSettingsOpen(true)}
                         onViewHistory={() => setIsHistoryOpen(true)}
                         hasHistory={snapshotCount > 0}
+                        initialHistory={selectedConnectionHistory}
                     />
                 </div>
             </main>
