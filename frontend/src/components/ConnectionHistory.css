@@ -12,9 +12,10 @@
     overflow: hidden;
 }
 
-/* Unified charts modal - taller to fit all charts */
+/* Unified charts modal - wider for 2-column layout */
 .history-modal.unified-charts {
-    max-width: 800px;
+    max-width: 95vw;
+    width: 1200px;
     max-height: 92vh;
 }
 
@@ -65,11 +66,11 @@
     margin-top: 0.25rem;
 }
 
-/* Charts Container - Stacked */
+/* Charts Container - 2-column Grid */
 .charts-container {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
 }
 
 .chart-section {
@@ -77,6 +78,11 @@
     border-radius: 6px;
     padding: 0.5rem;
     border: 1px solid var(--color-border);
+}
+
+/* Make CWND chart span full width for the zoom brush */
+.chart-section:last-child {
+    grid-column: 1 / -1;
 }
 
 .chart-title {
