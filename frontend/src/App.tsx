@@ -289,6 +289,56 @@ function App() {
         setViewingSnapshotId(null); // Go back to live if viewing was active
     };
 
+    const handleExportSession = async (sessionId: number) => {
+        // Get session timeline data
+        const timeline = await GetSessionTimeline(sessionId);
+        const sessions = await GetSessions();
+        const session = sessions?.find((s: { id: number }) => s.id === sessionId);
+
+        if (!timeline || !session) return;
+
+        // Create export data
+        const exportData = {
+            session: session,
+            timeline: timeline,
+            exportedAt: new Date().toISOString()
+        };
+
+        // Download as JSON
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `session-${sessionId}-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const handleImportSession = () => {
+        // Create file input and trigger
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = async (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (!file) return;
+
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+
+                // Load the timeline directly
+                if (data.timeline && Array.isArray(data.timeline)) {
+                    handleLoadSession(data.session?.id || Date.now(), data.timeline);
+                }
+            } catch (err) {
+                console.error('Failed to import session:', err);
+                alert('Failed to import session. Invalid file format.');
+            }
+        };
+        input.click();
+    };
+
     // Load a session's timeline into the view (all connections with timestamps)
     interface TimelineConnection {
         timestamp: string;
@@ -381,21 +431,17 @@ function App() {
                     ) : (
                         <SnapshotControls
                             isRecording={isRecording}
-                            snapshotCount={snapshotCount}
+                            sessionCount={snapshotCount}
                             onStartRecording={handleStartRecording}
                             onStopRecording={handleStopRecording}
-                            isTimelineOpen={isTimelineOpen}
-                            onOpenTimeline={() => setIsTimelineOpen(true)}
-                            onCloseTimeline={() => setIsTimelineOpen(false)}
                             getSessions={GetSessions}
                             getSessionTimeline={GetSessionTimeline}
                             onLoadSession={handleLoadSession}
                             onClear={handleClearSnapshots}
+                            onExportSession={handleExportSession}
+                            onImportSession={handleImportSession}
                         />
                     )}
-                    <button className="btn-export" onClick={handleExport}>
-                        Export CSV
-                    </button>
                     <button
                         className="btn-report"
                         onClick={() => setIsHealthReportOpen(true)}
