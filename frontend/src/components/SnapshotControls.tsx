@@ -82,17 +82,33 @@ const SnapshotControls: React.FC<SnapshotControlsProps> = ({
     };
 
     const formatTime = (ts: string) => {
+        if (!ts || ts === '0001-01-01T00:00:00Z' || new Date(ts).getFullYear() < 2000) {
+            return null; // Invalid/zero time
+        }
         const d = new Date(ts);
         return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     };
 
     const formatDuration = (start: string, end: string) => {
-        const diffMs = new Date(end).getTime() - new Date(start).getTime();
+        const startTime = new Date(start).getTime();
+        let endTime = new Date(end).getTime();
+
+        // If end time is invalid (zero date or before 2000), use current time for ongoing sessions
+        if (!end || end === '0001-01-01T00:00:00Z' || new Date(end).getFullYear() < 2000) {
+            endTime = Date.now();
+        }
+
+        const diffMs = endTime - startTime;
+        if (diffMs < 0) return 'Recording...';
         if (diffMs < 1000) return `${diffMs}ms`;
         if (diffMs < 60000) return `${(diffMs / 1000).toFixed(0)}s`;
         const mins = Math.floor(diffMs / 60000);
         const secs = Math.floor((diffMs % 60000) / 1000);
         return `${mins}m ${secs}s`;
+    };
+
+    const isSessionOngoing = (session: RecordingSession) => {
+        return !session.endTime || session.endTime === '0001-01-01T00:00:00Z' || new Date(session.endTime).getFullYear() < 2000;
     };
 
     const handleRecordToggle = () => {
@@ -101,9 +117,8 @@ const SnapshotControls: React.FC<SnapshotControlsProps> = ({
         } else {
             onStartRecording();
         }
-        if (isRecording) {
-            setTimeout(loadSessions, 100);
-        }
+        // Always refresh sessions after toggling (both start and stop)
+        setTimeout(loadSessions, 200);
     };
 
     const handleClear = () => {
@@ -153,33 +168,39 @@ const SnapshotControls: React.FC<SnapshotControlsProps> = ({
                                 Click "Start Recording" to begin.
                             </div>
                         ) : (
-                            sessions.map((session) => (
-                                <div key={session.id} className="session-card">
-                                    <div className="session-info">
-                                        <div className="session-time">
-                                            {formatTime(session.startTime)} → {formatTime(session.endTime)}
+                            sessions.map((session) => {
+                                const ongoing = isSessionOngoing(session);
+                                const startTimeStr = formatTime(session.startTime);
+                                const endTimeStr = ongoing ? 'Recording...' : formatTime(session.endTime);
+
+                                return (
+                                    <div key={session.id} className={`session-card ${ongoing ? 'ongoing' : ''}`}>
+                                        <div className="session-info">
+                                            <div className="session-time">
+                                                {startTimeStr} → {endTimeStr}
+                                            </div>
+                                            <div className="session-meta">
+                                                Duration: {formatDuration(session.startTime, session.endTime)} · {session.snapshotCount} snapshots
+                                            </div>
                                         </div>
-                                        <div className="session-meta">
-                                            Duration: {formatDuration(session.startTime, session.endTime)} · {session.snapshotCount} snapshots
+                                        <div className="session-buttons">
+                                            <button
+                                                className="session-action-btn"
+                                                onClick={() => onExportSession(session.id)}
+                                            >
+                                                Export
+                                            </button>
+                                            <button
+                                                className="session-action-btn primary"
+                                                onClick={() => handleLoadSession(session.id)}
+                                                disabled={isLoading}
+                                            >
+                                                {loadingSessionId === session.id ? 'Loading...' : 'Load'}
+                                            </button>
                                         </div>
                                     </div>
-                                    <div className="session-buttons">
-                                        <button
-                                            className="session-action-btn"
-                                            onClick={() => onExportSession(session.id)}
-                                        >
-                                            Export
-                                        </button>
-                                        <button
-                                            className="session-action-btn primary"
-                                            onClick={() => handleLoadSession(session.id)}
-                                            disabled={isLoading}
-                                        >
-                                            {loadingSessionId === session.id ? 'Loading...' : 'Load'}
-                                        </button>
-                                    </div>
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
                 </div>
