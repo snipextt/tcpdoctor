@@ -298,6 +298,74 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
                 value={formatBytes(ExtendedStats.ThruBytesReceived).formatted}
               />
             </Section>
+
+            <Section title="Window & Scaling">
+              <StatItem
+                label="Send Window Scale"
+                value={ExtendedStats.WinScaleSent?.toString() || '0'}
+              />
+              <StatItem
+                label="Rcv Window Scale"
+                value={ExtendedStats.WinScaleRcvd?.toString() || '0'}
+              />
+              <StatItem
+                label="Current Send Window"
+                value={formatBytes(ExtendedStats.CurRwinSent).formatted}
+              />
+               <StatItem
+                label="Max Send Window"
+                value={formatBytes(ExtendedStats.MaxRwinSent).formatted}
+              />
+               <StatItem
+                label="Current Rcv Window"
+                value={formatBytes(ExtendedStats.CurRwinRcvd).formatted}
+              />
+               <StatItem
+                label="Max Rcv Window"
+                value={formatBytes(ExtendedStats.MaxRwinRcvd).formatted}
+              />
+            </Section>
+
+            <Section title="Segment Info & MSS">
+               <StatItem
+                label="Current MSS"
+                value={ExtendedStats.CurMss?.toString() || '-'}
+                subValue="Bytes"
+              />
+               <StatItem
+                label="Max MSS"
+                value={ExtendedStats.MaxMss?.toString() || '-'}
+                subValue="Bytes"
+              />
+               <StatItem
+                label="Min MSS"
+                value={ExtendedStats.MinMss?.toString() || '-'}
+                subValue="Bytes"
+              />
+            </Section>
+
+             <Section title="Duplicate ACKs & SACKs">
+               <StatItem
+                label="Dup ACKs In"
+                value={formatCount(ExtendedStats.DupAcksIn)}
+              />
+               <StatItem
+                label="Dup ACKs Out"
+                value={formatCount(ExtendedStats.DupAcksOut)}
+              />
+               <StatItem
+                label="SACKs Rcvd"
+                value={formatCount(ExtendedStats.SacksRcvd)}
+              />
+              <StatItem
+                label="SACK Blocks Rcvd"
+                value={formatCount(ExtendedStats.SackBlocksRcvd)}
+              />
+               <StatItem
+                label="DSACK Dups"
+                value={formatCount(ExtendedStats.DsackDups)}
+              />
+            </Section>
           </>
         ) : isAdmin ? (
           <div className="stats-message">

@@ -30,6 +30,22 @@ type CompactConnection struct {
 	CongestionWin int64 `json:"congestionWin"`
 	InBandwidth   int64 `json:"inBandwidth"`
 	OutBandwidth  int64 `json:"outBandwidth"`
+
+	// New Stats
+	WinScaleRcvd   int   `json:"winScaleRcvd"`
+	WinScaleSent   int   `json:"winScaleSent"`
+	CurRwinRcvd    int64 `json:"curRwinRcvd"`
+	MaxRwinRcvd    int64 `json:"maxRwinRcvd"`
+	CurRwinSent    int64 `json:"curRwinSent"`
+	MaxRwinSent    int64 `json:"maxRwinSent"`
+	CurMss         int64 `json:"curMss"`
+	MaxMss         int64 `json:"maxMss"`
+	MinMss         int64 `json:"minMss"`
+	DupAcksIn      int64 `json:"dupAcksIn"`
+	DupAcksOut     int64 `json:"dupAcksOut"`
+	SacksRcvd      int64 `json:"sacksRcvd"`
+	SackBlocksRcvd int64 `json:"sackBlocksRcvd"`
+	DsackDups      int64 `json:"dsackDups"`
 }
 
 // Snapshot represents a point-in-time capture
@@ -161,6 +177,22 @@ func (s *SnapshotStore) Take(connections []ConnectionInfo) *Snapshot {
 			compact[i].CongestionWin = int64(c.ExtendedStats.CurrentCwnd)
 			compact[i].InBandwidth = int64(c.ExtendedStats.InboundBandwidth)
 			compact[i].OutBandwidth = int64(c.ExtendedStats.OutboundBandwidth)
+
+			// New Stats
+			compact[i].WinScaleRcvd = int(c.ExtendedStats.WinScaleRcvd)
+			compact[i].WinScaleSent = int(c.ExtendedStats.WinScaleSent)
+			compact[i].CurRwinRcvd = int64(c.ExtendedStats.CurRwinRcvd)
+			compact[i].MaxRwinRcvd = int64(c.ExtendedStats.MaxRwinRcvd)
+			compact[i].CurRwinSent = int64(c.ExtendedStats.CurRwinSent)
+			compact[i].MaxRwinSent = int64(c.ExtendedStats.MaxRwinSent)
+			compact[i].CurMss = int64(c.ExtendedStats.CurMss)
+			compact[i].MaxMss = int64(c.ExtendedStats.MaxMss)
+			compact[i].MinMss = int64(c.ExtendedStats.MinMss)
+			compact[i].DupAcksIn = int64(c.ExtendedStats.DupAcksIn)
+			compact[i].DupAcksOut = int64(c.ExtendedStats.DupAcksOut)
+			compact[i].SacksRcvd = int64(c.ExtendedStats.SacksRcvd)
+			compact[i].SackBlocksRcvd = int64(c.ExtendedStats.SackBlocksRcvd)
+			compact[i].DsackDups = int64(c.ExtendedStats.DsackDups)
 		}
 	}
 

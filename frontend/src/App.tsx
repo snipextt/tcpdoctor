@@ -498,6 +498,21 @@ function App() {
             congestionWin: number;
             inBandwidth: number;
             outBandwidth: number;
+            // New Stats
+            winScaleRcvd: number;
+            winScaleSent: number;
+            curRwinRcvd: number;
+            maxRwinRcvd: number;
+            curRwinSent: number;
+            maxRwinSent: number;
+            curMss: number;
+            maxMss: number;
+            minMss: number;
+            dupAcksIn: number;
+            dupAcksOut: number;
+            sacksRcvd: number;
+            sackBlocksRcvd: number;
+            dsackDups: number;
         };
     }
 
@@ -536,6 +551,21 @@ function App() {
                 OutboundBandwidth: item.connection.outBandwidth || 0,
                 MaxCwnd: 0,
                 MaxSsthresh: 0,
+                // New Stats Mapping
+                WinScaleRcvd: item.connection.winScaleRcvd || 0,
+                WinScaleSent: item.connection.winScaleSent || 0,
+                CurRwinRcvd: item.connection.curRwinRcvd || 0,
+                MaxRwinRcvd: item.connection.maxRwinRcvd || 0,
+                CurRwinSent: item.connection.curRwinSent || 0,
+                MaxRwinSent: item.connection.maxRwinSent || 0,
+                CurMss: item.connection.curMss || 0,
+                MaxMss: item.connection.maxMss || 0,
+                MinMss: item.connection.minMss || 0,
+                DupAcksIn: item.connection.dupAcksIn || 0,
+                DupAcksOut: item.connection.dupAcksOut || 0,
+                SacksRcvd: item.connection.sacksRcvd || 0,
+                SackBlocksRcvd: item.connection.sackBlocksRcvd || 0,
+                DsackDups: item.connection.dsackDups || 0,
             },
             convertValues: () => { },
         })) as any[];

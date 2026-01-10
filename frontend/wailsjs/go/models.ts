@@ -42,6 +42,20 @@ export namespace tcpmonitor {
 	    MaxAppWQueue: number;
 	    OutboundBandwidth: number;
 	    InboundBandwidth: number;
+	    WinScaleRcvd: number;
+	    WinScaleSent: number;
+	    CurRwinRcvd: number;
+	    MaxRwinRcvd: number;
+	    CurRwinSent: number;
+	    MaxRwinSent: number;
+	    CurMss: number;
+	    MaxMss: number;
+	    MinMss: number;
+	    DupAcksIn: number;
+	    DupAcksOut: number;
+	    SacksRcvd: number;
+	    SackBlocksRcvd: number;
+	    DsackDups: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new ExtendedStats(source);
@@ -72,6 +86,20 @@ export namespace tcpmonitor {
 	        this.MaxAppWQueue = source["MaxAppWQueue"];
 	        this.OutboundBandwidth = source["OutboundBandwidth"];
 	        this.InboundBandwidth = source["InboundBandwidth"];
+	        this.WinScaleRcvd = source["WinScaleRcvd"];
+	        this.WinScaleSent = source["WinScaleSent"];
+	        this.CurRwinRcvd = source["CurRwinRcvd"];
+	        this.MaxRwinRcvd = source["MaxRwinRcvd"];
+	        this.CurRwinSent = source["CurRwinSent"];
+	        this.MaxRwinSent = source["MaxRwinSent"];
+	        this.CurMss = source["CurMss"];
+	        this.MaxMss = source["MaxMss"];
+	        this.MinMss = source["MinMss"];
+	        this.DupAcksIn = source["DupAcksIn"];
+	        this.dupAcksOut = source["dupAcksOut"];
+	        this.sacksRcvd = source["sacksRcvd"];
+	        this.sackBlocksRcvd = source["sackBlocksRcvd"];
+	        this.dsackDups = source["dsackDups"];
 	    }
 	}
 	export class ConnectionInfo {

@@ -55,6 +55,26 @@ type ExtendedStats struct {
 	// Bandwidth
 	OutboundBandwidth uint64
 	InboundBandwidth  uint64
+
+	// NEW: Window Size & Scaling
+	WinScaleRcvd uint32
+	WinScaleSent uint32 // Note: Windows API returns uint8 but we use uint32 for consistency in JSON
+	CurRwinRcvd  uint32
+	MaxRwinRcvd  uint32
+	CurRwinSent  uint32
+	MaxRwinSent  uint32
+
+	// NEW: MSS & PMTU
+	CurMss uint32
+	MaxMss uint32
+	MinMss uint32
+
+	// NEW: SACKs & Duplicate ACKs
+	DupAcksIn      uint32
+	DupAcksOut     uint32 // From Rec Stats
+	SacksRcvd      uint32
+	SackBlocksRcvd uint32
+	DsackDups      uint32
 }
 
 // ConnectionInfo represents a TCP connection with its statistics
@@ -261,6 +281,7 @@ func (sc *StatsCollector) EnableExtendedStats(conn *ConnectionInfo) error {
 		winapi.TcpConnectionEstatsSndCong,
 		winapi.TcpConnectionEstatsPath,
 		winapi.TcpConnectionEstatsRec,
+		winapi.TcpConnectionEstatsObsRec,
 		winapi.TcpConnectionEstatsSendBuff,
 		winapi.TcpConnectionEstatsBandwidth,
 		winapi.TcpConnectionEstatsFineRtt,
@@ -326,6 +347,15 @@ func (sc *StatsCollector) GetExtendedStats(conn *ConnectionInfo) (*ExtendedStats
 		stats.RTTVariance = pathStats.RttVar
 		stats.MinRTT = pathStats.MinRtt
 		stats.MaxRTT = pathStats.MaxRtt
+
+		// New Metrics from Path Stats
+		stats.CurMss = pathStats.CurMss
+		stats.MaxMss = pathStats.MaxMss
+		stats.MinMss = pathStats.MinMss
+		stats.DupAcksIn = pathStats.DupAcksIn
+		stats.SacksRcvd = pathStats.SacksRcvd
+		stats.SackBlocksRcvd = pathStats.SackBlocksRcvd
+		stats.DsackDups = pathStats.DsackDups
 	} else {
 		sc.logger.Debug("Failed to get path stats: %v", err)
 	}
@@ -338,6 +368,25 @@ func (sc *StatsCollector) GetExtendedStats(conn *ConnectionInfo) (*ExtendedStats
 		stats.CongAvoidCount = congStats.CongAvoid
 	} else {
 		sc.logger.Debug("Failed to get congestion stats: %v", err)
+	}
+
+	// Retrieve receiver statistics (local window)
+	if recStats, err := sc.getRecStats(row); err == nil {
+		stats.CurRwinSent = recStats.CurRwinSent
+		stats.MaxRwinSent = recStats.MaxRwinSent
+		stats.WinScaleSent = uint32(recStats.WinScaleSent)
+		stats.DupAcksOut = recStats.DupAcksOut
+	} else {
+		sc.logger.Debug("Failed to get receiver stats: %v", err)
+	}
+
+	// Retrieve observed receiver statistics (remote window)
+	if obsRecStats, err := sc.getObsRecStats(row); err == nil {
+		stats.CurRwinRcvd = obsRecStats.CurRwinRcvd
+		stats.MaxRwinRcvd = obsRecStats.MaxRwinRcvd
+		stats.WinScaleRcvd = obsRecStats.WinScaleRcvd
+	} else {
+		sc.logger.Debug("Failed to get observed receiver stats: %v", err)
 	}
 
 	// Retrieve send buffer statistics
@@ -398,6 +447,34 @@ func (sc *StatsCollector) getCongestionStats(row interface{}) (*winapi.TCP_ESTAT
 	stats, ok := result.(*winapi.TCP_ESTATS_SND_CONG_ROD_v0)
 	if !ok {
 		return nil, fmt.Errorf("unexpected type for congestion stats")
+	}
+
+	return stats, nil
+}
+
+func (sc *StatsCollector) getRecStats(row interface{}) (*winapi.TCP_ESTATS_REC_ROD_v0, error) {
+	result, err := sc.apiLayer.GetPerTcpConnectionEStats(row, winapi.TcpConnectionEstatsRec)
+	if err != nil {
+		return nil, err
+	}
+
+	stats, ok := result.(*winapi.TCP_ESTATS_REC_ROD_v0)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type for receiver stats")
+	}
+
+	return stats, nil
+}
+
+func (sc *StatsCollector) getObsRecStats(row interface{}) (*winapi.TCP_ESTATS_OBS_REC_ROD_v0, error) {
+	result, err := sc.apiLayer.GetPerTcpConnectionEStats(row, winapi.TcpConnectionEstatsObsRec)
+	if err != nil {
+		return nil, err
+	}
+
+	stats, ok := result.(*winapi.TCP_ESTATS_OBS_REC_ROD_v0)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type for observed receiver stats")
 	}
 
 	return stats, nil

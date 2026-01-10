@@ -233,6 +233,14 @@ type TCP_ESTATS_REC_ROD_v0 struct {
 	_              [3]byte // padding
 }
 
+// TCP_ESTATS_OBS_REC_ROD_v0 contains observed receiver statistics
+type TCP_ESTATS_OBS_REC_ROD_v0 struct {
+	CurRwinRcvd  uint32
+	MaxRwinRcvd  uint32
+	MinRwinRcvd  uint32
+	WinScaleRcvd uint32
+}
+
 // TCP_ESTATS_SEND_BUFF_ROD_v0 contains send buffer statistics
 type TCP_ESTATS_SEND_BUFF_ROD_v0 struct {
 	CurRetxQueue uint32
@@ -278,6 +286,11 @@ type TCP_ESTATS_PATH_RW_v0 struct {
 
 // TCP_ESTATS_REC_RW_v0 is used to enable/disable receiver statistics
 type TCP_ESTATS_REC_RW_v0 struct {
+	EnableCollection byte
+}
+
+// TCP_ESTATS_OBS_REC_RW_v0 is used to enable/disable observed receiver statistics
+type TCP_ESTATS_OBS_REC_RW_v0 struct {
 	EnableCollection byte
 }
 
