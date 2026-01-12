@@ -179,7 +179,7 @@ func (s *Service) GetSnapshotMeta() []SnapshotMeta                   { return ni
 func (s *Service) GetSnapshot(id int64) *Snapshot                    { return nil }
 func (s *Service) CompareSnapshots(id1, id2 int64) *ComparisonResult { return nil }
 func (s *Service) ClearSnapshots()                                   {}
-func (s *Service) TakeSnapshot()                                     {}
+func (s *Service) TakeSnapshot(filter FilterOptions)                                     {}
 
 // ConnectionHistoryPoint is a single data point for charting - all metrics
 type ConnectionHistoryPoint struct {

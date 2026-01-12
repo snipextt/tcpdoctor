@@ -4,9 +4,23 @@ import {tcpmonitor} from '../models';
 
 export function ClearSelection():Promise<void>;
 
+export function ClearSnapshots():Promise<void>;
+
+export function CompareSnapshots(arg1:number,arg2:number):Promise<tcpmonitor.ComparisonResult>;
+
+export function ConfigureLLM(arg1:string):Promise<void>;
+
+export function DiagnoseConnection(arg1:string,arg2:number,arg3:string,arg4:number):Promise<any>;
+
 export function ExportToCSV(arg1:string):Promise<void>;
 
+export function GenerateHealthReport():Promise<any>;
+
 export function GetConnectionCount():Promise<number>;
+
+export function GetConnectionHistory(arg1:string,arg2:number,arg3:string,arg4:number):Promise<Array<tcpmonitor.ConnectionHistoryPoint>>;
+
+export function GetConnectionHistoryForSession(arg1:number,arg2:string,arg3:number,arg4:string,arg5:number):Promise<Array<tcpmonitor.ConnectionHistoryPoint>>;
 
 export function GetConnectionStats(arg1:string,arg2:number,arg3:string,arg4:number):Promise<tcpmonitor.ExtendedStats>;
 
@@ -14,9 +28,27 @@ export function GetConnections(arg1:tcpmonitor.FilterOptions):Promise<Array<tcpm
 
 export function GetHealthThresholds():Promise<tcpmonitor.HealthThresholds>;
 
+export function GetSessionCount():Promise<number>;
+
+export function GetSessionTimeline(arg1:number):Promise<Array<tcpmonitor.TimelineConnection>>;
+
+export function GetSessions():Promise<Array<tcpmonitor.RecordingSession>>;
+
+export function GetSnapshot(arg1:number):Promise<tcpmonitor.Snapshot>;
+
+export function GetSnapshotCount():Promise<number>;
+
+export function GetSnapshotMeta():Promise<Array<tcpmonitor.SnapshotMeta>>;
+
 export function GetUpdateInterval():Promise<number>;
 
 export function IsAdministrator():Promise<boolean>;
+
+export function IsLLMConfigured():Promise<boolean>;
+
+export function IsRecording():Promise<boolean>;
+
+export function QueryConnections(arg1:string):Promise<any>;
 
 export function SetHealthThresholds(arg1:tcpmonitor.HealthThresholds):Promise<void>;
 
@@ -25,3 +57,9 @@ export function SetRTTThreshold(arg1:number):Promise<void>;
 export function SetRetransmissionThreshold(arg1:number):Promise<void>;
 
 export function SetUpdateInterval(arg1:number):Promise<void>;
+
+export function StartRecording():Promise<void>;
+
+export function StopRecording():Promise<void>;
+
+export function TakeSnapshot(arg1:tcpmonitor.FilterOptions):Promise<void>;

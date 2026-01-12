@@ -273,9 +273,9 @@ func (a *App) ClearSnapshots() {
 }
 
 // TakeSnapshot manually captures current state
-func (a *App) TakeSnapshot() {
+func (a *App) TakeSnapshot(filter tcpmonitor.FilterOptions) {
 	if a.service != nil {
-		a.service.TakeSnapshot()
+		a.service.TakeSnapshot(filter)
 	}
 }
 

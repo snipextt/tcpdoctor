@@ -104,6 +104,9 @@ func NewService(config ServiceConfig) (*Service, error) {
 		logger:            logger,
 	}
 
+	// Start recording by default
+	service.snapshotStore.StartRecording()
+
 	return service, nil
 }
 
@@ -761,8 +764,8 @@ func (s *Service) ClearSnapshots() {
 }
 
 // TakeSnapshot manually captures current state (if recording)
-func (s *Service) TakeSnapshot() {
-	connections, _ := s.GetConnections(FilterOptions{})
+func (s *Service) TakeSnapshot(filter FilterOptions) {
+	connections, _ := s.GetConnections(filter)
 	s.snapshotStore.Take(connections)
 }
 

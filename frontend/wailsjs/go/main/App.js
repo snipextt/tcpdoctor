@@ -6,12 +6,40 @@ export function ClearSelection() {
   return window['go']['main']['App']['ClearSelection']();
 }
 
+export function ClearSnapshots() {
+  return window['go']['main']['App']['ClearSnapshots']();
+}
+
+export function CompareSnapshots(arg1, arg2) {
+  return window['go']['main']['App']['CompareSnapshots'](arg1, arg2);
+}
+
+export function ConfigureLLM(arg1) {
+  return window['go']['main']['App']['ConfigureLLM'](arg1);
+}
+
+export function DiagnoseConnection(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['DiagnoseConnection'](arg1, arg2, arg3, arg4);
+}
+
 export function ExportToCSV(arg1) {
   return window['go']['main']['App']['ExportToCSV'](arg1);
 }
 
+export function GenerateHealthReport() {
+  return window['go']['main']['App']['GenerateHealthReport']();
+}
+
 export function GetConnectionCount() {
   return window['go']['main']['App']['GetConnectionCount']();
+}
+
+export function GetConnectionHistory(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['GetConnectionHistory'](arg1, arg2, arg3, arg4);
+}
+
+export function GetConnectionHistoryForSession(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['GetConnectionHistoryForSession'](arg1, arg2, arg3, arg4, arg5);
 }
 
 export function GetConnectionStats(arg1, arg2, arg3, arg4) {
@@ -26,12 +54,48 @@ export function GetHealthThresholds() {
   return window['go']['main']['App']['GetHealthThresholds']();
 }
 
+export function GetSessionCount() {
+  return window['go']['main']['App']['GetSessionCount']();
+}
+
+export function GetSessionTimeline(arg1) {
+  return window['go']['main']['App']['GetSessionTimeline'](arg1);
+}
+
+export function GetSessions() {
+  return window['go']['main']['App']['GetSessions']();
+}
+
+export function GetSnapshot(arg1) {
+  return window['go']['main']['App']['GetSnapshot'](arg1);
+}
+
+export function GetSnapshotCount() {
+  return window['go']['main']['App']['GetSnapshotCount']();
+}
+
+export function GetSnapshotMeta() {
+  return window['go']['main']['App']['GetSnapshotMeta']();
+}
+
 export function GetUpdateInterval() {
   return window['go']['main']['App']['GetUpdateInterval']();
 }
 
 export function IsAdministrator() {
   return window['go']['main']['App']['IsAdministrator']();
+}
+
+export function IsLLMConfigured() {
+  return window['go']['main']['App']['IsLLMConfigured']();
+}
+
+export function IsRecording() {
+  return window['go']['main']['App']['IsRecording']();
+}
+
+export function QueryConnections(arg1) {
+  return window['go']['main']['App']['QueryConnections'](arg1);
 }
 
 export function SetHealthThresholds(arg1) {
@@ -48,4 +112,16 @@ export function SetRetransmissionThreshold(arg1) {
 
 export function SetUpdateInterval(arg1) {
   return window['go']['main']['App']['SetUpdateInterval'](arg1);
+}
+
+export function StartRecording() {
+  return window['go']['main']['App']['StartRecording']();
+}
+
+export function StopRecording() {
+  return window['go']['main']['App']['StopRecording']();
+}
+
+export function TakeSnapshot(arg1) {
+  return window['go']['main']['App']['TakeSnapshot'](arg1);
 }

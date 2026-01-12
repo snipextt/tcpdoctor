@@ -152,6 +152,14 @@ function App() {
                 setIsAdmin(admin);
                 const interval = await GetUpdateInterval();
                 setUpdateInterval(interval);
+                
+                // Sync recording state
+                const recording = await IsRecording();
+                setIsRecording(recording);
+                if (recording) {
+                    const count = await GetSessionCount();
+                    setSnapshotCount(count);
+                }
             } catch (e) {
                 console.error("Failed to initialize:", e);
             }
@@ -212,12 +220,12 @@ function App() {
         const intervalId = setInterval(() => {
             refreshConnections();
             if (isRecording) {
-                TakeSnapshot();
+                TakeSnapshot(filter);
                 GetSessionCount().then(setSnapshotCount);
             }
         }, updateInterval);
         return () => clearInterval(intervalId);
-    }, [refreshConnections, updateInterval, isRecording, viewingSnapshotId]);
+    }, [refreshConnections, updateInterval, isRecording, viewingSnapshotId, filter]);
 
     const handleFilterChange = (newFilter: tcpmonitor.FilterOptions) => {
         setFilter(newFilter);
