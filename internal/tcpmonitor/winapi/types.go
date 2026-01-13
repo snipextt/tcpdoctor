@@ -227,10 +227,9 @@ type TCP_ESTATS_REC_ROD_v0 struct {
 	EcnNoncesRcvd  uint32
 	CurReasmQueue  uint32
 	MaxReasmQueue  uint32
-	CurAppRQueue   uint32
-	MaxAppRQueue   uint32
+	CurAppRQueue   uintptr // SIZE_T
+	MaxAppRQueue   uintptr // SIZE_T
 	WinScaleSent   uint8
-	_              [3]byte // padding
 }
 
 // TCP_ESTATS_OBS_REC_ROD_v0 contains observed receiver statistics

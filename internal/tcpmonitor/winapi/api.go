@@ -118,6 +118,11 @@ func (w *WindowsAPILayer) SetPerTcpConnectionEStats(row interface{}, statsType T
 		rw = &rwStruct
 		rwPtr = uintptr(unsafe.Pointer(&rwStruct))
 		rwSize = unsafe.Sizeof(rwStruct)
+	case TcpConnectionEstatsObsRec:
+		rwStruct := TCP_ESTATS_OBS_REC_RW_v0{EnableCollection: enableValue}
+		rw = &rwStruct
+		rwPtr = uintptr(unsafe.Pointer(&rwStruct))
+		rwSize = unsafe.Sizeof(rwStruct)
 	case TcpConnectionEstatsSendBuff:
 		rwStruct := TCP_ESTATS_SEND_BUFF_RW_v0{EnableCollection: enableValue}
 		rw = &rwStruct
@@ -200,6 +205,8 @@ func (w *WindowsAPILayer) GetPerTcpConnectionEStats(row interface{}, statsType T
 		rodSize = unsafe.Sizeof(TCP_ESTATS_PATH_ROD_v0{})
 	case TcpConnectionEstatsRec:
 		rodSize = unsafe.Sizeof(TCP_ESTATS_REC_ROD_v0{})
+	case TcpConnectionEstatsObsRec:
+		rodSize = unsafe.Sizeof(TCP_ESTATS_OBS_REC_ROD_v0{})
 	case TcpConnectionEstatsSendBuff:
 		rodSize = unsafe.Sizeof(TCP_ESTATS_SEND_BUFF_ROD_v0{})
 	case TcpConnectionEstatsBandwidth:
@@ -261,6 +268,10 @@ func (w *WindowsAPILayer) GetPerTcpConnectionEStats(row interface{}, statsType T
 		rod = &result
 	case TcpConnectionEstatsRec:
 		src := (*TCP_ESTATS_REC_ROD_v0)(unsafe.Pointer(&buffer[0]))
+		result := *src
+		rod = &result
+	case TcpConnectionEstatsObsRec:
+		src := (*TCP_ESTATS_OBS_REC_ROD_v0)(unsafe.Pointer(&buffer[0]))
 		result := *src
 		rod = &result
 	case TcpConnectionEstatsSendBuff:
