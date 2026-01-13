@@ -525,9 +525,18 @@ function App() {
     }
 
     const handleLoadSession = (sessionId: number, timeline: TimelineConnection[]) => {
+        // Group by connection to show only one entry per connection (latest state)
+        const uniqueConnections = new Map<string, TimelineConnection>();
+
+        timeline.forEach(item => {
+            // Create a unique key for the connection
+            const key = `${item.connection.localAddr}:${item.connection.localPort}-${item.connection.remoteAddr}:${item.connection.remotePort}`;
+            // Store/Overwrite to keep the latest state (assuming timeline is chronological)
+            uniqueConnections.set(key, item);
+        });
+
         // Convert timeline connections to display format
-        // Each row includes the timestamp from when it was captured
-        const convertedConnections = timeline.map((item) => ({
+        const convertedConnections = Array.from(uniqueConnections.values()).map((item) => ({
             Timestamp: item.timestamp, // Add timestamp for timeline view
             LocalAddr: item.connection.localAddr,
             LocalPort: item.connection.localPort,
