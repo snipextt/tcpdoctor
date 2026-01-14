@@ -13,6 +13,7 @@ import {
     Bar,
     BarChart,
     Brush,
+    ReferenceArea,
 } from 'recharts';
 import { downsampleData } from '../utils/dataProcessing';
 import './ConnectionHistory.css';
@@ -54,20 +55,89 @@ interface ConnectionHistoryProps {
 const CHART_HEIGHT = 160;
 const SYNC_ID = 'connection-history-sync';
 
-// Memoized Charts Component to prevent re-renders on hover
-const HistoryCharts = React.memo(({ data, onMouseMove, formatBytes, onZoom }: {
-    data: ConnectionHistoryPoint[];
-    onMouseMove: (e: any) => void;
-    formatBytes: (v: number) => string;
-    onZoom: (domain: any) => void;
-}) => {
+    const [zoomState, setZoomState] = useState<{ left?: string, right?: string, refAreaLeft?: string, refAreaRight?: string }>({});
+    
+    // Convert time string back to index for slicing
+    const getIndexFromTime = (timeStr: string) => fullHistory.findIndex(p => new Date(p.timestamp).toLocaleTimeString() === timeStr);
+
+    const zoom = () => {
+        let { refAreaLeft, refAreaRight } = zoomState;
+
+        if (refAreaLeft === refAreaRight || refAreaRight === '') {
+            setZoomState({ ...zoomState, refAreaLeft: '', refAreaRight: '' });
+            return;
+        }
+
+        // Determine start and end
+        // Note: Axis is categorical (time strings), so we need to find indices
+        // But simplified: just pass the indices to existing handleZoom logic
+        
+        // Find indices in the CURRENT view (history), then map to FULL history
+        const currentData = history;
+        let startIndex = currentData.findIndex(p => p.time === refAreaLeft);
+        let endIndex = currentData.findIndex(p => p.time === refAreaRight);
+
+        // Swap if dragged right-to-left
+        if (startIndex > endIndex) [startIndex, endIndex] = [endIndex, startIndex];
+
+        // Map these "view indices" back to "full data indices"
+        // This is tricky with downsampling. 
+        // Better approach: Use the timestamps to find range in fullHistory
+        const startTs = currentData[startIndex]?.timestamp;
+        const endTs = currentData[endIndex]?.timestamp;
+        
+        const fullStartIndex = fullHistory.findIndex(p => p.timestamp === startTs);
+        const fullEndIndex = fullHistory.findIndex(p => p.timestamp === endTs);
+
+        if (fullStartIndex >= 0 && fullEndIndex >= 0) {
+            handleZoom({ startIndex: fullStartIndex, endIndex: fullEndIndex });
+        }
+
+        setZoomState({ ...zoomState, refAreaLeft: '', refAreaRight: '' });
+    };
+
+    const zoomOut = () => {
+        setZoomDomain(null);
+        setHistory(downsampleData(fullHistory, 1000) as ConnectionHistoryPoint[]);
+        setZoomState({});
+    };
+
     return (
-        <div className="charts-container">
+        <div className="charts-container" style={{ userSelect: 'none' }}>
+            <div style={{ position: 'absolute', right: 20, top: -40, zIndex: 10 }}>
+                <button 
+                    onClick={zoomOut}
+                    disabled={!isZoomed}
+                    style={{ 
+                        opacity: isZoomed ? 1 : 0, 
+                        pointerEvents: isZoomed ? 'auto' : 'none',
+                        padding: '4px 12px',
+                        fontSize: '12px',
+                        background: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                    }}
+                >
+                    Reset Zoom
+                </button>
+            </div>
+
             {/* 1. Bandwidth Chart */}
             <div className="chart-section">
                 <div className="chart-title">Bandwidth (Mbps)</div>
                 <ResponsiveContainer width="100%" height={140}>
-                    <LineChart data={data} syncId={SYNC_ID} onMouseMove={onMouseMove}>
+                    <LineChart 
+                        data={data} 
+                        syncId={SYNC_ID} 
+                        onMouseMove={(e) => {
+                            onMouseMove(e);
+                            if (zoomState.refAreaLeft) setZoomState({ ...zoomState, refAreaRight: e.activeLabel });
+                        }}
+                        onMouseDown={(e) => setZoomState({ ...zoomState, refAreaLeft: e.activeLabel })}
+                        onMouseUp={zoom}
+                    >
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                         <XAxis dataKey="time" hide />
                         <YAxis tick={{ fill: '#9ca3af', fontSize: 9 }} tickFormatter={(v) => `${v.toFixed(1)}`} width={40} />
@@ -75,6 +145,9 @@ const HistoryCharts = React.memo(({ data, onMouseMove, formatBytes, onZoom }: {
                         <Legend verticalAlign="top" height={20} iconType="plainline" />
                         <Line type="monotone" dataKey="inBwMbps" stroke="#22c55e" strokeWidth={2} dot={false} name="Inbound" isAnimationActive={false} />
                         <Line type="monotone" dataKey="outBwMbps" stroke="#3b82f6" strokeWidth={2} dot={false} name="Outbound" isAnimationActive={false} />
+                        {zoomState.refAreaLeft && zoomState.refAreaRight ? (
+                            <ReferenceArea yAxisId={0} x1={zoomState.refAreaLeft} x2={zoomState.refAreaRight} strokeOpacity={0.3} fill="#3b82f6" fillOpacity={0.1} />
+                        ) : null}
                     </LineChart>
                 </ResponsiveContainer>
             </div>
@@ -83,12 +156,24 @@ const HistoryCharts = React.memo(({ data, onMouseMove, formatBytes, onZoom }: {
             <div className="chart-section">
                 <div className="chart-title">Retransmissions (Bytes)</div>
                 <ResponsiveContainer width="100%" height={100}>
-                    <BarChart data={data} syncId={SYNC_ID} onMouseMove={onMouseMove}>
+                    <BarChart 
+                        data={data} 
+                        syncId={SYNC_ID} 
+                        onMouseMove={(e) => {
+                            onMouseMove(e);
+                            if (zoomState.refAreaLeft) setZoomState({ ...zoomState, refAreaRight: e.activeLabel });
+                        }}
+                        onMouseDown={(e) => setZoomState({ ...zoomState, refAreaLeft: e.activeLabel })}
+                        onMouseUp={zoom}
+                    >
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                         <XAxis dataKey="time" hide />
                         <YAxis tick={{ fill: '#ef4444', fontSize: 9 }} tickFormatter={(v) => formatBytes(v)} width={40} />
                         <Tooltip content={() => null} cursor={{ fill: 'rgba(255,255,255,0.1)' }} />
                         <Bar dataKey="retrans" fill="#ef4444" name="Retrans" isAnimationActive={false} />
+                        {zoomState.refAreaLeft && zoomState.refAreaRight ? (
+                            <ReferenceArea yAxisId={0} x1={zoomState.refAreaLeft} x2={zoomState.refAreaRight} strokeOpacity={0.3} fill="#3b82f6" fillOpacity={0.1} />
+                        ) : null}
                     </BarChart>
                 </ResponsiveContainer>
             </div>
@@ -97,7 +182,16 @@ const HistoryCharts = React.memo(({ data, onMouseMove, formatBytes, onZoom }: {
             <div className="chart-section">
                 <div className="chart-title">Congestion Window (CWND)</div>
                 <ResponsiveContainer width="100%" height={120}>
-                    <AreaChart data={data} syncId={SYNC_ID} onMouseMove={onMouseMove}>
+                    <AreaChart 
+                        data={data} 
+                        syncId={SYNC_ID} 
+                        onMouseMove={(e) => {
+                            onMouseMove(e);
+                            if (zoomState.refAreaLeft) setZoomState({ ...zoomState, refAreaRight: e.activeLabel });
+                        }}
+                        onMouseDown={(e) => setZoomState({ ...zoomState, refAreaLeft: e.activeLabel })}
+                        onMouseUp={zoom}
+                    >
                         <defs>
                             <linearGradient id="colorCwnd" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
@@ -109,6 +203,9 @@ const HistoryCharts = React.memo(({ data, onMouseMove, formatBytes, onZoom }: {
                         <YAxis tick={{ fill: '#3b82f6', fontSize: 9 }} tickFormatter={(v) => `${v.toFixed(0)}K`} width={40} />
                         <Tooltip content={() => null} cursor={{ stroke: '#fff', strokeWidth: 1, strokeDasharray: '4 4' }} />
                         <Area type="monotone" dataKey="cwndKB" stroke="#3b82f6" fill="url(#colorCwnd)" name="CWND" isAnimationActive={false} />
+                        {zoomState.refAreaLeft && zoomState.refAreaRight ? (
+                            <ReferenceArea yAxisId={0} x1={zoomState.refAreaLeft} x2={zoomState.refAreaRight} strokeOpacity={0.3} fill="#3b82f6" fillOpacity={0.1} />
+                        ) : null}
                     </AreaChart>
                 </ResponsiveContainer>
             </div>
@@ -117,7 +214,16 @@ const HistoryCharts = React.memo(({ data, onMouseMove, formatBytes, onZoom }: {
             <div className="chart-section">
                 <div className="chart-title">Round Trip Time (ms)</div>
                 <ResponsiveContainer width="100%" height={120}>
-                    <AreaChart data={data} syncId={SYNC_ID} onMouseMove={onMouseMove}>
+                    <AreaChart 
+                        data={data} 
+                        syncId={SYNC_ID} 
+                        onMouseMove={(e) => {
+                            onMouseMove(e);
+                            if (zoomState.refAreaLeft) setZoomState({ ...zoomState, refAreaRight: e.activeLabel });
+                        }}
+                        onMouseDown={(e) => setZoomState({ ...zoomState, refAreaLeft: e.activeLabel })}
+                        onMouseUp={zoom}
+                    >
                         <defs>
                             <linearGradient id="colorRtt" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
@@ -129,20 +235,16 @@ const HistoryCharts = React.memo(({ data, onMouseMove, formatBytes, onZoom }: {
                         <YAxis tick={{ fill: '#f59e0b', fontSize: 9 }} width={40} />
                         <Tooltip content={() => null} cursor={{ stroke: '#fff', strokeWidth: 1, strokeDasharray: '4 4' }} />
                         <Area type="monotone" dataKey="rttMs" stroke="#f59e0b" fill="url(#colorRtt)" name="RTT" isAnimationActive={false} />
-                        <Brush 
-                            dataKey="time" 
-                            height={25} 
-                            stroke="#3b82f6" 
-                            fill="#1f2937" 
-                            onChange={onZoom}
-                        />
+                        {zoomState.refAreaLeft && zoomState.refAreaRight ? (
+                            <ReferenceArea yAxisId={0} x1={zoomState.refAreaLeft} x2={zoomState.refAreaRight} strokeOpacity={0.3} fill="#3b82f6" fillOpacity={0.1} />
+                        ) : null}
                     </AreaChart>
                 </ResponsiveContainer>
             </div>
         </div>
     );
 }, (prev, next) => {
-    // Only re-render if data actually changed (loading finished or new fetch)
+    // Only re-render if data actually changed
     return prev.data === next.data;
 });
 
@@ -282,9 +384,11 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                     ) : (
                         <HistoryCharts 
                             data={history} 
+                            fullHistory={fullHistory}
                             onMouseMove={handleMouseMove} 
                             formatBytes={formatBytes} 
                             onZoom={handleZoom}
+                            isZoomed={!!zoomDomain}
                         />
                     )}
                 </div>
