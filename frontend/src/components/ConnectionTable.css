@@ -1,32 +1,100 @@
 /* Connection Table - Modern Dark Theme */
 
 .connection-table-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background: var(--color-bg);
-  overflow: hidden;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    position: relative; /* Ensure dropdown positioning relative to container */
 }
 
-/* Header */
+/* Table Actions & Column Selector */
+.table-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 20;
+}
+
+.btn-columns {
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-columns:hover {
+    background: var(--color-bg-hover);
+    color: var(--color-text);
+}
+
+.column-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    min-width: 180px;
+    padding: 8px 0;
+    z-index: 100;
+}
+
+.dropdown-header {
+    padding: 4px 12px 8px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+.column-option {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    font-size: 0.9rem;
+    color: var(--color-text);
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.column-option:hover {
+    background-color: var(--color-bg-hover);
+}
+
+.column-option input {
+    margin-right: 8px;
+    accent-color: var(--color-primary);
+}
+
+.column-option input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .connection-table-header {
-  display: flex;
-  align-items: center;
-  height: 36px;
-  min-height: 36px;
-  background: var(--color-bg-secondary);
-  border-bottom: 1px solid var(--color-border);
-  padding: 0 0.5rem;
-  padding-right: 1rem;
-  /* Account for scrollbar */
-  font-weight: 500;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--color-text-dim);
-  user-select: none;
-  width: 100%;
-  box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    background-color: var(--color-bg-tertiary);
+    border-bottom: 1px solid var(--color-border);
+    height: 44px;
+    min-height: 44px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    user-select: none;
+    padding-right: 80px; /* Make space for the columns button */
 }
 
 .health-indicator-header {

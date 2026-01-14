@@ -15,7 +15,7 @@ interface ConnectionTableProps {
   viewingSnapshot?: boolean;
 }
 
-type SortColumn = 'localAddr' | 'localPort' | 'remoteAddr' | 'remotePort' | 'state' | 'pid' | 'bytesIn' | 'bytesOut' | 'timestamp';
+type SortColumn = 'localAddr' | 'localPort' | 'remoteAddr' | 'remotePort' | 'state' | 'pid' | 'bytesIn' | 'bytesOut';
 type SortDirection = 'asc' | 'desc';
 
 interface ColumnDefinition {
@@ -23,33 +23,73 @@ interface ColumnDefinition {
   label: string;
   width: number;
   align?: 'left' | 'center' | 'right';
+  defaultVisible: boolean;
 }
 
-const BASE_COLUMNS: ColumnDefinition[] = [
-  { key: 'localAddr', label: 'Local Address', width: 170, align: 'left' },
-  { key: 'localPort', label: 'Local Port', width: 90, align: 'left' },
-  { key: 'remoteAddr', label: 'Remote Address', width: 170, align: 'left' },
-  { key: 'remotePort', label: 'Remote Port', width: 90, align: 'left' },
-  { key: 'state', label: 'State', width: 110, align: 'left' },
-  { key: 'pid', label: 'PID', width: 70, align: 'left' },
-  { key: 'bytesIn', label: 'Bytes In', width: 110, align: 'left' },
-  { key: 'bytesOut', label: 'Bytes Out', width: 110, align: 'left' },
+const ALL_COLUMNS: ColumnDefinition[] = [
+  { key: 'localAddr', label: 'Local Address', width: 170, align: 'left', defaultVisible: true },
+  { key: 'localPort', label: 'Local Port', width: 90, align: 'left', defaultVisible: true },
+  { key: 'remoteAddr', label: 'Remote Address', width: 170, align: 'left', defaultVisible: true },
+  { key: 'remotePort', label: 'Remote Port', width: 90, align: 'left', defaultVisible: true },
+  { key: 'state', label: 'State', width: 110, align: 'left', defaultVisible: true },
+  { key: 'pid', label: 'PID', width: 70, align: 'left', defaultVisible: true },
+  { key: 'bytesIn', label: 'Bytes In', width: 110, align: 'left', defaultVisible: true },
+  { key: 'bytesOut', label: 'Bytes Out', width: 110, align: 'left', defaultVisible: true },
 ];
-
-const TIME_COLUMN: ColumnDefinition = {
-  key: 'timestamp', label: 'Time', width: 100, align: 'left'
-};
 
 const ROW_HEIGHT = 48;
 const HEADER_HEIGHT = 44;
 
 function ConnectionTable({ connections, selectedConnection, onSelectConnection, isLoading = false, viewingSnapshot = false }: ConnectionTableProps) {
-  const [sortColumn, setSortColumn] = useState<SortColumn>(viewingSnapshot ? 'timestamp' : 'localPort');
+  const [sortColumn, setSortColumn] = useState<SortColumn>('localPort');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  
+  // State for visible columns
+  const [visibleColumns, setVisibleColumns] = useState<Set<SortColumn>>(() => {
+    // Load saved preferences or default
+    const saved = localStorage.getItem('visible_columns');
+    if (saved) {
+      try {
+        return new Set(JSON.parse(saved) as SortColumn[]);
+      } catch (e) {
+        // Fallback if parse fails
+      }
+    }
+    return new Set(ALL_COLUMNS.filter(c => c.defaultVisible).map(c => c.key));
+  });
+
+  const [isColumnMenuOpen, setIsColumnMenuOpen] = useState(false);
+  const columnMenuRef = React.useRef<HTMLDivElement>(null);
+
+  // Close column menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (columnMenuRef.current && !columnMenuRef.current.contains(event.target as Node)) {
+        setIsColumnMenuOpen(false);
+      }
+    };
+    if (isColumnMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isColumnMenuOpen]);
+
+  const toggleColumn = (key: SortColumn) => {
+    const newSet = new Set(visibleColumns);
+    if (newSet.has(key)) {
+      if (newSet.size > 1) { // Prevent hiding all columns
+        newSet.delete(key);
+      }
+    } else {
+      newSet.add(key);
+    }
+    setVisibleColumns(newSet);
+    localStorage.setItem('visible_columns', JSON.stringify(Array.from(newSet)));
+  };
 
   const columns = useMemo(() => {
-    return viewingSnapshot ? [TIME_COLUMN, ...BASE_COLUMNS] : BASE_COLUMNS;
-  }, [viewingSnapshot]);
+    return ALL_COLUMNS.filter(col => visibleColumns.has(col.key));
+  }, [visibleColumns]);
 
   // Handle column header click for sorting
   const handleSort = useCallback((column: SortColumn) => {
@@ -68,10 +108,6 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
       let bValue: any;
 
       switch (sortColumn) {
-        case 'timestamp':
-          aValue = (a as any).Timestamp || '';
-          bValue = (b as any).Timestamp || '';
-          break;
         case 'localAddr':
           aValue = a.LocalAddr;
           bValue = b.LocalAddr;
@@ -173,9 +209,6 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
         {cols.map((col: ColumnDefinition) => {
           let content: React.ReactNode = null;
           switch (col.key) {
-            case 'timestamp':
-              content = (conn as any).Timestamp || '-';
-              break;
             case 'localAddr':
               content = conn.LocalAddr;
               break;
@@ -231,6 +264,36 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
 
   return (
     <div className="connection-table-container">
+      {/* Column Selector Menu */}
+      <div className="table-actions">
+        <div className="column-selector" ref={columnMenuRef}>
+          <button 
+            className="btn-columns"
+            onClick={() => setIsColumnMenuOpen(!isColumnMenuOpen)}
+            title="Select Columns"
+          >
+            📋 Columns
+          </button>
+          
+          {isColumnMenuOpen && (
+            <div className="column-dropdown">
+              <div className="dropdown-header">Visible Columns</div>
+              {ALL_COLUMNS.map(col => (
+                <label key={col.key} className="column-option">
+                  <input
+                    type="checkbox"
+                    checked={visibleColumns.has(col.key)}
+                    onChange={() => toggleColumn(col.key)}
+                    disabled={visibleColumns.has(col.key) && visibleColumns.size === 1}
+                  />
+                  {col.label}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Header */}
       <div className="connection-table-header">
         <div className="health-indicator-header" />
