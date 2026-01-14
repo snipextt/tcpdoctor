@@ -47,6 +47,22 @@
     min-width: 180px;
     padding: 8px 0;
     z-index: 100;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Custom scrollbar for dropdown */
+.column-dropdown::-webkit-scrollbar {
+    width: 6px;
+}
+
+.column-dropdown::-webkit-scrollbar-thumb {
+    background-color: var(--color-border);
+    border-radius: 3px;
+}
+
+.column-dropdown::-webkit-scrollbar-track {
+    background-color: transparent;
 }
 
 .dropdown-header {
@@ -57,6 +73,10 @@
     border-bottom: 1px solid var(--color-border);
     margin-bottom: 4px;
     font-weight: 600;
+    position: sticky;
+    top: 0;
+    background: var(--color-bg);
+    z-index: 1;
 }
 
 .column-option {
@@ -95,6 +115,14 @@
     color: var(--color-text-secondary);
     user-select: none;
     padding-right: 80px; /* Make space for the columns button */
+    overflow-x: hidden; /* Hide header overflow, synced with body via script if needed or just let body scroll */
+}
+
+/* Update: Allow horizontal scroll in body */
+.connection-table-body {
+    flex: 1;
+    overflow-y: hidden; /* Let react-window handle vertical scroll */
+    overflow-x: auto;   /* Allow horizontal scroll */
 }
 
 .health-indicator-header {
