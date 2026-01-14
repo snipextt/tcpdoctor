@@ -497,15 +497,29 @@ function App() {
             bytesOut: number;
             segmentsIn: number;
             segmentsOut: number;
+            sampleRTT: number;
+            fastRetrans: number;
+            timeoutEpisodes: number;
             rtt: number;
             rttVariance: number;
             minRtt: number;
             maxRtt: number;
             retrans: number;
             segsRetrans: number;
+            totalSegsOut: number;
+            totalSegsIn: number;
             congestionWin: number;
             inBandwidth: number;
             outBandwidth: number;
+            thruBytesAcked: number;
+            thruBytesReceived: number;
+            currentSsthresh: number;
+            slowStartCount: number;
+            congAvoidCount: number;
+            curRetxQueue: number;
+            maxRetxQueue: number;
+            curAppWQueue: number;
+            maxAppWQueue: number;
             // New Stats
             winScaleRcvd: number;
             winScaleSent: number;
@@ -555,19 +569,31 @@ function App() {
                 DataSegsOut: item.connection.segmentsOut || 0,
             },
             ExtendedStats: {
+                SampleRTT: item.connection.sampleRTT || 0,
                 SmoothedRTT: item.connection.rtt || 0,
                 RTTVariance: item.connection.rttVariance || 0,
                 MinRTT: item.connection.minRtt || 0,
                 MaxRTT: item.connection.maxRtt || 0,
                 BytesRetrans: item.connection.retrans || 0,
                 SegsRetrans: item.connection.segsRetrans || 0,
-                FastRetrans: 0,
-                TimeoutEpisodes: 0,
+                TotalSegsOut: item.connection.totalSegsOut || 0,
+                TotalSegsIn: item.connection.totalSegsIn || 0,
+                FastRetrans: item.connection.fastRetrans || 0,
+                TimeoutEpisodes: item.connection.timeoutEpisodes || 0,
                 CurrentCwnd: item.connection.congestionWin || 0,
                 InboundBandwidth: item.connection.inBandwidth || 0,
                 OutboundBandwidth: item.connection.outBandwidth || 0,
+                ThruBytesAcked: item.connection.thruBytesAcked || 0,
+                ThruBytesReceived: item.connection.thruBytesReceived || 0,
                 MaxCwnd: 0,
+                CurrentSsthresh: item.connection.currentSsthresh || 0,
                 MaxSsthresh: 0,
+                SlowStartCount: item.connection.slowStartCount || 0,
+                CongAvoidCount: item.connection.congAvoidCount || 0,
+                CurRetxQueue: item.connection.curRetxQueue || 0,
+                MaxRetxQueue: item.connection.maxRetxQueue || 0,
+                CurAppWQueue: item.connection.curAppWQueue || 0,
+                MaxAppWQueue: item.connection.maxAppWQueue || 0,
                 // New Stats Mapping
                 WinScaleRcvd: item.connection.winScaleRcvd || 0,
                 WinScaleSent: item.connection.winScaleSent || 0,

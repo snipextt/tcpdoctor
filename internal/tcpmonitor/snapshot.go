@@ -21,15 +21,29 @@ type CompactConnection struct {
 	SegmentsIn  int64 `json:"segmentsIn"`
 	SegmentsOut int64 `json:"segmentsOut"`
 	// Extended Stats
-	RTT           int64 `json:"rtt"`
+	SampleRTT       int64 `json:"sampleRTT"`
+	FastRetrans     int64 `json:"fastRetrans"`
+	TimeoutEpisodes int64 `json:"timeoutEpisodes"`
+	RTT             int64 `json:"rtt"`
 	RTTVariance   int64 `json:"rttVariance"`
 	MinRTT        int64 `json:"minRtt"`
 	MaxRTT        int64 `json:"maxRtt"`
 	Retrans       int64 `json:"retrans"`
 	SegsRetrans   int64 `json:"segsRetrans"`
+	TotalSegsOut  int64 `json:"totalSegsOut"`
+	TotalSegsIn   int64 `json:"totalSegsIn"`
 	CongestionWin int64 `json:"congestionWin"`
 	InBandwidth   int64 `json:"inBandwidth"`
 	OutBandwidth  int64 `json:"outBandwidth"`
+	ThruBytesAcked    int64 `json:"thruBytesAcked"`
+	ThruBytesReceived int64 `json:"thruBytesReceived"`
+	CurrentSsthresh   int64 `json:"currentSsthresh"`
+	SlowStartCount    int64 `json:"slowStartCount"`
+	CongAvoidCount    int64 `json:"congAvoidCount"`
+	CurRetxQueue      int64 `json:"curRetxQueue"`
+	MaxRetxQueue      int64 `json:"maxRetxQueue"`
+	CurAppWQueue      int64 `json:"curAppWQueue"`
+	MaxAppWQueue      int64 `json:"maxAppWQueue"`
 
 	// New Stats
 	WinScaleRcvd   int   `json:"winScaleRcvd"`
@@ -168,15 +182,29 @@ func (s *SnapshotStore) Take(connections []ConnectionInfo) *Snapshot {
 			compact[i].SegmentsOut = int64(c.BasicStats.DataSegsOut)
 		}
 		if c.ExtendedStats != nil {
+			compact[i].SampleRTT = int64(c.ExtendedStats.SampleRTT)
+			compact[i].FastRetrans = int64(c.ExtendedStats.FastRetrans)
+			compact[i].TimeoutEpisodes = int64(c.ExtendedStats.TimeoutEpisodes)
 			compact[i].RTT = int64(c.ExtendedStats.SmoothedRTT)
 			compact[i].RTTVariance = int64(c.ExtendedStats.RTTVariance)
 			compact[i].MinRTT = int64(c.ExtendedStats.MinRTT)
 			compact[i].MaxRTT = int64(c.ExtendedStats.MaxRTT)
 			compact[i].Retrans = int64(c.ExtendedStats.BytesRetrans)
 			compact[i].SegsRetrans = int64(c.ExtendedStats.SegsRetrans)
+			compact[i].TotalSegsOut = int64(c.ExtendedStats.TotalSegsOut)
+			compact[i].TotalSegsIn = int64(c.ExtendedStats.TotalSegsIn)
 			compact[i].CongestionWin = int64(c.ExtendedStats.CurrentCwnd)
 			compact[i].InBandwidth = int64(c.ExtendedStats.InboundBandwidth)
 			compact[i].OutBandwidth = int64(c.ExtendedStats.OutboundBandwidth)
+			compact[i].ThruBytesAcked = int64(c.ExtendedStats.ThruBytesAcked)
+			compact[i].ThruBytesReceived = int64(c.ExtendedStats.ThruBytesReceived)
+			compact[i].CurrentSsthresh = int64(c.ExtendedStats.CurrentSsthresh)
+			compact[i].SlowStartCount = int64(c.ExtendedStats.SlowStartCount)
+			compact[i].CongAvoidCount = int64(c.ExtendedStats.CongAvoidCount)
+			compact[i].CurRetxQueue = int64(c.ExtendedStats.CurRetxQueue)
+			compact[i].MaxRetxQueue = int64(c.ExtendedStats.MaxRetxQueue)
+			compact[i].CurAppWQueue = int64(c.ExtendedStats.CurAppWQueue)
+			compact[i].MaxAppWQueue = int64(c.ExtendedStats.MaxAppWQueue)
 
 			// New Stats
 			compact[i].WinScaleRcvd = int(c.ExtendedStats.WinScaleRcvd)

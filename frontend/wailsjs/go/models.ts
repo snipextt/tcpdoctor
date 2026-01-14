@@ -96,10 +96,10 @@ export namespace tcpmonitor {
 	        this.MaxMss = source["MaxMss"];
 	        this.MinMss = source["MinMss"];
 	        this.DupAcksIn = source["DupAcksIn"];
-	        this.dupAcksOut = source["dupAcksOut"];
-	        this.sacksRcvd = source["sacksRcvd"];
-	        this.sackBlocksRcvd = source["sackBlocksRcvd"];
-	        this.dsackDups = source["dsackDups"];
+	        this.DupAcksOut = source["DupAcksOut"];
+	        this.SacksRcvd = source["SacksRcvd"];
+	        this.SackBlocksRcvd = source["SackBlocksRcvd"];
+	        this.DsackDups = source["DsackDups"];
 	    }
 	}
 	export class ConnectionInfo {

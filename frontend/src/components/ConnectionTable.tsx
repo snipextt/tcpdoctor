@@ -3,7 +3,7 @@ import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { tcpmonitor } from '../../wailsjs/go/models';
 import { TCPStateNames, TCPState } from '../types';
-import { formatBytes, formatEndpoint, formatCount } from '../utils/formatters';
+import { formatBytes, formatEndpoint, formatCount, formatRTT, formatBandwidth } from '../utils/formatters';
 import { theme, getTCPStateColor, getHealthColor } from '../theme';
 import './ConnectionTable.css';
 
@@ -15,7 +15,19 @@ interface ConnectionTableProps {
   viewingSnapshot?: boolean;
 }
 
-type SortColumn = 'localAddr' | 'localPort' | 'remoteAddr' | 'remotePort' | 'state' | 'pid' | 'bytesIn' | 'bytesOut';
+type SortColumn =
+  | 'localAddr' | 'localPort' | 'remoteAddr' | 'remotePort' | 'state' | 'pid' | 'bytesIn' | 'bytesOut'
+  | 'totalSegsOut' | 'totalSegsIn'
+  | 'segsRetrans' | 'bytesRetrans' | 'fastRetrans' | 'timeoutEpisodes'
+  | 'sampleRTT' | 'smoothedRTT' | 'rttVariance' | 'minRTT' | 'maxRTT'
+  | 'currentCwnd' | 'currentSsthresh' | 'slowStartCount' | 'congAvoidCount'
+  | 'inboundBandwidth' | 'outboundBandwidth'
+  | 'thruBytesAcked' | 'thruBytesReceived'
+  | 'curRetxQueue' | 'maxRetxQueue' | 'curAppWQueue' | 'maxAppWQueue'
+  | 'winScaleSent' | 'winScaleRcvd' | 'curRwinSent' | 'maxRwinSent' | 'curRwinRcvd' | 'maxRwinRcvd'
+  | 'curMss' | 'maxMss' | 'minMss'
+  | 'dupAcksIn' | 'dupAcksOut' | 'sacksRcvd' | 'sackBlocksRcvd' | 'dsackDups';
+
 type SortDirection = 'asc' | 'desc';
 
 interface ColumnDefinition {
@@ -35,6 +47,61 @@ const ALL_COLUMNS: ColumnDefinition[] = [
   { key: 'pid', label: 'PID', width: 70, align: 'left', defaultVisible: true },
   { key: 'bytesIn', label: 'Bytes In', width: 110, align: 'left', defaultVisible: true },
   { key: 'bytesOut', label: 'Bytes Out', width: 110, align: 'left', defaultVisible: true },
+
+  // Data Transfer
+  { key: 'totalSegsOut', label: 'Segs Out', width: 100, align: 'left', defaultVisible: false },
+  { key: 'totalSegsIn', label: 'Segs In', width: 100, align: 'left', defaultVisible: false },
+
+  // Retransmissions
+  { key: 'segsRetrans', label: 'Retrans Segs', width: 110, align: 'left', defaultVisible: false },
+  { key: 'bytesRetrans', label: 'Retrans Bytes', width: 110, align: 'left', defaultVisible: false },
+  { key: 'fastRetrans', label: 'Fast Retrans', width: 100, align: 'left', defaultVisible: false },
+  { key: 'timeoutEpisodes', label: 'Timeouts', width: 90, align: 'left', defaultVisible: false },
+
+  // RTT
+  { key: 'sampleRTT', label: 'Sample RTT', width: 100, align: 'left', defaultVisible: false },
+  { key: 'smoothedRTT', label: 'RTT (ms)', width: 100, align: 'left', defaultVisible: false },
+  { key: 'rttVariance', label: 'RTT Var', width: 90, align: 'left', defaultVisible: false },
+  { key: 'minRTT', label: 'Min RTT', width: 90, align: 'left', defaultVisible: false },
+  { key: 'maxRTT', label: 'Max RTT', width: 90, align: 'left', defaultVisible: false },
+
+  // Congestion Control
+  { key: 'currentCwnd', label: 'Cwnd', width: 100, align: 'left', defaultVisible: false },
+  { key: 'currentSsthresh', label: 'Ssthresh', width: 100, align: 'left', defaultVisible: false },
+  { key: 'slowStartCount', label: 'SS Count', width: 90, align: 'left', defaultVisible: false },
+  { key: 'congAvoidCount', label: 'CA Count', width: 90, align: 'left', defaultVisible: false },
+
+  // Bandwidth & Throughput
+  { key: 'inboundBandwidth', label: 'In Bandwidth', width: 120, align: 'left', defaultVisible: false },
+  { key: 'outboundBandwidth', label: 'Out Bandwidth', width: 120, align: 'left', defaultVisible: false },
+  { key: 'thruBytesAcked', label: 'Thru Acked', width: 120, align: 'left', defaultVisible: false },
+  { key: 'thruBytesReceived', label: 'Thru Rcvd', width: 120, align: 'left', defaultVisible: false },
+
+  // Buffers
+  { key: 'curRetxQueue', label: 'Cur Retx Q', width: 100, align: 'left', defaultVisible: false },
+  { key: 'maxRetxQueue', label: 'Max Retx Q', width: 100, align: 'left', defaultVisible: false },
+  { key: 'curAppWQueue', label: 'Cur App Q', width: 100, align: 'left', defaultVisible: false },
+  { key: 'maxAppWQueue', label: 'Max App Q', width: 100, align: 'left', defaultVisible: false },
+
+  // Window & Scaling
+  { key: 'winScaleSent', label: 'Snd Scale', width: 90, align: 'left', defaultVisible: false },
+  { key: 'winScaleRcvd', label: 'Rcv Scale', width: 90, align: 'left', defaultVisible: false },
+  { key: 'curRwinSent', label: 'Cur Snd Win', width: 120, align: 'left', defaultVisible: false },
+  { key: 'maxRwinSent', label: 'Max Snd Win', width: 120, align: 'left', defaultVisible: false },
+  { key: 'curRwinRcvd', label: 'Cur Rcv Win', width: 120, align: 'left', defaultVisible: false },
+  { key: 'maxRwinRcvd', label: 'Max Rcv Win', width: 120, align: 'left', defaultVisible: false },
+
+  // MSS
+  { key: 'curMss', label: 'Cur MSS', width: 100, align: 'left', defaultVisible: false },
+  { key: 'maxMss', label: 'Max MSS', width: 100, align: 'left', defaultVisible: false },
+  { key: 'minMss', label: 'Min MSS', width: 100, align: 'left', defaultVisible: false },
+
+  // SACKs & Duplicates
+  { key: 'dupAcksIn', label: 'Dup ACKs In', width: 110, align: 'left', defaultVisible: false },
+  { key: 'dupAcksOut', label: 'Dup ACKs Out', width: 110, align: 'left', defaultVisible: false },
+  { key: 'sacksRcvd', label: 'SACKs Rcvd', width: 110, align: 'left', defaultVisible: false },
+  { key: 'sackBlocksRcvd', label: 'SACK Blocks', width: 110, align: 'left', defaultVisible: false },
+  { key: 'dsackDups', label: 'DSACK Dups', width: 110, align: 'left', defaultVisible: false },
 ];
 
 const ROW_HEIGHT = 48;
@@ -140,6 +207,154 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
           aValue = a.BasicStats?.DataBytesOut || 0;
           bValue = b.BasicStats?.DataBytesOut || 0;
           break;
+        case 'totalSegsOut':
+          aValue = a.ExtendedStats?.TotalSegsOut || 0;
+          bValue = b.ExtendedStats?.TotalSegsOut || 0;
+          break;
+        case 'totalSegsIn':
+          aValue = a.ExtendedStats?.TotalSegsIn || 0;
+          bValue = b.ExtendedStats?.TotalSegsIn || 0;
+          break;
+        case 'segsRetrans':
+          aValue = a.ExtendedStats?.SegsRetrans || 0;
+          bValue = b.ExtendedStats?.SegsRetrans || 0;
+          break;
+        case 'bytesRetrans':
+          aValue = a.ExtendedStats?.BytesRetrans || 0;
+          bValue = b.ExtendedStats?.BytesRetrans || 0;
+          break;
+        case 'fastRetrans':
+          aValue = a.ExtendedStats?.FastRetrans || 0;
+          bValue = b.ExtendedStats?.FastRetrans || 0;
+          break;
+        case 'timeoutEpisodes':
+          aValue = a.ExtendedStats?.TimeoutEpisodes || 0;
+          bValue = b.ExtendedStats?.TimeoutEpisodes || 0;
+          break;
+        case 'sampleRTT':
+          aValue = a.ExtendedStats?.SampleRTT || 0;
+          bValue = b.ExtendedStats?.SampleRTT || 0;
+          break;
+        case 'smoothedRTT':
+          aValue = a.ExtendedStats?.SmoothedRTT || 0;
+          bValue = b.ExtendedStats?.SmoothedRTT || 0;
+          break;
+        case 'rttVariance':
+          aValue = a.ExtendedStats?.RTTVariance || 0;
+          bValue = b.ExtendedStats?.RTTVariance || 0;
+          break;
+        case 'minRTT':
+          aValue = a.ExtendedStats?.MinRTT || 0;
+          bValue = b.ExtendedStats?.MinRTT || 0;
+          break;
+        case 'maxRTT':
+          aValue = a.ExtendedStats?.MaxRTT || 0;
+          bValue = b.ExtendedStats?.MaxRTT || 0;
+          break;
+        case 'currentCwnd':
+          aValue = a.ExtendedStats?.CurrentCwnd || 0;
+          bValue = b.ExtendedStats?.CurrentCwnd || 0;
+          break;
+        case 'currentSsthresh':
+          aValue = a.ExtendedStats?.CurrentSsthresh || 0;
+          bValue = b.ExtendedStats?.CurrentSsthresh || 0;
+          break;
+        case 'slowStartCount':
+          aValue = a.ExtendedStats?.SlowStartCount || 0;
+          bValue = b.ExtendedStats?.SlowStartCount || 0;
+          break;
+        case 'congAvoidCount':
+          aValue = a.ExtendedStats?.CongAvoidCount || 0;
+          bValue = b.ExtendedStats?.CongAvoidCount || 0;
+          break;
+        case 'inboundBandwidth':
+          aValue = a.ExtendedStats?.InboundBandwidth || 0;
+          bValue = b.ExtendedStats?.InboundBandwidth || 0;
+          break;
+        case 'outboundBandwidth':
+          aValue = a.ExtendedStats?.OutboundBandwidth || 0;
+          bValue = b.ExtendedStats?.OutboundBandwidth || 0;
+          break;
+        case 'thruBytesAcked':
+          aValue = a.ExtendedStats?.ThruBytesAcked || 0;
+          bValue = b.ExtendedStats?.ThruBytesAcked || 0;
+          break;
+        case 'thruBytesReceived':
+          aValue = a.ExtendedStats?.ThruBytesReceived || 0;
+          bValue = b.ExtendedStats?.ThruBytesReceived || 0;
+          break;
+        case 'curRetxQueue':
+          aValue = a.ExtendedStats?.CurRetxQueue || 0;
+          bValue = b.ExtendedStats?.CurRetxQueue || 0;
+          break;
+        case 'maxRetxQueue':
+          aValue = a.ExtendedStats?.MaxRetxQueue || 0;
+          bValue = b.ExtendedStats?.MaxRetxQueue || 0;
+          break;
+        case 'curAppWQueue':
+          aValue = a.ExtendedStats?.CurAppWQueue || 0;
+          bValue = b.ExtendedStats?.CurAppWQueue || 0;
+          break;
+        case 'maxAppWQueue':
+          aValue = a.ExtendedStats?.MaxAppWQueue || 0;
+          bValue = b.ExtendedStats?.MaxAppWQueue || 0;
+          break;
+        case 'winScaleSent':
+          aValue = a.ExtendedStats?.WinScaleSent || 0;
+          bValue = b.ExtendedStats?.WinScaleSent || 0;
+          break;
+        case 'winScaleRcvd':
+          aValue = a.ExtendedStats?.WinScaleRcvd || 0;
+          bValue = b.ExtendedStats?.WinScaleRcvd || 0;
+          break;
+        case 'curRwinSent':
+          aValue = a.ExtendedStats?.CurRwinSent || 0;
+          bValue = b.ExtendedStats?.CurRwinSent || 0;
+          break;
+        case 'maxRwinSent':
+          aValue = a.ExtendedStats?.MaxRwinSent || 0;
+          bValue = b.ExtendedStats?.MaxRwinSent || 0;
+          break;
+        case 'curRwinRcvd':
+          aValue = a.ExtendedStats?.CurRwinRcvd || 0;
+          bValue = b.ExtendedStats?.CurRwinRcvd || 0;
+          break;
+        case 'maxRwinRcvd':
+          aValue = a.ExtendedStats?.MaxRwinRcvd || 0;
+          bValue = b.ExtendedStats?.MaxRwinRcvd || 0;
+          break;
+        case 'curMss':
+          aValue = a.ExtendedStats?.CurMss || 0;
+          bValue = b.ExtendedStats?.CurMss || 0;
+          break;
+        case 'maxMss':
+          aValue = a.ExtendedStats?.MaxMss || 0;
+          bValue = b.ExtendedStats?.MaxMss || 0;
+          break;
+        case 'minMss':
+          aValue = a.ExtendedStats?.MinMss || 0;
+          bValue = b.ExtendedStats?.MinMss || 0;
+          break;
+        case 'dupAcksIn':
+          aValue = a.ExtendedStats?.DupAcksIn || 0;
+          bValue = b.ExtendedStats?.DupAcksIn || 0;
+          break;
+        case 'dupAcksOut':
+          aValue = a.ExtendedStats?.DupAcksOut || 0;
+          bValue = b.ExtendedStats?.DupAcksOut || 0;
+          break;
+        case 'sacksRcvd':
+          aValue = a.ExtendedStats?.SacksRcvd || 0;
+          bValue = b.ExtendedStats?.SacksRcvd || 0;
+          break;
+        case 'sackBlocksRcvd':
+          aValue = a.ExtendedStats?.SackBlocksRcvd || 0;
+          bValue = b.ExtendedStats?.SackBlocksRcvd || 0;
+          break;
+        case 'dsackDups':
+          aValue = a.ExtendedStats?.DsackDups || 0;
+          bValue = b.ExtendedStats?.DsackDups || 0;
+          break;
         default:
           return 0;
       }
@@ -242,6 +457,117 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
               break;
             case 'bytesOut':
               content = conn.BasicStats ? formatBytes(conn.BasicStats.DataBytesOut).formatted : '—';
+              break;
+            case 'totalSegsOut':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.TotalSegsOut) : '—';
+              break;
+            case 'totalSegsIn':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.TotalSegsIn) : '—';
+              break;
+            case 'segsRetrans':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.SegsRetrans) : '—';
+              break;
+            case 'bytesRetrans':
+              content = conn.ExtendedStats ? formatBytes(conn.ExtendedStats.BytesRetrans).formatted : '—';
+              break;
+            case 'fastRetrans':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.FastRetrans) : '—';
+              break;
+            case 'timeoutEpisodes':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.TimeoutEpisodes) : '—';
+              break;
+            case 'sampleRTT':
+              content = conn.ExtendedStats ? formatRTT(conn.ExtendedStats.SampleRTT).formatted : '—';
+              break;
+            case 'smoothedRTT':
+              content = conn.ExtendedStats ? formatRTT(conn.ExtendedStats.SmoothedRTT).formatted : '—';
+              break;
+            case 'rttVariance':
+              content = conn.ExtendedStats ? formatRTT(conn.ExtendedStats.RTTVariance).formatted : '—';
+              break;
+            case 'minRTT':
+              content = conn.ExtendedStats ? formatRTT(conn.ExtendedStats.MinRTT).formatted : '—';
+              break;
+            case 'maxRTT':
+              content = conn.ExtendedStats ? formatRTT(conn.ExtendedStats.MaxRTT).formatted : '—';
+              break;
+            case 'currentCwnd':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.CurrentCwnd) : '—';
+              break;
+            case 'currentSsthresh':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.CurrentSsthresh) : '—';
+              break;
+            case 'slowStartCount':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.SlowStartCount) : '—';
+              break;
+            case 'congAvoidCount':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.CongAvoidCount) : '—';
+              break;
+            case 'inboundBandwidth':
+              content = conn.ExtendedStats ? formatBandwidth(conn.ExtendedStats.InboundBandwidth).formatted : '—';
+              break;
+            case 'outboundBandwidth':
+              content = conn.ExtendedStats ? formatBandwidth(conn.ExtendedStats.OutboundBandwidth).formatted : '—';
+              break;
+            case 'thruBytesAcked':
+              content = conn.ExtendedStats ? formatBytes(conn.ExtendedStats.ThruBytesAcked).formatted : '—';
+              break;
+            case 'thruBytesReceived':
+              content = conn.ExtendedStats ? formatBytes(conn.ExtendedStats.ThruBytesReceived).formatted : '—';
+              break;
+            case 'curRetxQueue':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.CurRetxQueue) : '—';
+              break;
+            case 'maxRetxQueue':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.MaxRetxQueue) : '—';
+              break;
+            case 'curAppWQueue':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.CurAppWQueue) : '—';
+              break;
+            case 'maxAppWQueue':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.MaxAppWQueue) : '—';
+              break;
+            case 'winScaleSent':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.WinScaleSent) : '—';
+              break;
+            case 'winScaleRcvd':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.WinScaleRcvd) : '—';
+              break;
+            case 'curRwinSent':
+              content = conn.ExtendedStats ? formatBytes(conn.ExtendedStats.CurRwinSent).formatted : '—';
+              break;
+            case 'maxRwinSent':
+              content = conn.ExtendedStats ? formatBytes(conn.ExtendedStats.MaxRwinSent).formatted : '—';
+              break;
+            case 'curRwinRcvd':
+              content = conn.ExtendedStats ? formatBytes(conn.ExtendedStats.CurRwinRcvd).formatted : '—';
+              break;
+            case 'maxRwinRcvd':
+              content = conn.ExtendedStats ? formatBytes(conn.ExtendedStats.MaxRwinRcvd).formatted : '—';
+              break;
+            case 'curMss':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.CurMss) : '—';
+              break;
+            case 'maxMss':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.MaxMss) : '—';
+              break;
+            case 'minMss':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.MinMss) : '—';
+              break;
+            case 'dupAcksIn':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.DupAcksIn) : '—';
+              break;
+            case 'dupAcksOut':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.DupAcksOut) : '—';
+              break;
+            case 'sacksRcvd':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.SacksRcvd) : '—';
+              break;
+            case 'sackBlocksRcvd':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.SackBlocksRcvd) : '—';
+              break;
+            case 'dsackDups':
+              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.DsackDups) : '—';
               break;
           }
 
