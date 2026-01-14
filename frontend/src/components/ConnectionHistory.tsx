@@ -72,7 +72,7 @@ const HistoryCharts = React.memo(({ data, onMouseMove, formatBytes, onZoom }: {
                         <XAxis dataKey="time" hide />
                         <YAxis tick={{ fill: '#9ca3af', fontSize: 9 }} tickFormatter={(v) => `${v.toFixed(1)}`} width={40} />
                         <Tooltip content={() => null} cursor={{ stroke: '#fff', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                        <Legend verticalAlign="top" height={20} iconType="plain" />
+                        <Legend verticalAlign="top" height={20} iconType="plainline" />
                         <Line type="monotone" dataKey="inBwMbps" stroke="#22c55e" strokeWidth={2} dot={false} name="Inbound" isAnimationActive={false} />
                         <Line type="monotone" dataKey="outBwMbps" stroke="#3b82f6" strokeWidth={2} dot={false} name="Outbound" isAnimationActive={false} />
                     </LineChart>
@@ -184,8 +184,14 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
             }));
             
             setFullHistory(formatted);
-            // Initial view: downsample entire dataset
-            setHistory(downsampleData(formatted, 1000));
+            // Decimate data if too large to prevent chart lag (max 1000 points)
+            // Charts struggle with > 2000 SVG nodes.
+            // Force type cast as we know formatted has time property
+            const processedData = rawData.length > 1000 
+                ? downsampleData(formatted as any, 1000) as ConnectionHistoryPoint[]
+                : formatted;
+
+            setHistory(processedData);
         } catch (e) {
             console.error('Failed to load history:', e);
         }
@@ -200,7 +206,7 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
         // When zoomed, slice the FULL history and re-downsample the slice
         // This reveals fine-grained details that were lost in the global downsample
         const slicedData = fullHistory.slice(domain.startIndex, domain.endIndex + 1);
-        const resampledData = downsampleData(slicedData, 1000);
+        const resampledData = downsampleData(slicedData as any, 1000) as ConnectionHistoryPoint[];
         
         setHistory(resampledData);
     }, [fullHistory]);
