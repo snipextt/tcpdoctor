@@ -55,10 +55,19 @@ interface ConnectionHistoryProps {
 const CHART_HEIGHT = 160;
 const SYNC_ID = 'connection-history-sync';
 
+// Memoized Charts Component to prevent re-renders on hover
+const HistoryCharts = React.memo(({ data, fullHistory, onMouseMove, formatBytes, onZoom, isZoomed }: {
+    data: ConnectionHistoryPoint[];
+    fullHistory: ConnectionHistoryPoint[];
+    onMouseMove: (e: any) => void;
+    formatBytes: (v: number) => string;
+    onZoom: (domain: any) => void;
+    isZoomed: boolean;
+}) => {
     const [zoomState, setZoomState] = useState<{ left?: string, right?: string, refAreaLeft?: string, refAreaRight?: string }>({});
     
     // Convert time string back to index for slicing
-    const getIndexFromTime = (timeStr: string) => fullHistory.findIndex(p => new Date(p.timestamp).toLocaleTimeString() === timeStr);
+    // Helper not strictly needed if we use data.findIndex directly
 
     const zoom = () => {
         let { refAreaLeft, refAreaRight } = zoomState;
@@ -70,10 +79,8 @@ const SYNC_ID = 'connection-history-sync';
 
         // Determine start and end
         // Note: Axis is categorical (time strings), so we need to find indices
-        // But simplified: just pass the indices to existing handleZoom logic
-        
         // Find indices in the CURRENT view (history), then map to FULL history
-        const currentData = history;
+        const currentData = data;
         let startIndex = currentData.findIndex(p => p.time === refAreaLeft);
         let endIndex = currentData.findIndex(p => p.time === refAreaRight);
 
@@ -81,24 +88,23 @@ const SYNC_ID = 'connection-history-sync';
         if (startIndex > endIndex) [startIndex, endIndex] = [endIndex, startIndex];
 
         // Map these "view indices" back to "full data indices"
-        // This is tricky with downsampling. 
-        // Better approach: Use the timestamps to find range in fullHistory
         const startTs = currentData[startIndex]?.timestamp;
         const endTs = currentData[endIndex]?.timestamp;
         
-        const fullStartIndex = fullHistory.findIndex(p => p.timestamp === startTs);
-        const fullEndIndex = fullHistory.findIndex(p => p.timestamp === endTs);
+        if (startTs && endTs) {
+            const fullStartIndex = fullHistory.findIndex(p => p.timestamp === startTs);
+            const fullEndIndex = fullHistory.findIndex(p => p.timestamp === endTs);
 
-        if (fullStartIndex >= 0 && fullEndIndex >= 0) {
-            handleZoom({ startIndex: fullStartIndex, endIndex: fullEndIndex });
+            if (fullStartIndex >= 0 && fullEndIndex >= 0) {
+                onZoom({ startIndex: fullStartIndex, endIndex: fullEndIndex });
+            }
         }
 
         setZoomState({ ...zoomState, refAreaLeft: '', refAreaRight: '' });
     };
 
     const zoomOut = () => {
-        setZoomDomain(null);
-        setHistory(downsampleData(fullHistory, 1000) as ConnectionHistoryPoint[]);
+        onZoom(null);
         setZoomState({});
     };
 
