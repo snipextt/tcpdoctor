@@ -10,8 +10,9 @@ import {
     ResponsiveContainer,
     Area,
     AreaChart,
-    ComposedChart,
     Bar,
+    BarChart,
+    ComposedChart,
     Brush,
     ReferenceLine
 } from 'recharts';
@@ -157,63 +158,72 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                     ) : (
                         <div className="charts-container">
                             
-                            {/* 1. Network Performance (Bandwidth + Retransmits) */}
+                            {/* 1. Bandwidth Chart */}
                             <div className="chart-section">
-                                <div className="chart-title">Network Performance (Bandwidth & Retransmissions)</div>
-                                <ResponsiveContainer width="100%" height={CHART_HEIGHT + 40}>
-                                    <ComposedChart data={history} syncId={SYNC_ID} onMouseMove={handleMouseMove}>
+                                <div className="chart-title">Bandwidth (Mbps)</div>
+                                <ResponsiveContainer width="100%" height={140}>
+                                    <LineChart data={history} syncId={SYNC_ID} onMouseMove={handleMouseMove}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                                        <XAxis dataKey="time" tick={{ fill: '#9ca3af', fontSize: 9 }} />
-                                        <YAxis yAxisId="left" tick={{ fill: '#9ca3af', fontSize: 9 }} tickFormatter={(v) => `${v.toFixed(1)}M`} width={45} label={{ value: 'Mbps', angle: -90, position: 'insideLeft', fill: '#9ca3af', fontSize: 9 }} />
-                                        <YAxis yAxisId="right" orientation="right" tick={{ fill: '#ef4444', fontSize: 9 }} tickFormatter={(v) => formatBytes(v)} width={45} />
-                                        <Tooltip content={() => null} cursor={{ stroke: 'rgba(255,255,255,0.3)', strokeWidth: 1 }} />
-                                        <Legend />
-                                        <Line yAxisId="left" type="monotone" dataKey="inBwMbps" stroke="#22c55e" strokeWidth={2} dot={false} name="BW In" />
-                                        <Line yAxisId="left" type="monotone" dataKey="outBwMbps" stroke="#3b82f6" strokeWidth={2} dot={false} name="BW Out" />
-                                        <Bar yAxisId="right" dataKey="retrans" fill="#ef4444" name="Retrans (Bytes)" opacity={0.6} />
-                                    </ComposedChart>
+                                        <XAxis dataKey="time" hide />
+                                        <YAxis tick={{ fill: '#9ca3af', fontSize: 9 }} tickFormatter={(v) => `${v.toFixed(1)}`} width={40} />
+                                        <Tooltip content={() => null} cursor={{ stroke: '#fff', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                                        <Legend verticalAlign="top" height={20} iconType="plain" />
+                                        <Line type="monotone" dataKey="inBwMbps" stroke="#22c55e" strokeWidth={2} dot={false} name="Inbound" isAnimationActive={false} />
+                                        <Line type="monotone" dataKey="outBwMbps" stroke="#3b82f6" strokeWidth={2} dot={false} name="Outbound" isAnimationActive={false} />
+                                    </LineChart>
                                 </ResponsiveContainer>
                             </div>
 
-                            {/* 2. Congestion Analysis (RTT + CWND) */}
+                            {/* 2. Retransmissions Chart */}
                             <div className="chart-section">
-                                <div className="chart-title">Congestion Analysis (RTT vs CWND)</div>
-                                <ResponsiveContainer width="100%" height={CHART_HEIGHT + 40}>
-                                    <ComposedChart data={history} syncId={SYNC_ID} onMouseMove={handleMouseMove}>
+                                <div className="chart-title">Retransmissions (Bytes)</div>
+                                <ResponsiveContainer width="100%" height={100}>
+                                    <BarChart data={history} syncId={SYNC_ID} onMouseMove={handleMouseMove}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                                        <XAxis dataKey="time" tick={{ fill: '#9ca3af', fontSize: 9 }} />
-                                        <YAxis yAxisId="left" tick={{ fill: '#f59e0b', fontSize: 9 }} width={45} label={{ value: 'RTT (ms)', angle: -90, position: 'insideLeft', fill: '#f59e0b', fontSize: 9 }} />
-                                        <YAxis yAxisId="right" orientation="right" tick={{ fill: '#3b82f6', fontSize: 9 }} width={45} label={{ value: 'CWND (KB)', angle: 90, position: 'insideRight', fill: '#3b82f6', fontSize: 9 }} />
-                                        <Tooltip content={() => null} cursor={{ stroke: 'rgba(255,255,255,0.3)', strokeWidth: 1 }} />
-                                        <Legend />
-                                        <Line yAxisId="left" type="monotone" dataKey="rttMs" stroke="#f59e0b" strokeWidth={2} dot={false} name="RTT" />
-                                        <Area yAxisId="right" type="monotone" dataKey="cwndKB" fill="#3b82f6" stroke="#3b82f6" fillOpacity={0.1} name="CWND" />
-                                    </ComposedChart>
+                                        <XAxis dataKey="time" hide />
+                                        <YAxis tick={{ fill: '#ef4444', fontSize: 9 }} tickFormatter={(v) => formatBytes(v)} width={40} />
+                                        <Tooltip content={() => null} cursor={{ fill: 'rgba(255,255,255,0.1)' }} />
+                                        <Bar dataKey="retrans" fill="#ef4444" name="Retrans" />
+                                    </BarChart>
                                 </ResponsiveContainer>
                             </div>
 
-                            {/* 3. Traffic Overview (Bytes with Zoom) */}
+                            {/* 3. Congestion Window (CWND) */}
                             <div className="chart-section">
-                                <div className="chart-title">Total Traffic Volume & Zoom</div>
-                                <ResponsiveContainer width="100%" height={CHART_HEIGHT + 40}>
+                                <div className="chart-title">Congestion Window (CWND)</div>
+                                <ResponsiveContainer width="100%" height={120}>
                                     <AreaChart data={history} syncId={SYNC_ID} onMouseMove={handleMouseMove}>
                                         <defs>
-                                            <linearGradient id="colorIn" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                                            </linearGradient>
-                                            <linearGradient id="colorOut" x1="0" y1="0" x2="0" y2="1">
+                                            <linearGradient id="colorCwnd" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
                                                 <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                                             </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                                        <XAxis dataKey="time" hide />
+                                        <YAxis tick={{ fill: '#3b82f6', fontSize: 9 }} tickFormatter={(v) => `${v.toFixed(0)}K`} width={40} />
+                                        <Tooltip content={() => null} cursor={{ stroke: '#fff', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                                        <Area type="monotone" dataKey="cwndKB" stroke="#3b82f6" fill="url(#colorCwnd)" name="CWND" isAnimationActive={false} />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+
+                            {/* 4. Round Trip Time (RTT) */}
+                            <div className="chart-section">
+                                <div className="chart-title">Round Trip Time (ms)</div>
+                                <ResponsiveContainer width="100%" height={120}>
+                                    <AreaChart data={history} syncId={SYNC_ID} onMouseMove={handleMouseMove}>
+                                        <defs>
+                                            <linearGradient id="colorRtt" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                                         <XAxis dataKey="time" tick={{ fill: '#9ca3af', fontSize: 9 }} />
-                                        <YAxis tick={{ fill: '#9ca3af', fontSize: 9 }} tickFormatter={(v) => formatBytes(v * 1024)} width={60} />
-                                        <Tooltip content={() => null} cursor={{ stroke: 'rgba(255,255,255,0.3)', strokeWidth: 1 }} />
-                                        <Legend />
-                                        <Area type="monotone" dataKey="bytesInKB" stroke="#22c55e" fill="url(#colorIn)" name="Bytes In" />
-                                        <Area type="monotone" dataKey="bytesOutKB" stroke="#3b82f6" fill="url(#colorOut)" name="Bytes Out" />
+                                        <YAxis tick={{ fill: '#f59e0b', fontSize: 9 }} width={40} />
+                                        <Tooltip content={() => null} cursor={{ stroke: '#fff', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                                        <Area type="monotone" dataKey="rttMs" stroke="#f59e0b" fill="url(#colorRtt)" name="RTT" isAnimationActive={false} />
                                         <Brush dataKey="time" height={25} stroke="#3b82f6" fill="#1f2937" />
                                     </AreaChart>
                                 </ResponsiveContainer>
