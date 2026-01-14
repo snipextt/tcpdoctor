@@ -55,10 +55,11 @@ const CHART_HEIGHT = 160;
 const SYNC_ID = 'connection-history-sync';
 
 // Memoized Charts Component to prevent re-renders on hover
-const HistoryCharts = React.memo(({ data, onMouseMove, formatBytes }: {
+const HistoryCharts = React.memo(({ data, onMouseMove, formatBytes, onZoom }: {
     data: ConnectionHistoryPoint[];
     onMouseMove: (e: any) => void;
     formatBytes: (v: number) => string;
+    onZoom: (domain: any) => void;
 }) => {
     return (
         <div className="charts-container">
@@ -128,7 +129,13 @@ const HistoryCharts = React.memo(({ data, onMouseMove, formatBytes }: {
                         <YAxis tick={{ fill: '#f59e0b', fontSize: 9 }} width={40} />
                         <Tooltip content={() => null} cursor={{ stroke: '#fff', strokeWidth: 1, strokeDasharray: '4 4' }} />
                         <Area type="monotone" dataKey="rttMs" stroke="#f59e0b" fill="url(#colorRtt)" name="RTT" isAnimationActive={false} />
-                        <Brush dataKey="time" height={25} stroke="#3b82f6" fill="#1f2937" />
+                        <Brush 
+                            dataKey="time" 
+                            height={25} 
+                            stroke="#3b82f6" 
+                            fill="#1f2937" 
+                            onChange={onZoom}
+                        />
                     </AreaChart>
                 </ResponsiveContainer>
             </div>
@@ -147,6 +154,8 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
     viewingHistorical = false,
 }) => {
     const [history, setHistory] = useState<ConnectionHistoryPoint[]>([]);
+    const [fullHistory, setFullHistory] = useState<ConnectionHistoryPoint[]>([]);
+    const [zoomDomain, setZoomDomain] = useState<{ startIndex?: number; endIndex?: number } | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [hoveredData, setHoveredData] = useState<any>(null);
 
@@ -160,14 +169,7 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
         setIsLoading(true);
         try {
             const rawData = await getHistory();
-            
-            // Decimate data if too large to prevent chart lag (max 1000 points)
-            // Charts struggle with > 2000 SVG nodes.
-            const processedData = rawData.length > 1000 
-                ? downsampleData(rawData, 1000) 
-                : rawData;
-
-            const formatted = processedData.map((point, i) => ({
+            const formatted = rawData.map((point, i) => ({
                 ...point,
                 time: new Date(point.timestamp).toLocaleTimeString(),
                 index: i,
@@ -180,12 +182,28 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                 outBwMbps: point.outBandwidth / 1000000,
                 cwndKB: point.congestionWin / 1024,
             }));
-            setHistory(formatted);
+            
+            setFullHistory(formatted);
+            // Initial view: downsample entire dataset
+            setHistory(downsampleData(formatted, 1000));
         } catch (e) {
             console.error('Failed to load history:', e);
         }
         setIsLoading(false);
     };
+
+    const handleZoom = useCallback((domain: any) => {
+        if (!domain || domain.startIndex === undefined || domain.endIndex === undefined) return;
+        
+        setZoomDomain(domain);
+        
+        // When zoomed, slice the FULL history and re-downsample the slice
+        // This reveals fine-grained details that were lost in the global downsample
+        const slicedData = fullHistory.slice(domain.startIndex, domain.endIndex + 1);
+        const resampledData = downsampleData(slicedData, 1000);
+        
+        setHistory(resampledData);
+    }, [fullHistory]);
 
     // Stable callback for hover to prevent re-creation
     const handleMouseMove = useCallback((e: any) => {
@@ -260,6 +278,7 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                             data={history} 
                             onMouseMove={handleMouseMove} 
                             formatBytes={formatBytes} 
+                            onZoom={handleZoom}
                         />
                     )}
                 </div>
