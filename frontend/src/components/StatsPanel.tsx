@@ -18,6 +18,18 @@ interface TimeSeriesData {
   bwOut?: number;
 }
 
+const ALL_SECTIONS = [
+  { id: 'charts', label: 'Live Performance Charts' },
+  { id: 'data', label: 'Data Transfer' },
+  { id: 'retrans', label: 'Retransmissions' },
+  { id: 'rtt', label: 'Round Trip Time (RTT)' },
+  { id: 'congestion', label: 'Congestion Control' },
+  { id: 'bandwidth', label: 'Bandwidth & Throughput' },
+  { id: 'window', label: 'Window & Scaling' },
+  { id: 'segments', label: 'Segment Info & MSS' },
+  { id: 'dups', label: 'Duplicate ACKs & SACKs' },
+];
+
 const StatsPanel: React.FC<StatsPanelProps> = ({
   connection,
   isAdmin,
@@ -29,6 +41,45 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
   initialHistory,
 }) => {
   const [history, setHistory] = useState<TimeSeriesData[]>([]);
+  
+  // View options state
+  const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
+  const viewMenuRef = React.useRef<HTMLDivElement>(null);
+  const [visibleSections, setVisibleSections] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem('stats_visible_sections');
+    if (saved) {
+      try {
+        return new Set(JSON.parse(saved));
+      } catch (e) {}
+    }
+    // Default: all visible except the very advanced ones if we wanted, 
+    // but typically users want to see everything by default or what they last set.
+    // Let's default to all true for now to match previous behavior.
+    return new Set(ALL_SECTIONS.map(s => s.id));
+  });
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (viewMenuRef.current && !viewMenuRef.current.contains(event.target as Node)) {
+        setIsViewMenuOpen(false);
+      }
+    };
+    if (isViewMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isViewMenuOpen]);
+
+  const toggleSection = (id: string) => {
+    const newSet = new Set(visibleSections);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setVisibleSections(newSet);
+    localStorage.setItem('stats_visible_sections', JSON.stringify(Array.from(newSet)));
+  };
 
   // Connection key to detect selection changes
   const connectionKey = connection
@@ -137,6 +188,32 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
               {isAIConfigured ? '🤖' : '⚙️'}
             </button>
           )}
+          
+          {/* View/Sections Dropdown */}
+          <div className="view-menu-container" ref={viewMenuRef} style={{ position: 'relative' }}>
+            <button 
+              className="btn-action" 
+              onClick={() => setIsViewMenuOpen(!isViewMenuOpen)} 
+              title="Toggle Sections"
+            >
+              👁️
+            </button>
+            {isViewMenuOpen && (
+              <div className="view-dropdown">
+                <div className="dropdown-header">Visible Sections</div>
+                {ALL_SECTIONS.map(section => (
+                  <label key={section.id} className="view-option">
+                    <input
+                      type="checkbox"
+                      checked={visibleSections.has(section.id)}
+                      onChange={() => toggleSection(section.id)}
+                    />
+                    {section.label}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -152,6 +229,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
 
       <div className="stats-content">
         {/* Basic Stats (Always Available) */}
+        {visibleSections.has('data') && (
         <Section title="Data Transfer">
           <StatItem
             label="Bytes In"
@@ -170,11 +248,13 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
             value={BasicStats ? formatCount(BasicStats.DataSegsOut) : '—'}
           />
         </Section>
+        )}
 
         {/* Extended Stats */}
         {hasExtended && ExtendedStats ? (
           <>
             {/* Charts Section */}
+            {visibleSections.has('charts') && (
             <div className="stats-section charts-section">
               <h3>Live Performance</h3>
 
@@ -215,7 +295,9 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
                 </ResponsiveContainer>
               </div>
             </div>
+            )}
 
+            {visibleSections.has('retrans') && (
             <Section title="Retransmissions">
               <StatItem
                 label="Segments Retransmitted"
@@ -237,7 +319,9 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
                 value={formatCount(ExtendedStats.TimeoutEpisodes)}
               />
             </Section>
+            )}
 
+            {visibleSections.has('rtt') && (
             <Section title="Round Trip Time (RTT)">
               <StatItem
                 label="Smoothed RTT"
@@ -256,7 +340,9 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
                 value={formatRTT(ExtendedStats.MaxRTT).formatted}
               />
             </Section>
+            )}
 
+            {visibleSections.has('congestion') && (
             <Section title="Congestion Control">
               <StatItem
                 label="Congestion Window"
@@ -279,7 +365,9 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
                 subValue="Transitions"
               />
             </Section>
+            )}
 
+            {visibleSections.has('bandwidth') && (
             <Section title="Bandwidth & Throughput">
               <StatItem
                 label="Inbound Bandwidth"
@@ -298,7 +386,9 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
                 value={formatBytes(ExtendedStats.ThruBytesReceived).formatted}
               />
             </Section>
+            )}
 
+            {visibleSections.has('window') && (
             <Section title="Window & Scaling">
               <StatItem
                 label="Send Window Scale"
@@ -325,7 +415,9 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
                 value={formatBytes(ExtendedStats.MaxRwinRcvd).formatted}
               />
             </Section>
+            )}
 
+            {visibleSections.has('segments') && (
             <Section title="Segment Info & MSS">
                <StatItem
                 label="Current MSS"
@@ -343,7 +435,9 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
                 subValue="Bytes"
               />
             </Section>
+            )}
 
+            {visibleSections.has('dups') && (
              <Section title="Duplicate ACKs & SACKs">
                <StatItem
                 label="Dup ACKs In"
@@ -366,6 +460,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
                 value={formatCount(ExtendedStats.DsackDups)}
               />
             </Section>
+            )}
           </>
         ) : isAdmin ? (
           <div className="stats-message">
