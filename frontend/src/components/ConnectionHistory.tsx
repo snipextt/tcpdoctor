@@ -35,6 +35,7 @@ interface ConnectionHistoryPoint {
     inBandwidth: number;
     outBandwidth: number;
     // Computed fields for UI
+    uiKey?: string; // Unique key for Recharts axis
     time?: string;
     bytesInKB?: number;
     bytesOutKB?: number;
@@ -66,9 +67,6 @@ const HistoryCharts = React.memo(({ data, fullHistory, onMouseMove, formatBytes,
 }) => {
     const [zoomState, setZoomState] = useState<{ left?: string, right?: string, refAreaLeft?: string, refAreaRight?: string }>({});
     
-    // Convert time string back to index for slicing
-    // Helper not strictly needed if we use data.findIndex directly
-
     const zoom = () => {
         let { refAreaLeft, refAreaRight } = zoomState;
 
@@ -78,11 +76,10 @@ const HistoryCharts = React.memo(({ data, fullHistory, onMouseMove, formatBytes,
         }
 
         // Determine start and end
-        // Note: Axis is categorical (time strings), so we need to find indices
-        // Find indices in the CURRENT view (history), then map to FULL history
+        // Note: Axis uses 'uiKey' which is unique
         const currentData = data;
-        let startIndex = currentData.findIndex(p => p.time === refAreaLeft);
-        let endIndex = currentData.findIndex(p => p.time === refAreaRight);
+        let startIndex = currentData.findIndex(p => p.uiKey === refAreaLeft);
+        let endIndex = currentData.findIndex(p => p.uiKey === refAreaRight);
 
         // Swap if dragged right-to-left
         if (startIndex > endIndex) [startIndex, endIndex] = [endIndex, startIndex];
@@ -92,8 +89,19 @@ const HistoryCharts = React.memo(({ data, fullHistory, onMouseMove, formatBytes,
         const endTs = currentData[endIndex]?.timestamp;
         
         if (startTs && endTs) {
+            // Find the *first* occurrence of the start timestamp and *last* of the end timestamp
+            // to ensure we capture the full range even if timestamps duplicate in full history
             const fullStartIndex = fullHistory.findIndex(p => p.timestamp === startTs);
-            const fullEndIndex = fullHistory.findIndex(p => p.timestamp === endTs);
+            
+            // For end index, we want the last point that matches or is closest
+            // Simple findIndex is okay as long as we maintain order
+            let fullEndIndex = -1;
+            for(let i = fullHistory.length - 1; i >= 0; i--) {
+                if (fullHistory[i].timestamp === endTs) {
+                    fullEndIndex = i;
+                    break;
+                }
+            }
 
             if (fullStartIndex >= 0 && fullEndIndex >= 0) {
                 onZoom({ startIndex: fullStartIndex, endIndex: fullEndIndex });
@@ -109,7 +117,7 @@ const HistoryCharts = React.memo(({ data, fullHistory, onMouseMove, formatBytes,
     };
 
     return (
-        <div className="charts-container" style={{ userSelect: 'none' }}>
+        <div className="charts-container" style={{ userSelect: 'none', cursor: 'crosshair' }}>
             <div style={{ position: 'absolute', right: 20, top: -40, zIndex: 10 }}>
                 <button 
                     onClick={zoomOut}
@@ -117,16 +125,20 @@ const HistoryCharts = React.memo(({ data, fullHistory, onMouseMove, formatBytes,
                     style={{ 
                         opacity: isZoomed ? 1 : 0, 
                         pointerEvents: isZoomed ? 'auto' : 'none',
-                        padding: '4px 12px',
-                        fontSize: '12px',
+                        padding: '6px 12px',
+                        fontSize: '13px',
                         background: '#3b82f6',
                         color: 'white',
                         border: 'none',
                         borderRadius: '4px',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                     }}
                 >
-                    Reset Zoom
+                    <span>🔍</span> Reset Zoom
                 </button>
             </div>
 
@@ -145,7 +157,7 @@ const HistoryCharts = React.memo(({ data, fullHistory, onMouseMove, formatBytes,
                         onMouseUp={zoom}
                     >
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                        <XAxis dataKey="time" hide />
+                        <XAxis dataKey="uiKey" hide />
                         <YAxis tick={{ fill: '#9ca3af', fontSize: 9 }} tickFormatter={(v) => `${v.toFixed(1)}`} width={40} />
                         <Tooltip content={() => null} cursor={{ stroke: '#fff', strokeWidth: 1, strokeDasharray: '4 4' }} />
                         <Legend verticalAlign="top" height={20} iconType="plainline" />
@@ -173,7 +185,7 @@ const HistoryCharts = React.memo(({ data, fullHistory, onMouseMove, formatBytes,
                         onMouseUp={zoom}
                     >
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                        <XAxis dataKey="time" hide />
+                        <XAxis dataKey="uiKey" hide />
                         <YAxis tick={{ fill: '#ef4444', fontSize: 9 }} tickFormatter={(v) => formatBytes(v)} width={40} />
                         <Tooltip content={() => null} cursor={{ fill: 'rgba(255,255,255,0.1)' }} />
                         <Bar dataKey="retrans" fill="#ef4444" name="Retrans" isAnimationActive={false} />
@@ -205,7 +217,7 @@ const HistoryCharts = React.memo(({ data, fullHistory, onMouseMove, formatBytes,
                             </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                        <XAxis dataKey="time" hide />
+                        <XAxis dataKey="uiKey" hide />
                         <YAxis tick={{ fill: '#3b82f6', fontSize: 9 }} tickFormatter={(v) => `${v.toFixed(0)}K`} width={40} />
                         <Tooltip content={() => null} cursor={{ stroke: '#fff', strokeWidth: 1, strokeDasharray: '4 4' }} />
                         <Area type="monotone" dataKey="cwndKB" stroke="#3b82f6" fill="url(#colorCwnd)" name="CWND" isAnimationActive={false} />
@@ -237,7 +249,11 @@ const HistoryCharts = React.memo(({ data, fullHistory, onMouseMove, formatBytes,
                             </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                        <XAxis dataKey="time" tick={{ fill: '#9ca3af', fontSize: 9 }} />
+                        <XAxis dataKey="uiKey" tick={{ fill: '#9ca3af', fontSize: 9 }} tickFormatter={(val) => {
+                            // Find the data point for this key to format the time
+                            const point = data.find(p => p.uiKey === val);
+                            return point?.time || '';
+                        }} />
                         <YAxis tick={{ fill: '#f59e0b', fontSize: 9 }} width={40} />
                         <Tooltip content={() => null} cursor={{ stroke: '#fff', strokeWidth: 1, strokeDasharray: '4 4' }} />
                         <Area type="monotone" dataKey="rttMs" stroke="#f59e0b" fill="url(#colorRtt)" name="RTT" isAnimationActive={false} />
@@ -279,6 +295,7 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
             const rawData = await getHistory();
             const formatted = rawData.map((point, i) => ({
                 ...point,
+                uiKey: `${point.timestamp}-${i}`, // Unique key for Recharts axis
                 time: new Date(point.timestamp).toLocaleTimeString(),
                 index: i,
                 bytesInKB: point.bytesIn / 1024,
