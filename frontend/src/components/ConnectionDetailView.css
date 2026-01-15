@@ -1,0 +1,122 @@
+.connection-detail-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--color-bg);
+    overflow: hidden;
+}
+
+.detail-header {
+    display: flex;
+    align-items: center;
+    padding: 0 1.5rem;
+    height: 60px;
+    background: var(--color-bg-secondary);
+    border-bottom: 1px solid var(--color-border);
+    gap: 1.5rem;
+    flex-shrink: 0;
+}
+
+.btn-back {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.15s;
+}
+
+.btn-back:hover {
+    background: var(--color-bg-tertiary);
+    border-color: var(--color-text-dim);
+}
+
+.connection-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    color: var(--color-text-bright);
+    flex: 1;
+}
+
+.connection-title .arrow {
+    color: var(--color-text-dim);
+}
+
+.header-tabs {
+    display: flex;
+    background: var(--color-bg-tertiary);
+    padding: 4px;
+    border-radius: 8px;
+}
+
+.tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--color-text-dim);
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.15s;
+}
+
+.tab-btn:hover {
+    color: var(--color-text);
+}
+
+.tab-btn.active {
+    background: var(--color-bg);
+    color: var(--color-primary);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.detail-content {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    background: var(--color-bg);
+}
+
+.live-view-container {
+    height: 100%;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.history-view-container {
+    height: 100%;
+    /* Override modal styles to fit embedded view */
+}
+
+/* Overrides for embedded ConnectionHistory */
+.history-view-container .modal-overlay {
+    position: absolute;
+    background: transparent;
+    padding: 0;
+}
+
+.history-view-container .history-modal {
+    max-width: 100%;
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+/* Hide modal header when embedded, since we have the page header */
+.history-view-container .modal-header {
+    display: none;
+}
+
+/* Adjust charts container for full page */
+.history-view-container .charts-container {
+    padding: 1rem 2rem;
+}
