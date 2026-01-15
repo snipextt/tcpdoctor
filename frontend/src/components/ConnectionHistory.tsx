@@ -1,22 +1,41 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    BarElement,
+    Title,
     Tooltip,
     Legend,
-    ResponsiveContainer,
-    Area,
-    AreaChart,
-    Bar,
-    BarChart,
-    Brush,
-    ReferenceArea,
-} from 'recharts';
+    Filler,
+    TimeScale,
+    ChartOptions,
+    ScriptableContext,
+    ChartEvent,
+    ActiveElement,
+} from 'chart.js';
+import { Line, Bar } from 'react-chartjs-2';
+import zoomPlugin from 'chartjs-plugin-zoom';
+import 'chartjs-adapter-date-fns';
 import { downsampleData } from '../utils/dataProcessing';
 import './ConnectionHistory.css';
+
+// Register ChartJS components
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    BarElement,
+    Title,
+    Tooltip,
+    Legend,
+    Filler,
+    TimeScale,
+    zoomPlugin
+);
 
 interface ConnectionHistoryPoint {
     timestamp: string;
@@ -35,7 +54,7 @@ interface ConnectionHistoryPoint {
     inBandwidth: number;
     outBandwidth: number;
     // Computed fields for UI
-    uiKey?: string; // Unique key for Recharts axis
+    uiKey?: string;
     time?: string;
     bytesInKB?: number;
     bytesOutKB?: number;
@@ -53,221 +72,220 @@ interface ConnectionHistoryProps {
     viewingHistorical?: boolean;
 }
 
-const CHART_HEIGHT = 160;
-const SYNC_ID = 'connection-history-sync';
+// Chart configuration constants
+const COMMON_OPTIONS: ChartOptions<any> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    interaction: {
+        mode: 'index',
+        intersect: false,
+    },
+    plugins: {
+        legend: {
+            position: 'top' as const,
+            align: 'end' as const,
+            labels: {
+                boxWidth: 10,
+                font: { size: 10 },
+                color: '#9ca3af'
+            }
+        },
+        tooltip: {
+            enabled: false, // We use custom external inspector
+        },
+        zoom: {
+            pan: { enabled: false }, // Disable pan to avoid confusion
+            zoom: {
+                drag: {
+                    enabled: true,
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderColor: 'rgba(59, 130, 246, 0.5)',
+                    borderWidth: 1,
+                },
+                mode: 'x',
+            },
+        },
+    },
+    scales: {
+        x: {
+            type: 'time',
+            time: {
+                unit: 'second',
+                displayFormats: { second: 'HH:mm:ss' },
+                tooltipFormat: 'HH:mm:ss.SSS'
+            },
+            grid: {
+                color: 'rgba(255, 255, 255, 0.1)',
+            },
+            ticks: {
+                color: '#9ca3af',
+                font: { size: 10 },
+                maxRotation: 0,
+                autoSkip: true,
+            }
+        },
+        y: {
+            grid: {
+                color: 'rgba(255, 255, 255, 0.1)',
+            },
+            ticks: {
+                color: '#9ca3af',
+                font: { size: 10 },
+            }
+        }
+    }
+};
 
-// Memoized Charts Component to prevent re-renders on hover
-const HistoryCharts = React.memo(({ data, fullHistory, onMouseMove, formatBytes, onZoom, isZoomed }: {
+const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange }: {
     data: ConnectionHistoryPoint[];
-    fullHistory: ConnectionHistoryPoint[];
-    onMouseMove: (e: any) => void;
-    formatBytes: (v: number) => string;
-    onZoom: (domain: any) => void;
-    isZoomed: boolean;
+    onHover: (index: number) => void;
+    onZoom: (min: number, max: number) => void;
+    zoomRange: { min: number, max: number } | null;
 }) => {
-    const [zoomState, setZoomState] = useState<{ left?: string, right?: string, refAreaLeft?: string, refAreaRight?: string }>({});
-    
-    const zoom = () => {
-        let { refAreaLeft, refAreaRight } = zoomState;
+    const chartRefs = useRef<(ChartJS | null)[]>([]);
 
-        if (refAreaLeft === refAreaRight || refAreaRight === '') {
-            setZoomState({ ...zoomState, refAreaLeft: '', refAreaRight: '' });
-            return;
-        }
-
-        // Determine start and end
-        // Note: Axis uses 'uiKey' which is unique
-        const currentData = data;
-        let startIndex = currentData.findIndex(p => p.uiKey === refAreaLeft);
-        let endIndex = currentData.findIndex(p => p.uiKey === refAreaRight);
-
-        // Swap if dragged right-to-left
-        if (startIndex > endIndex) [startIndex, endIndex] = [endIndex, startIndex];
-
-        // Map these "view indices" back to "full data indices"
-        const startTs = currentData[startIndex]?.timestamp;
-        const endTs = currentData[endIndex]?.timestamp;
+    // Shared options with dynamic zoom limits
+    const options = useMemo(() => {
+        const opts = JSON.parse(JSON.stringify(COMMON_OPTIONS)); // Deep clone
         
-        if (startTs && endTs) {
-            // Find the *first* occurrence of the start timestamp and *last* of the end timestamp
-            // to ensure we capture the full range even if timestamps duplicate in full history
-            const fullStartIndex = fullHistory.findIndex(p => p.timestamp === startTs);
-            
-            // For end index, we want the last point that matches or is closest
-            // Simple findIndex is okay as long as we maintain order
-            let fullEndIndex = -1;
-            for(let i = fullHistory.length - 1; i >= 0; i--) {
-                if (fullHistory[i].timestamp === endTs) {
-                    fullEndIndex = i;
-                    break;
-                }
-            }
+        // Add zoom callback
+        opts.plugins.zoom.zoom.onZoomComplete = ({ chart }: { chart: ChartJS }) => {
+            const { min, max } = chart.scales.x;
+            onZoom(min, max);
+        };
 
-            if (fullStartIndex >= 0 && fullEndIndex >= 0) {
-                onZoom({ startIndex: fullStartIndex, endIndex: fullEndIndex });
-            }
+        // Apply current zoom range if exists
+        if (zoomRange) {
+            opts.scales.x.min = zoomRange.min;
+            opts.scales.x.max = zoomRange.max;
         }
 
-        setZoomState({ ...zoomState, refAreaLeft: '', refAreaRight: '' });
-    };
+        // Add hover callback
+        opts.onHover = (_: ChartEvent, elements: ActiveElement[]) => {
+            if (elements && elements.length > 0) {
+                onHover(elements[0].index);
+            } else {
+                // Don't clear on mouse out to keep last value visible, 
+                // or clear if preferred. Let's keep it stable.
+            }
+        };
 
-    const zoomOut = () => {
-        onZoom(null);
-        setZoomState({});
-    };
+        return opts;
+    }, [zoomRange, onZoom, onHover]);
+
+    // Data prep
+    const chartData = useMemo(() => {
+        const timestamps = data.map(d => new Date(d.timestamp).getTime());
+        
+        return {
+            bandwidth: {
+                labels: timestamps,
+                datasets: [
+                    {
+                        label: 'Inbound',
+                        data: data.map(d => d.inBwMbps),
+                        borderColor: '#22c55e',
+                        backgroundColor: '#22c55e',
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        tension: 0.2,
+                    },
+                    {
+                        label: 'Outbound',
+                        data: data.map(d => d.outBwMbps),
+                        borderColor: '#3b82f6',
+                        backgroundColor: '#3b82f6',
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        tension: 0.2,
+                    }
+                ]
+            },
+            retrans: {
+                labels: timestamps,
+                datasets: [
+                    {
+                        type: 'bar' as const,
+                        label: 'Retrans (Bytes)',
+                        data: data.map(d => d.retrans),
+                        backgroundColor: '#ef4444',
+                        borderColor: '#ef4444',
+                        borderWidth: 1,
+                    }
+                ]
+            },
+            cwnd: {
+                labels: timestamps,
+                datasets: [
+                    {
+                        label: 'CWND (KB)',
+                        data: data.map(d => d.cwndKB),
+                        borderColor: '#3b82f6',
+                        backgroundColor: (context: ScriptableContext<'line'>) => {
+                            const ctx = context.chart.ctx;
+                            const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+                            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
+                            gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+                            return gradient;
+                        },
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        fill: true,
+                    }
+                ]
+            },
+            rtt: {
+                labels: timestamps,
+                datasets: [
+                    {
+                        label: 'RTT (ms)',
+                        data: data.map(d => d.rttMs),
+                        borderColor: '#f59e0b',
+                        backgroundColor: (context: ScriptableContext<'line'>) => {
+                            const ctx = context.chart.ctx;
+                            const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+                            gradient.addColorStop(0, 'rgba(245, 158, 11, 0.5)');
+                            gradient.addColorStop(1, 'rgba(245, 158, 11, 0.0)');
+                            return gradient;
+                        },
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        fill: true,
+                    }
+                ]
+            }
+        };
+    }, [data]);
 
     return (
-        <div className="charts-container" style={{ userSelect: 'none', cursor: 'crosshair' }}>
-            <div style={{ position: 'absolute', right: 20, top: -40, zIndex: 10 }}>
-                <button 
-                    onClick={zoomOut}
-                    disabled={!isZoomed}
-                    style={{ 
-                        opacity: isZoomed ? 1 : 0, 
-                        pointerEvents: isZoomed ? 'auto' : 'none',
-                        padding: '6px 12px',
-                        fontSize: '13px',
-                        background: '#3b82f6',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}
-                >
-                    <span>🔍</span> Reset Zoom
-                </button>
-            </div>
-
-            {/* 1. Bandwidth Chart */}
+        <div className="charts-container">
             <div className="chart-section">
                 <div className="chart-title">Bandwidth (Mbps)</div>
-                <ResponsiveContainer width="100%" height={140}>
-                    <LineChart 
-                        data={data} 
-                        syncId={SYNC_ID} 
-                        onMouseMove={(e) => {
-                            onMouseMove(e);
-                            if (zoomState.refAreaLeft) setZoomState({ ...zoomState, refAreaRight: e.activeLabel });
-                        }}
-                        onMouseDown={(e) => setZoomState({ ...zoomState, refAreaLeft: e.activeLabel })}
-                        onMouseUp={zoom}
-                    >
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                        <XAxis dataKey="uiKey" hide />
-                        <YAxis tick={{ fill: '#9ca3af', fontSize: 9 }} tickFormatter={(v) => `${v.toFixed(1)}`} width={40} />
-                        <Tooltip content={() => null} cursor={{ stroke: '#fff', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                        <Legend verticalAlign="top" height={20} iconType="plainline" />
-                        <Line type="monotone" dataKey="inBwMbps" stroke="#22c55e" strokeWidth={2} dot={false} name="Inbound" isAnimationActive={false} />
-                        <Line type="monotone" dataKey="outBwMbps" stroke="#3b82f6" strokeWidth={2} dot={false} name="Outbound" isAnimationActive={false} />
-                        {zoomState.refAreaLeft && zoomState.refAreaRight ? (
-                            <ReferenceArea yAxisId={0} x1={zoomState.refAreaLeft} x2={zoomState.refAreaRight} strokeOpacity={0.3} fill="#3b82f6" fillOpacity={0.1} />
-                        ) : null}
-                    </LineChart>
-                </ResponsiveContainer>
+                <div style={{ height: 140 }}>
+                    <Line ref={el => chartRefs.current[0] = el} data={chartData.bandwidth} options={options} />
+                </div>
             </div>
-
-            {/* 2. Retransmissions Chart */}
             <div className="chart-section">
                 <div className="chart-title">Retransmissions (Bytes)</div>
-                <ResponsiveContainer width="100%" height={100}>
-                    <BarChart 
-                        data={data} 
-                        syncId={SYNC_ID} 
-                        onMouseMove={(e) => {
-                            onMouseMove(e);
-                            if (zoomState.refAreaLeft) setZoomState({ ...zoomState, refAreaRight: e.activeLabel });
-                        }}
-                        onMouseDown={(e) => setZoomState({ ...zoomState, refAreaLeft: e.activeLabel })}
-                        onMouseUp={zoom}
-                    >
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                        <XAxis dataKey="uiKey" hide />
-                        <YAxis tick={{ fill: '#ef4444', fontSize: 9 }} tickFormatter={(v) => formatBytes(v)} width={40} />
-                        <Tooltip content={() => null} cursor={{ fill: 'rgba(255,255,255,0.1)' }} />
-                        <Bar dataKey="retrans" fill="#ef4444" name="Retrans" isAnimationActive={false} />
-                        {zoomState.refAreaLeft && zoomState.refAreaRight ? (
-                            <ReferenceArea yAxisId={0} x1={zoomState.refAreaLeft} x2={zoomState.refAreaRight} strokeOpacity={0.3} fill="#3b82f6" fillOpacity={0.1} />
-                        ) : null}
-                    </BarChart>
-                </ResponsiveContainer>
+                <div style={{ height: 100 }}>
+                    <Bar ref={el => chartRefs.current[1] = el} data={chartData.retrans} options={options} />
+                </div>
             </div>
-
-            {/* 3. Congestion Window (CWND) */}
             <div className="chart-section">
                 <div className="chart-title">Congestion Window (CWND)</div>
-                <ResponsiveContainer width="100%" height={120}>
-                    <AreaChart 
-                        data={data} 
-                        syncId={SYNC_ID} 
-                        onMouseMove={(e) => {
-                            onMouseMove(e);
-                            if (zoomState.refAreaLeft) setZoomState({ ...zoomState, refAreaRight: e.activeLabel });
-                        }}
-                        onMouseDown={(e) => setZoomState({ ...zoomState, refAreaLeft: e.activeLabel })}
-                        onMouseUp={zoom}
-                    >
-                        <defs>
-                            <linearGradient id="colorCwnd" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                            </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                        <XAxis dataKey="uiKey" hide />
-                        <YAxis tick={{ fill: '#3b82f6', fontSize: 9 }} tickFormatter={(v) => `${v.toFixed(0)}K`} width={40} />
-                        <Tooltip content={() => null} cursor={{ stroke: '#fff', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                        <Area type="monotone" dataKey="cwndKB" stroke="#3b82f6" fill="url(#colorCwnd)" name="CWND" isAnimationActive={false} />
-                        {zoomState.refAreaLeft && zoomState.refAreaRight ? (
-                            <ReferenceArea yAxisId={0} x1={zoomState.refAreaLeft} x2={zoomState.refAreaRight} strokeOpacity={0.3} fill="#3b82f6" fillOpacity={0.1} />
-                        ) : null}
-                    </AreaChart>
-                </ResponsiveContainer>
+                <div style={{ height: 120 }}>
+                    <Line ref={el => chartRefs.current[2] = el} data={chartData.cwnd} options={options} />
+                </div>
             </div>
-
-            {/* 4. Round Trip Time (RTT) */}
             <div className="chart-section">
                 <div className="chart-title">Round Trip Time (ms)</div>
-                <ResponsiveContainer width="100%" height={120}>
-                    <AreaChart 
-                        data={data} 
-                        syncId={SYNC_ID} 
-                        onMouseMove={(e) => {
-                            onMouseMove(e);
-                            if (zoomState.refAreaLeft) setZoomState({ ...zoomState, refAreaRight: e.activeLabel });
-                        }}
-                        onMouseDown={(e) => setZoomState({ ...zoomState, refAreaLeft: e.activeLabel })}
-                        onMouseUp={zoom}
-                    >
-                        <defs>
-                            <linearGradient id="colorRtt" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
-                                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-                            </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                        <XAxis dataKey="uiKey" tick={{ fill: '#9ca3af', fontSize: 9 }} tickFormatter={(val) => {
-                            // Find the data point for this key to format the time
-                            const point = data.find(p => p.uiKey === val);
-                            return point?.time || '';
-                        }} />
-                        <YAxis tick={{ fill: '#f59e0b', fontSize: 9 }} width={40} />
-                        <Tooltip content={() => null} cursor={{ stroke: '#fff', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                        <Area type="monotone" dataKey="rttMs" stroke="#f59e0b" fill="url(#colorRtt)" name="RTT" isAnimationActive={false} />
-                        {zoomState.refAreaLeft && zoomState.refAreaRight ? (
-                            <ReferenceArea yAxisId={0} x1={zoomState.refAreaLeft} x2={zoomState.refAreaRight} strokeOpacity={0.3} fill="#3b82f6" fillOpacity={0.1} />
-                        ) : null}
-                    </AreaChart>
-                </ResponsiveContainer>
+                <div style={{ height: 120 }}>
+                    <Line ref={el => chartRefs.current[3] = el} data={chartData.rtt} options={options} />
+                </div>
             </div>
         </div>
     );
-}, (prev, next) => {
-    // Only re-render if data actually changed
-    return prev.data === next.data;
 });
 
 const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
@@ -275,13 +293,12 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
     onClose,
     connectionKey,
     getHistory,
-    viewingHistorical = false,
 }) => {
-    const [history, setHistory] = useState<ConnectionHistoryPoint[]>([]);
     const [fullHistory, setFullHistory] = useState<ConnectionHistoryPoint[]>([]);
-    const [zoomDomain, setZoomDomain] = useState<{ startIndex?: number; endIndex?: number } | null>(null);
+    const [displayData, setDisplayData] = useState<ConnectionHistoryPoint[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [hoveredData, setHoveredData] = useState<any>(null);
+    const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+    const [zoomRange, setZoomRange] = useState<{ min: number, max: number } | null>(null);
 
     useEffect(() => {
         if (isOpen) {
@@ -293,11 +310,11 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
         setIsLoading(true);
         try {
             const rawData = await getHistory();
+            // Pre-process for Chart.js
             const formatted = rawData.map((point, i) => ({
                 ...point,
-                uiKey: `${point.timestamp}-${i}`, // Unique key for Recharts axis
+                uiKey: `${point.timestamp}-${i}`,
                 time: new Date(point.timestamp).toLocaleTimeString(),
-                index: i,
                 bytesInKB: point.bytesIn / 1024,
                 bytesOutKB: point.bytesOut / 1024,
                 rttMs: point.rtt,
@@ -309,56 +326,35 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
             }));
             
             setFullHistory(formatted);
-            // Decimate data if too large to prevent chart lag (max 1000 points)
-            // Charts struggle with > 2000 SVG nodes.
-            // Force type cast as we know formatted has time property
-            // REDUCED TO 300 for performance
-            const processedData = rawData.length > 300 
-                ? downsampleData(formatted as any, 300) as ConnectionHistoryPoint[]
-                : formatted;
-
-            setHistory(processedData);
+            // Initial view: use full data (Chart.js canvas handles 2-3k points fine)
+            // If > 5000, downsample to 2000 for safety
+            setDisplayData(formatted.length > 5000 ? downsampleData(formatted as any, 2000) as ConnectionHistoryPoint[] : formatted);
         } catch (e) {
             console.error('Failed to load history:', e);
         }
         setIsLoading(false);
     };
 
-    const handleZoom = useCallback((domain: any) => {
-        if (!domain || domain.startIndex === undefined || domain.endIndex === undefined) return;
-        
-        setZoomDomain(domain);
-        
-        // When zoomed, slice the FULL history and re-downsample the slice
-        // This reveals fine-grained details that were lost in the global downsample
-        const slicedData = fullHistory.slice(domain.startIndex, domain.endIndex + 1);
-        const resampledData = downsampleData(slicedData as any, 300) as ConnectionHistoryPoint[];
-        
-        setHistory(resampledData);
-    }, [fullHistory]);
-
-    // Throttled mouse move handler
-    const handleMouseMove = useCallback((e: any) => {
-        if (e && e.activePayload && e.activePayload.length > 0) {
-            // Use requestAnimationFrame for smoother UI updates without blocking the main thread
-            requestAnimationFrame(() => {
-                setHoveredData(e.activePayload[0].payload);
-            });
-        } else {
-            setHoveredData(null);
-        }
+    const handleZoom = useCallback((min: number, max: number) => {
+        setZoomRange({ min, max });
     }, []);
 
-    const formatBytes = useCallback((bytes: number) => {
+    const resetZoom = () => {
+        setZoomRange(null);
+    };
+
+    const formatBytes = (bytes: number) => {
         if (bytes < 1024) return `${bytes.toFixed(0)} B`;
         if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
         return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-    }, []);
+    };
 
     if (!isOpen) return null;
 
-    // Data for inspector header
-    const currentData = hoveredData || (history.length > 0 ? history[history.length - 1] : null);
+    // Current data point for inspector
+    const currentData = hoverIndex !== null && displayData[hoverIndex] 
+        ? displayData[hoverIndex] 
+        : (displayData.length > 0 ? displayData[displayData.length - 1] : null);
 
     return (
         <div className="modal-overlay" onClick={onClose}>
@@ -397,50 +393,43 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                             <span className="label">BW Out</span>
                             <span className="value">{currentData.outBwMbps?.toFixed(2)} Mbps</span>
                         </div>
+                        <div style={{ marginLeft: 'auto' }}>
+                            <button 
+                                onClick={resetZoom}
+                                disabled={!zoomRange}
+                                style={{ 
+                                    opacity: zoomRange ? 1 : 0.5, 
+                                    pointerEvents: zoomRange ? 'auto' : 'none',
+                                    padding: '4px 12px',
+                                    fontSize: '12px',
+                                    background: '#3b82f6',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                🔍 Reset Zoom
+                            </button>
+                        </div>
                     </div>
                 )}
 
                 <div className="modal-body">
                     {isLoading ? (
                         <div className="loading-state">Loading history...</div>
-                    ) : history.length === 0 ? (
+                    ) : displayData.length === 0 ? (
                         <div className="empty-state">
                             <p>No history recorded for this connection.</p>
                             <p className="hint">Start recording to capture data.</p>
                         </div>
                     ) : (
                         <HistoryCharts 
-                            data={history} 
-                            fullHistory={fullHistory}
-                            onMouseMove={handleMouseMove} 
-                            formatBytes={formatBytes} 
+                            data={displayData} 
+                            onHover={setHoverIndex}
                             onZoom={handleZoom}
-                            isZoomed={!!zoomDomain}
+                            zoomRange={zoomRange}
                         />
-                    )}
-                </div>
-
-                <div className="chart-stats">
-                    <div className="stat">
-                        <span className="label">Data Points</span>
-                        <span className="value">{history.length}</span>
-                    </div>
-                    {history.length > 0 && (
-                        <>
-                            <div className="stat">
-                                <span className="label">Duration</span>
-                                <span className="value">
-                                    {Math.round((new Date(history[history.length - 1].timestamp).getTime() -
-                                        new Date(history[0].timestamp).getTime()) / 1000)}s
-                                </span>
-                            </div>
-                            <div className="stat">
-                                <span className="label">Avg RTT</span>
-                                <span className="value">
-                                    {(history.reduce((sum, p) => sum + (p as any).rttMs, 0) / history.length).toFixed(2)}ms
-                                </span>
-                            </div>
-                        </>
                     )}
                 </div>
             </div>
