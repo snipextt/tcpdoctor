@@ -8,8 +8,30 @@ import {
   formatEndpoint
 } from '../utils/formatters';
 import {
-  LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
-} from 'recharts';
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+  ChartOptions
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 interface TimeSeriesData {
   time: number;
@@ -52,9 +74,6 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
         return new Set(JSON.parse(saved));
       } catch (e) {}
     }
-    // Default: all visible except the very advanced ones if we wanted, 
-    // but typically users want to see everything by default or what they last set.
-    // Let's default to all true for now to match previous behavior.
     return new Set(ALL_SECTIONS.map(s => s.id));
   });
 
@@ -87,8 +106,6 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
     : '';
 
   useEffect(() => {
-    // When connection changes, use initialHistory if provided (session mode)
-    // Otherwise reset history (live mode will build it up)
     if (initialHistory && initialHistory.length > 0) {
       setHistory(initialHistory);
     } else {
@@ -97,25 +114,94 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
   }, [connectionKey, initialHistory]);
 
   useEffect(() => {
-    // Only accumulate history in live mode (when no initialHistory)
     if (initialHistory && initialHistory.length > 0) return;
     if (!connection || !connection.ExtendedStats) return;
 
     const now = Date.now();
     const newPoint: TimeSeriesData = {
       time: now,
-      rtt: connection.ExtendedStats.SmoothedRTT, // Already in ms from Windows API
+      rtt: connection.ExtendedStats.SmoothedRTT,
       bwIn: connection.ExtendedStats.InboundBandwidth,
       bwOut: connection.ExtendedStats.OutboundBandwidth,
     };
 
     setHistory(prev => {
       const newHistory = [...prev, newPoint];
-      // Keep last 60 points (seconds)
       if (newHistory.length > 60) return newHistory.slice(newHistory.length - 60);
       return newHistory;
     });
-  }, [connection, initialHistory]); // Updates whenever connection data updates (polling)
+  }, [connection, initialHistory]);
+
+  // Chart Data Preparation
+  const chartData = useMemo(() => {
+    const labels = history.map(d => ''); // Empty labels for cleaner look or timestamp if needed
+    return {
+      rtt: {
+        labels,
+        datasets: [
+          {
+            label: 'RTT (ms)',
+            data: history.map(d => d.rtt),
+            borderColor: '#8884d8',
+            backgroundColor: 'rgba(136, 132, 216, 0.1)',
+            tension: 0.4,
+            pointRadius: 0,
+            borderWidth: 2,
+            fill: true,
+          }
+        ]
+      },
+      bandwidth: {
+        labels,
+        datasets: [
+          {
+            label: 'Inbound',
+            data: history.map(d => d.bwIn),
+            borderColor: '#82ca9d',
+            backgroundColor: 'rgba(130, 202, 157, 0.2)',
+            tension: 0.4,
+            pointRadius: 0,
+            borderWidth: 1.5,
+            fill: true,
+          },
+          {
+            label: 'Outbound',
+            data: history.map(d => d.bwOut),
+            borderColor: '#ffc658',
+            backgroundColor: 'rgba(255, 198, 88, 0.2)',
+            tension: 0.4,
+            pointRadius: 0,
+            borderWidth: 1.5,
+            fill: true,
+          }
+        ]
+      }
+    };
+  }, [history]);
+
+  const chartOptions: ChartOptions<'line'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        mode: 'index',
+        intersect: false,
+      }
+    },
+    scales: {
+      x: { display: false },
+      y: {
+        display: true,
+        grid: { color: 'rgba(255,255,255,0.05)' },
+        ticks: { 
+          color: '#6c757d',
+          font: { size: 9 }
+        }
+      }
+    }
+  };
 
   if (!connection) {
     return (
@@ -261,38 +347,17 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
               {/* RTT Chart - Own Row */}
               <div className="chart-container" style={{ background: 'var(--color-bg-secondary)', borderRadius: '6px', padding: '10px', marginBottom: '1rem', height: '150px' }}>
                 <div className="chart-title" style={{ fontSize: '0.8rem', color: 'var(--color-text-dim)', marginBottom: '5px' }}>RTT History (ms)</div>
-                <ResponsiveContainer width="100%" height="85%">
-                  <LineChart data={history}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-                    <XAxis dataKey="time" hide />
-                    <YAxis domain={['auto', 'auto']} style={{ fontSize: '10px' }} stroke="var(--color-text-dim)" />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: 'var(--color-bg)', borderColor: 'var(--color-border)' }}
-                      itemStyle={{ color: 'var(--color-text)' }}
-                      formatter={(val: number) => [val.toFixed(2) + ' ms', 'RTT']}
-                    />
-                    <Line type="monotone" dataKey="rtt" stroke="#8884d8" strokeWidth={2} dot={false} isAnimationActive={false} />
-                  </LineChart>
-                </ResponsiveContainer>
+                <div style={{ width: '100%', height: '85%' }}>
+                  <Line data={chartData.rtt} options={chartOptions} />
+                </div>
               </div>
 
               {/* Bandwidth Chart - Own Row */}
               <div className="chart-container" style={{ background: 'var(--color-bg-secondary)', borderRadius: '6px', padding: '10px', height: '150px' }}>
                 <div className="chart-title" style={{ fontSize: '0.8rem', color: 'var(--color-text-dim)', marginBottom: '5px' }}>Bandwidth (bps)</div>
-                <ResponsiveContainer width="100%" height="85%">
-                  <AreaChart data={history}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-                    <XAxis dataKey="time" hide />
-                    <YAxis style={{ fontSize: '10px' }} stroke="var(--color-text-dim)" tickFormatter={(val) => val != null ? formatBandwidth(val).formatted : 'N/A'} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: 'var(--color-bg)', borderColor: 'var(--color-border)' }}
-                      itemStyle={{ color: 'var(--color-text)' }}
-                      formatter={(val) => [typeof val === 'number' ? formatBandwidth(val).formatted : 'N/A', '']}
-                    />
-                    <Area type="monotone" dataKey="bwIn" stackId="1" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.3} name="In" isAnimationActive={false} />
-                    <Area type="monotone" dataKey="bwOut" stackId="1" stroke="#ffc658" fill="#ffc658" fillOpacity={0.3} name="Out" isAnimationActive={false} />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <div style={{ width: '100%', height: '85%' }}>
+                  <Line data={chartData.bandwidth} options={chartOptions} />
+                </div>
               </div>
             </div>
             )}
