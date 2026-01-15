@@ -1,55 +1,63 @@
-/* Connection History Modal */
-
+/* Connection History Modal - Modern Dark Theme */
 .history-modal {
-    background: var(--color-bg);
-    border-radius: 8px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    background: #1e1e1e; /* Dark background */
+    border-radius: 12px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
     width: 100%;
     max-width: 700px;
-    max-height: 85vh;
+    max-height: 90vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    color: #e0e0e0;
+    border: 1px solid #333;
 }
 
-/* Unified charts modal - wide single column layout */
 .history-modal.unified-charts {
-    max-width: 98vw;
+    max-width: 95vw;
     width: 1400px;
-    max-height: 92vh;
 }
 
 .history-modal .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--color-border);
+    padding: 1rem 1.5rem;
+    background: #252526;
+    border-bottom: 1px solid #333;
 }
 
 .history-modal .modal-header h2 {
     margin: 0;
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: 600;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .connection-label {
-    padding: 0.5rem 1rem;
-    font-family: monospace;
+    padding: 0.5rem 1.5rem;
+    font-family: 'JetBrains Mono', monospace;
     font-size: 0.85rem;
-    color: var(--color-text-dim);
-    background: var(--color-bg-secondary);
-    border-bottom: 1px solid var(--color-border);
+    color: #9ca3af;
+    background: #1e1e1e;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Inspector Header */
+/* Inspector Header / Dashboard Strip */
 .inspector-header {
     display: flex;
-    gap: 1.5rem;
-    padding: 0.75rem 1rem;
-    background-color: var(--color-bg-tertiary);
-    border-bottom: 1px solid var(--color-border);
+    gap: 2rem;
+    padding: 0.75rem 1.5rem;
+    background-color: #252526;
+    border-bottom: 1px solid #333;
     overflow-x: auto;
+    align-items: center;
 }
 
 .inspector-item {
@@ -60,24 +68,102 @@
 
 .inspector-item .label {
     font-size: 0.7rem;
-    color: var(--color-text-dim);
+    color: #6c757d;
     text-transform: uppercase;
     font-weight: 600;
     margin-bottom: 0.25rem;
+    letter-spacing: 0.5px;
 }
 
 .inspector-item .value {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 500;
     font-variant-numeric: tabular-nums;
-    color: var(--color-primary);
+    color: #fff;
 }
 
+/* Value colors for dashboard */
+.inspector-item .value.rtt { color: #f59e0b; }
+.inspector-item .value.cwnd { color: #3b82f6; }
+.inspector-item .value.retrans { color: #ef4444; }
+.inspector-item .value.bw-in { color: #22c55e; }
+.inspector-item .value.bw-out { color: #3b82f6; }
+
+/* Control Toolbar */
+.control-toolbar {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+    align-items: center;
+    background: #333;
+    padding: 0.25rem;
+    border-radius: 6px;
+}
+
+.tool-btn {
+    background: transparent;
+    border: none;
+    color: #e0e0e0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 1rem;
+}
+
+.tool-btn:hover {
+    background: #444;
+    color: #fff;
+}
+
+.tool-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.tool-btn.active {
+    background: #3b82f6;
+    color: white;
+}
+
+.tool-separator {
+    width: 1px;
+    height: 16px;
+    background: #444;
+    margin: 0 0.25rem;
+}
+
+/* Modal Body & Charts */
 .history-modal .modal-body {
     flex: 1;
-    padding: 0.5rem;
+    padding: 1rem 1.5rem;
     overflow-y: auto;
     overflow-x: hidden;
+    background: #1e1e1e;
+}
+
+.charts-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.chart-section {
+    position: relative; /* For cursor line positioning */
+}
+
+.chart-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6c757d;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    padding-left: 0.5rem;
+    border-left: 2px solid #333;
 }
 
 /* Loading & Empty States */
@@ -87,86 +173,28 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 200px;
-    color: var(--color-text-dim);
+    height: 300px;
+    color: #6c757d;
 }
 
-.empty-state .hint {
-    font-size: 0.8rem;
-    opacity: 0.7;
-    margin-top: 0.25rem;
-}
-
-/* Charts Container - Single Column */
-.charts-container {
+/* Close Button */
+.close-btn {
+    background: transparent;
+    border: none;
+    color: #6c757d;
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    width: 24px;
+    height: 24px;
     display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
 }
 
-.chart-section {
-    background: var(--color-bg-secondary);
-    border-radius: 6px;
-    padding: 0.5rem;
-    border: 1px solid var(--color-border);
-}
-
-.chart-title {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--color-text-dim);
-    text-transform: uppercase;
-    margin-bottom: 0.25rem;
-    padding-left: 0.25rem;
-}
-
-/* Chart Stats Footer */
-.chart-stats {
-    display: flex;
-    gap: 1.5rem;
-    padding: 0.75rem 1rem;
-    border-top: 1px solid var(--color-border);
-    background: var(--color-bg-secondary);
-}
-
-.chart-stats .stat {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-}
-
-.chart-stats .label {
-    font-size: 0.7rem;
-    color: var(--color-text-dim);
-    text-transform: uppercase;
-}
-
-.chart-stats .value {
-    font-size: 0.9rem;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-}
-
-/* Recharts Custom Styles */
-.recharts-legend-item-text {
-    color: var(--color-text) !important;
-    font-size: 0.75rem !important;
-}
-
-.recharts-cartesian-axis-tick-value {
-    fill: var(--color-text-dim) !important;
-}
-
-/* Brush Component Styling */
-.recharts-brush-slide {
-    fill: rgba(59, 130, 246, 0.2);
-}
-
-.recharts-brush-traveller rect {
-    fill: var(--color-primary);
-}
-
-.recharts-brush text {
-    fill: var(--color-text-dim);
-    font-size: 9px;
+.close-btn:hover {
+    background: #333;
+    color: #fff;
 }
