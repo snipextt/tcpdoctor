@@ -72,7 +72,7 @@ interface ConnectionHistoryProps {
     viewingHistorical?: boolean;
 }
 
-// Chart configuration constants
+// Chart configuration constants - Dark Theme
 const COMMON_OPTIONS: ChartOptions<any> = {
     responsive: true,
     maintainAspectRatio: false,
@@ -86,8 +86,9 @@ const COMMON_OPTIONS: ChartOptions<any> = {
             position: 'top' as const,
             align: 'end' as const,
             labels: {
-                boxWidth: 10,
-                font: { size: 10 },
+                boxWidth: 8,
+                usePointStyle: true,
+                font: { size: 11, family: 'JetBrains Mono' },
                 color: '#9ca3af'
             }
         },
@@ -95,11 +96,11 @@ const COMMON_OPTIONS: ChartOptions<any> = {
             enabled: false, // We use custom external inspector
         },
         zoom: {
-            pan: { enabled: false }, // Disable pan to avoid confusion
+            pan: { enabled: false }, // We implement custom pan buttons
             zoom: {
                 drag: {
                     enabled: true,
-                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
                     borderColor: 'rgba(59, 130, 246, 0.5)',
                     borderWidth: 1,
                 },
@@ -116,34 +117,63 @@ const COMMON_OPTIONS: ChartOptions<any> = {
                 tooltipFormat: 'HH:mm:ss.SSS'
             },
             grid: {
-                color: 'rgba(255, 255, 255, 0.1)',
+                color: 'rgba(255, 255, 255, 0.05)',
+                drawBorder: false,
             },
             ticks: {
-                color: '#9ca3af',
-                font: { size: 10 },
+                color: '#6c757d',
+                font: { size: 10, family: 'JetBrains Mono' },
                 maxRotation: 0,
                 autoSkip: true,
+                maxTicksLimit: 8,
             }
         },
         y: {
             grid: {
-                color: 'rgba(255, 255, 255, 0.1)',
+                color: 'rgba(255, 255, 255, 0.05)',
+                drawBorder: false,
             },
             ticks: {
-                color: '#9ca3af',
-                font: { size: 10 },
-            }
+                color: '#6c757d',
+                font: { size: 10, family: 'JetBrains Mono' },
+            },
+            beginAtZero: true,
         }
     }
 };
 
-const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange }: {
+const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex, visibleCharts }: {
     data: ConnectionHistoryPoint[];
-    onHover: (index: number) => void;
+    onHover: (index: number | null) => void;
     onZoom: (min: number, max: number) => void;
     zoomRange: { min: number, max: number } | null;
+    hoverIndex: number | null;
+    visibleCharts: Set<string>;
 }) => {
     const chartRefs = useRef<(ChartJS | null)[]>([]);
+
+    // Custom Crosshair Plugin - Draws vertical line on all charts
+    const crosshairPlugin = useMemo(() => ({
+        id: 'crosshair',
+        afterDraw: (chart: ChartJS) => {
+            if (hoverIndex === null || !chart.scales.x) return;
+            
+            const ctx = chart.ctx;
+            const x = chart.scales.x.getPixelForValue(new Date(data[hoverIndex].timestamp).getTime());
+            const top = chart.chartArea.top;
+            const bottom = chart.chartArea.bottom;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(x, top);
+            ctx.lineTo(x, bottom);
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.setLineDash([4, 4]);
+            ctx.stroke();
+            ctx.restore();
+        }
+    }), [hoverIndex, data]);
 
     // Shared options with dynamic zoom limits
     const options = useMemo(() => {
@@ -161,16 +191,15 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange }: {
             opts.scales.x.max = zoomRange.max;
         }
 
-        // Add hover callback
+        // Hover callback
         opts.onHover = (_: ChartEvent, elements: ActiveElement[]) => {
             if (elements && elements.length > 0) {
                 onHover(elements[0].index);
-            } else {
-                // Don't clear on mouse out to keep last value visible, 
-                // or clear if preferred. Let's keep it stable.
             }
         };
-
+        
+        // Add crosshair plugin locally to options if Chart.js supported it directly in options,
+        // but plugins need to be registered or passed in the plugins prop of component.
         return opts;
     }, [zoomRange, onZoom, onHover]);
 
@@ -183,7 +212,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange }: {
                 labels: timestamps,
                 datasets: [
                     {
-                        label: 'Inbound',
+                        label: 'In',
                         data: data.map(d => d.inBwMbps),
                         borderColor: '#22c55e',
                         backgroundColor: '#22c55e',
@@ -192,7 +221,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange }: {
                         tension: 0.2,
                     },
                     {
-                        label: 'Outbound',
+                        label: 'Out',
                         data: data.map(d => d.outBwMbps),
                         borderColor: '#3b82f6',
                         backgroundColor: '#3b82f6',
@@ -207,11 +236,13 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange }: {
                 datasets: [
                     {
                         type: 'bar' as const,
-                        label: 'Retrans (Bytes)',
+                        label: 'Retrans',
                         data: data.map(d => d.retrans),
-                        backgroundColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.8)',
                         borderColor: '#ef4444',
-                        borderWidth: 1,
+                        borderWidth: 0,
+                        barPercentage: 1.0,
+                        categoryPercentage: 1.0,
                     }
                 ]
             },
@@ -219,13 +250,13 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange }: {
                 labels: timestamps,
                 datasets: [
                     {
-                        label: 'CWND (KB)',
+                        label: 'CWND',
                         data: data.map(d => d.cwndKB),
                         borderColor: '#3b82f6',
                         backgroundColor: (context: ScriptableContext<'line'>) => {
                             const ctx = context.chart.ctx;
                             const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-                            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
+                            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
                             gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
                             return gradient;
                         },
@@ -239,13 +270,13 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange }: {
                 labels: timestamps,
                 datasets: [
                     {
-                        label: 'RTT (ms)',
+                        label: 'RTT',
                         data: data.map(d => d.rttMs),
                         borderColor: '#f59e0b',
                         backgroundColor: (context: ScriptableContext<'line'>) => {
                             const ctx = context.chart.ctx;
                             const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-                            gradient.addColorStop(0, 'rgba(245, 158, 11, 0.5)');
+                            gradient.addColorStop(0, 'rgba(245, 158, 11, 0.2)');
                             gradient.addColorStop(1, 'rgba(245, 158, 11, 0.0)');
                             return gradient;
                         },
@@ -258,32 +289,45 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange }: {
         };
     }, [data]);
 
+    const plugins = [crosshairPlugin];
+
     return (
-        <div className="charts-container">
+        <div className="charts-container" onMouseLeave={() => onHover(null)}>
+            {visibleCharts.has('bandwidth') && (
             <div className="chart-section">
                 <div className="chart-title">Bandwidth (Mbps)</div>
                 <div style={{ height: 140 }}>
-                    <Line ref={(el: any) => chartRefs.current[0] = el} data={chartData.bandwidth} options={options} />
+                    <Line ref={(el: any) => chartRefs.current[0] = el} data={chartData.bandwidth} options={options} plugins={plugins} />
                 </div>
             </div>
+            )}
+            
+            {visibleCharts.has('retrans') && (
             <div className="chart-section">
                 <div className="chart-title">Retransmissions (Bytes)</div>
                 <div style={{ height: 100 }}>
-                    <Bar ref={(el: any) => chartRefs.current[1] = el} data={chartData.retrans} options={options} />
+                    <Bar ref={(el: any) => chartRefs.current[1] = el} data={chartData.retrans} options={options} plugins={plugins} />
                 </div>
             </div>
+            )}
+
+            {visibleCharts.has('cwnd') && (
             <div className="chart-section">
                 <div className="chart-title">Congestion Window (CWND)</div>
                 <div style={{ height: 120 }}>
-                    <Line ref={(el: any) => chartRefs.current[2] = el} data={chartData.cwnd} options={options} />
+                    <Line ref={(el: any) => chartRefs.current[2] = el} data={chartData.cwnd} options={options} plugins={plugins} />
                 </div>
             </div>
+            )}
+
+            {visibleCharts.has('rtt') && (
             <div className="chart-section">
                 <div className="chart-title">Round Trip Time (ms)</div>
                 <div style={{ height: 120 }}>
-                    <Line ref={(el: any) => chartRefs.current[3] = el} data={chartData.rtt} options={options} />
+                    <Line ref={(el: any) => chartRefs.current[3] = el} data={chartData.rtt} options={options} plugins={plugins} />
                 </div>
             </div>
+            )}
         </div>
     );
 });
@@ -299,12 +343,44 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
     const [isLoading, setIsLoading] = useState(false);
     const [hoverIndex, setHoverIndex] = useState<number | null>(null);
     const [zoomRange, setZoomRange] = useState<{ min: number, max: number } | null>(null);
+    const [visibleCharts, setVisibleCharts] = useState<Set<string>>(new Set(['bandwidth', 'retrans', 'cwnd', 'rtt']));
 
     useEffect(() => {
         if (isOpen) {
             loadHistory();
         }
     }, [isOpen]);
+
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (!isOpen || !zoomRange) return;
+
+            const span = zoomRange.max - zoomRange.min;
+            const shift = span * 0.2; // 20% shift
+
+            if (e.key === 'ArrowLeft') {
+                handleZoom(zoomRange.min - shift, zoomRange.max - shift);
+            } else if (e.key === 'ArrowRight') {
+                handleZoom(zoomRange.min + shift, zoomRange.max + shift);
+            } else if (e.key === '+' || e.key === '=') {
+                // Zoom in 20%
+                const newSpan = span * 0.8;
+                const mid = zoomRange.min + newSpan / 2;
+                handleZoom(mid - newSpan / 2, mid + newSpan / 2);
+            } else if (e.key === '-' || e.key === '_') {
+                // Zoom out 20%
+                const newSpan = span * 1.2;
+                const mid = zoomRange.min + newSpan / 2;
+                handleZoom(mid - newSpan / 2, mid + newSpan / 2);
+            } else if (e.key === 'r') {
+                resetZoom();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, zoomRange]);
 
     const loadHistory = async () => {
         setIsLoading(true);
@@ -315,6 +391,7 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                 ...point,
                 uiKey: `${point.timestamp}-${i}`,
                 time: new Date(point.timestamp).toLocaleTimeString(),
+                index: i,
                 bytesInKB: point.bytesIn / 1024,
                 bytesOutKB: point.bytesOut / 1024,
                 rttMs: point.rtt,
@@ -326,8 +403,6 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
             }));
             
             setFullHistory(formatted);
-            // Initial view: use full data (Chart.js canvas handles 2-3k points fine)
-            // If > 5000, downsample to 2000 for safety
             setDisplayData(formatted.length > 5000 ? downsampleData(formatted as any, 2000) as ConnectionHistoryPoint[] : formatted);
         } catch (e) {
             console.error('Failed to load history:', e);
@@ -341,6 +416,36 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
 
     const resetZoom = () => {
         setZoomRange(null);
+    };
+
+    const toggleChart = (chartId: string) => {
+        const newSet = new Set(visibleCharts);
+        if (newSet.has(chartId)) {
+            newSet.delete(chartId);
+        } else {
+            newSet.add(chartId);
+        }
+        setVisibleCharts(newSet);
+    };
+
+    // Zoom buttons logic
+    const zoomStep = (factor: number) => {
+        if (!zoomRange && displayData.length > 0) {
+            // Init zoom range if not set
+            const start = new Date(displayData[0].timestamp).getTime();
+            const end = new Date(displayData[displayData.length - 1].timestamp).getTime();
+            const span = end - start;
+            const mid = start + span / 2;
+            const newSpan = span * factor;
+            handleZoom(mid - newSpan / 2, mid + newSpan / 2);
+            return;
+        }
+        if (zoomRange) {
+            const span = zoomRange.max - zoomRange.min;
+            const mid = zoomRange.min + span / 2;
+            const newSpan = span * factor;
+            handleZoom(mid - newSpan / 2, mid + newSpan / 2);
+        }
     };
 
     const formatBytes = (bytes: number) => {
@@ -361,6 +466,17 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
             <div className="history-modal unified-charts" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                     <h2>📈 Connection History</h2>
+                    <div className="control-toolbar">
+                        <button className="tool-btn" onClick={() => zoomStep(0.8)} title="Zoom In (+)">+</button>
+                        <button className="tool-btn" onClick={() => zoomStep(1.2)} title="Zoom Out (-)">-</button>
+                        <div className="tool-separator"></div>
+                        <button className="tool-btn" onClick={resetZoom} disabled={!zoomRange} title="Reset Zoom (R)">⟲</button>
+                        <div className="tool-separator"></div>
+                        <button className={`tool-btn ${visibleCharts.has('bandwidth') ? 'active' : ''}`} onClick={() => toggleChart('bandwidth')} title="Toggle Bandwidth">B</button>
+                        <button className={`tool-btn ${visibleCharts.has('retrans') ? 'active' : ''}`} onClick={() => toggleChart('retrans')} title="Toggle Retrans">R</button>
+                        <button className={`tool-btn ${visibleCharts.has('cwnd') ? 'active' : ''}`} onClick={() => toggleChart('cwnd')} title="Toggle CWND">C</button>
+                        <button className={`tool-btn ${visibleCharts.has('rtt') ? 'active' : ''}`} onClick={() => toggleChart('rtt')} title="Toggle RTT">T</button>
+                    </div>
                     <button className="close-btn" onClick={onClose}>×</button>
                 </div>
 
@@ -375,42 +491,23 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                         </div>
                         <div className="inspector-item">
                             <span className="label">RTT</span>
-                            <span className="value">{currentData.rttMs?.toFixed(0)} ms</span>
+                            <span className="value rtt">{currentData.rttMs?.toFixed(0)} ms</span>
                         </div>
                         <div className="inspector-item">
                             <span className="label">CWND</span>
-                            <span className="value">{currentData.cwndKB?.toFixed(1)} KB</span>
+                            <span className="value cwnd">{currentData.cwndKB?.toFixed(1)} KB</span>
                         </div>
                         <div className="inspector-item">
                             <span className="label">Retrans</span>
-                            <span className="value">{formatBytes(currentData.retrans || 0)}</span>
+                            <span className="value retrans">{formatBytes(currentData.retrans || 0)}</span>
                         </div>
                         <div className="inspector-item">
                             <span className="label">BW In</span>
-                            <span className="value">{currentData.inBwMbps?.toFixed(2)} Mbps</span>
+                            <span className="value bw-in">{currentData.inBwMbps?.toFixed(2)} Mbps</span>
                         </div>
                         <div className="inspector-item">
                             <span className="label">BW Out</span>
-                            <span className="value">{currentData.outBwMbps?.toFixed(2)} Mbps</span>
-                        </div>
-                        <div style={{ marginLeft: 'auto' }}>
-                            <button 
-                                onClick={resetZoom}
-                                disabled={!zoomRange}
-                                style={{ 
-                                    opacity: zoomRange ? 1 : 0.5, 
-                                    pointerEvents: zoomRange ? 'auto' : 'none',
-                                    padding: '4px 12px',
-                                    fontSize: '12px',
-                                    background: '#3b82f6',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                🔍 Reset Zoom
-                            </button>
+                            <span className="value bw-out">{currentData.outBwMbps?.toFixed(2)} Mbps</span>
                         </div>
                     </div>
                 )}
@@ -429,6 +526,8 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                             onHover={setHoverIndex}
                             onZoom={handleZoom}
                             zoomRange={zoomRange}
+                            hoverIndex={hoverIndex}
+                            visibleCharts={visibleCharts}
                         />
                     )}
                 </div>
