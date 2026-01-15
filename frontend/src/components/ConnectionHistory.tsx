@@ -297,7 +297,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
             <div className="chart-section">
                 <div className="chart-title">Bandwidth (Mbps)</div>
                 <div style={{ height: 140 }}>
-                    <Line ref={(el: any) => chartRefs.current[0] = el} data={chartData.bandwidth} options={options} plugins={plugins} />
+                    <Line ref={(el: any) => chartRefs.current[0] = el} data={chartData.bandwidth} options={options} plugins={plugins as any} />
                 </div>
             </div>
             )}
@@ -306,7 +306,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
             <div className="chart-section">
                 <div className="chart-title">Retransmissions (Bytes)</div>
                 <div style={{ height: 100 }}>
-                    <Bar ref={(el: any) => chartRefs.current[1] = el} data={chartData.retrans} options={options} plugins={plugins} />
+                    <Bar ref={(el: any) => chartRefs.current[1] = el} data={chartData.retrans} options={options} plugins={plugins as any} />
                 </div>
             </div>
             )}
@@ -315,7 +315,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
             <div className="chart-section">
                 <div className="chart-title">Congestion Window (CWND)</div>
                 <div style={{ height: 120 }}>
-                    <Line ref={(el: any) => chartRefs.current[2] = el} data={chartData.cwnd} options={options} plugins={plugins} />
+                    <Line ref={(el: any) => chartRefs.current[2] = el} data={chartData.cwnd} options={options} plugins={plugins as any} />
                 </div>
             </div>
             )}
@@ -324,7 +324,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
             <div className="chart-section">
                 <div className="chart-title">Round Trip Time (ms)</div>
                 <div style={{ height: 120 }}>
-                    <Line ref={(el: any) => chartRefs.current[3] = el} data={chartData.rtt} options={options} plugins={plugins} />
+                    <Line ref={(el: any) => chartRefs.current[3] = el} data={chartData.rtt} options={options} plugins={plugins as any} />
                 </div>
             </div>
             )}
