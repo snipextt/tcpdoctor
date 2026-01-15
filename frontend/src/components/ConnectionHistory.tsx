@@ -312,8 +312,9 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
             // Decimate data if too large to prevent chart lag (max 1000 points)
             // Charts struggle with > 2000 SVG nodes.
             // Force type cast as we know formatted has time property
-            const processedData = rawData.length > 1000 
-                ? downsampleData(formatted as any, 1000) as ConnectionHistoryPoint[]
+            // REDUCED TO 300 for performance
+            const processedData = rawData.length > 300 
+                ? downsampleData(formatted as any, 300) as ConnectionHistoryPoint[]
                 : formatted;
 
             setHistory(processedData);
@@ -331,15 +332,18 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
         // When zoomed, slice the FULL history and re-downsample the slice
         // This reveals fine-grained details that were lost in the global downsample
         const slicedData = fullHistory.slice(domain.startIndex, domain.endIndex + 1);
-        const resampledData = downsampleData(slicedData as any, 1000) as ConnectionHistoryPoint[];
+        const resampledData = downsampleData(slicedData as any, 300) as ConnectionHistoryPoint[];
         
         setHistory(resampledData);
     }, [fullHistory]);
 
-    // Stable callback for hover to prevent re-creation
+    // Throttled mouse move handler
     const handleMouseMove = useCallback((e: any) => {
         if (e && e.activePayload && e.activePayload.length > 0) {
-            setHoveredData(e.activePayload[0].payload);
+            // Use requestAnimationFrame for smoother UI updates without blocking the main thread
+            requestAnimationFrame(() => {
+                setHoveredData(e.activePayload[0].payload);
+            });
         } else {
             setHoveredData(null);
         }
