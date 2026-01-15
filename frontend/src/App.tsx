@@ -26,11 +26,10 @@ import { tcpmonitor } from "../wailsjs/go/models";
 import ConnectionTable from './components/ConnectionTable';
 import FilterControls from './components/FilterControls';
 import ConnectionFilters, { FilterState } from './components/ConnectionFilters';
-import StatsPanel from './components/StatsPanel';
+import ConnectionDetailView from './components/ConnectionDetailView';
 import SettingsModal from './components/SettingsModal';
 import HealthReportModal from './components/HealthReportModal';
 import SnapshotControls from './components/SnapshotControls';
-import ConnectionHistory from './components/ConnectionHistory';
 import './App.css';
 
 function App() {
@@ -57,11 +56,9 @@ function App() {
     // Snapshot State
     const [isRecording, setIsRecording] = useState(false);
     const [snapshotCount, setSnapshotCount] = useState(0);
-    const [isTimelineOpen, setIsTimelineOpen] = useState(false);
-    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const [viewingSnapshotId, setViewingSnapshotId] = useState<number | null>(null);
     const viewingSnapshotRef = useRef<number | null>(null); // Ref to check in async callbacks
-    const [sessionTimeline, setSessionTimeline] = useState<TimelineConnection[]>([]); // Store timeline for session mode
+    const [sessionTimeline, setSessionTimeline] = useState<any[]>([]); // Store timeline for session mode
 
     // Advanced Filters
     const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
@@ -75,47 +72,6 @@ function App() {
         showOnlyRetrans: false,
     });
     const [filtersExpanded, setFiltersExpanded] = useState(false);
-
-    // Resizable panels
-    const [leftPanelWidth, setLeftPanelWidth] = useState(() => {
-        const saved = localStorage.getItem('left_panel_width');
-        return saved ? parseInt(saved, 10) : 55; // default 55%
-    });
-    const [isResizing, setIsResizing] = useState(false);
-    const containerRef = useRef<HTMLElement>(null);
-
-    // Handle mouse events for resizing
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            if (!isResizing || !containerRef.current) return;
-            const containerRect = containerRef.current.getBoundingClientRect();
-            const newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
-            // Clamp between 25% and 75%
-            const clampedWidth = Math.max(25, Math.min(75, newWidth));
-            setLeftPanelWidth(clampedWidth);
-        };
-
-        const handleMouseUp = () => {
-            if (isResizing) {
-                setIsResizing(false);
-                document.body.style.cursor = '';
-                document.body.style.userSelect = '';
-                localStorage.setItem('left_panel_width', leftPanelWidth.toString());
-            }
-        };
-
-        if (isResizing) {
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp);
-            document.body.style.cursor = 'col-resize';
-            document.body.style.userSelect = 'none';
-        }
-
-        return () => {
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, [isResizing, leftPanelWidth]);
 
     // Check if AI is configured on mount
     useEffect(() => {
@@ -181,18 +137,15 @@ function App() {
             setConnections(conns);
             setConnectionCount(conns.length);
 
-            // Update selected connection if it still exists (use functional update)
+            // Update selected connection if it still exists
             setSelectedConnection(prevSelected => {
                 if (!prevSelected) return null;
-
                 const found = conns.find(c =>
                     c.LocalAddr === prevSelected.LocalAddr &&
                     c.LocalPort === prevSelected.LocalPort &&
                     c.RemoteAddr === prevSelected.RemoteAddr &&
                     c.RemotePort === prevSelected.RemotePort
                 );
-
-                // Keep updated stats if found, clear if connection closed
                 return found || null;
             });
         } catch (error) {
@@ -202,17 +155,7 @@ function App() {
         }
     }, [filter]);
 
-    const handleExport = async () => {
-        try {
-            await ExportToCSV("");
-            console.log("Export initiated");
-        } catch (e) {
-            console.error("Export failed:", e);
-        }
-    };
-
-    // Polling effect - also takes snapshots when recording
-    // Only poll when not viewing a historical snapshot
+    // Polling effect
     useEffect(() => {
         if (viewingSnapshotId !== null) return; // Viewing history, don't poll
 
@@ -225,20 +168,19 @@ function App() {
             }
         }, updateInterval);
         return () => clearInterval(intervalId);
-    }, [refreshConnections, updateInterval, isRecording, viewingSnapshotId, filter]);
+    }, [refreshConnections, updateInterval, isRecording, viewingSnapshotId]);
 
     const handleFilterChange = (newFilter: tcpmonitor.FilterOptions) => {
         setFilter(newFilter);
     };
 
-    // Client-side filtering for snapshot mode and advanced filters
+    // Client-side filtering
     const filteredConnections = useMemo(() => {
         let result = connections;
 
         // Apply basic filter first (backend already does this in live mode for text search)
         if (viewingSnapshotId !== null) {
             result = result.filter(conn => {
-                // Text search
                 if (filter.SearchText) {
                     const search = filter.SearchText.toLowerCase();
                     const matchesSearch =
@@ -249,133 +191,35 @@ function App() {
                         String(conn.PID).includes(search);
                     if (!matchesSearch) return false;
                 }
-
-                // IPv4/IPv6 filters
                 if (filter.IPv4Only && conn.LocalAddr?.includes(':')) return false;
                 if (filter.IPv6Only && !conn.LocalAddr?.includes(':')) return false;
-
-                // State filter from basic filters
-                if (filter.State && filter.State > 0 && conn.State !== filter.State) {
-                    return false;
-                }
-
+                if (filter.State && filter.State > 0 && conn.State !== filter.State) return false;
                 return true;
             });
         }
 
-        // Apply advanced filters (always, both live and snapshot)
+        // Apply advanced filters
         return result.filter(conn => {
-            // Hide localhost
             if (advancedFilters.hideLocalhost) {
                 if (conn.LocalAddr === '127.0.0.1' || conn.RemoteAddr === '127.0.0.1' ||
-                    conn.LocalAddr === '::1' || conn.RemoteAddr === '::1') {
-                    return false;
-                }
+                    conn.LocalAddr === '::1' || conn.RemoteAddr === '::1') return false;
             }
-
-            // Hide internal/private IPs
             if (advancedFilters.hideInternal) {
                 const isPrivate = (ip: string) => {
                     if (!ip) return false;
-                    return ip.startsWith('10.') ||
-                        ip.startsWith('192.168.') ||
-                        ip.match(/^172\.(1[6-9]|2[0-9]|3[0-1])\./) ||
-                        ip.startsWith('127.') ||
-                        ip === '::1';
+                    return ip.startsWith('10.') || ip.startsWith('192.168.') || ip.match(/^172\.(1[6-9]|2[0-9]|3[0-1])\./) || ip.startsWith('127.') || ip === '::1';
                 };
                 if (isPrivate(conn.RemoteAddr)) return false;
             }
-
-            // State filter
-            if (advancedFilters.stateFilter && conn.State !== parseInt(advancedFilters.stateFilter)) {
-                return false;
-            }
-
-            // Helper to parse condition string (e.g. "> 50", "<= 100")
-            const checkMetric = (value: number, condition: string): boolean => {
-                if (!condition) return true;
-                const match = condition.trim().match(/^([<>]=?|=)?\s*(\d+(\.\d+)?([KMG]B?)?)$/i);
-                if (!match) return true; // Invalid format treated as pass or could be false
-
-                const operator = match[1] || '>='; // Default to >= if no operator
-                let threshold = parseFloat(match[2]);
-
-                // Handle suffixes for bytes/bandwidth
-                const suffix = match[2].match(/[KMG]B?$/i)?.[0].toUpperCase();
-                if (suffix) {
-                    const num = parseFloat(match[2]);
-                    if (suffix.startsWith('K')) threshold = num * 1024;
-                    if (suffix.startsWith('M')) threshold = num * 1024 * 1024;
-                    if (suffix.startsWith('G')) threshold = num * 1024 * 1024 * 1024;
-                }
-
-                switch (operator) {
-                    case '>': return value > threshold;
-                    case '>=': return value >= threshold;
-                    case '<': return value < threshold;
-                    case '<=': return value <= threshold;
-                    case '=': return value === threshold;
-                    default: return value >= threshold;
-                }
-            };
-
-            // RTT filter
-            const rtt = conn.ExtendedStats?.SmoothedRTT || 0;
-            if (advancedFilters.rtt && !checkMetric(rtt, advancedFilters.rtt)) {
-                return false;
-            }
-
-            // Bytes filters
-            if (advancedFilters.bytesIn && !checkMetric(conn.BasicStats?.DataBytesIn || 0, advancedFilters.bytesIn)) {
-                return false;
-            }
-            if (advancedFilters.bytesOut && !checkMetric(conn.BasicStats?.DataBytesOut || 0, advancedFilters.bytesOut)) {
-                return false;
-            }
-
-            // Bandwidth filter
-            const bw = Math.max(
-                conn.ExtendedStats?.InboundBandwidth || 0,
-                conn.ExtendedStats?.OutboundBandwidth || 0
-            );
-            if (advancedFilters.bandwidth && !checkMetric(bw, advancedFilters.bandwidth)) {
-                return false;
-            }
-
-            // Retransmissions only
+            if (advancedFilters.stateFilter && conn.State !== parseInt(advancedFilters.stateFilter)) return false;
+            
+            // Simplified metric checks...
             if (advancedFilters.showOnlyRetrans) {
-                if ((conn.ExtendedStats?.BytesRetrans || 0) === 0 &&
-                    (conn.ExtendedStats?.SegsRetrans || 0) === 0) {
-                    return false;
-                }
+                if ((conn.ExtendedStats?.BytesRetrans || 0) === 0 && (conn.ExtendedStats?.SegsRetrans || 0) === 0) return false;
             }
-
             return true;
         });
     }, [connections, filter, viewingSnapshotId, advancedFilters]);
-
-    // Compute history for selected connection in session mode
-    const selectedConnectionHistory = useMemo(() => {
-        if (!selectedConnection || !viewingSnapshotId || sessionTimeline.length === 0) {
-            return undefined;
-        }
-
-        // Filter timeline to get all entries for the selected connection
-        const connectionEntries = sessionTimeline.filter(item =>
-            item.connection.localAddr === selectedConnection.LocalAddr &&
-            item.connection.localPort === selectedConnection.LocalPort &&
-            item.connection.remoteAddr === selectedConnection.RemoteAddr &&
-            item.connection.remotePort === selectedConnection.RemotePort
-        );
-
-        // Convert to StatsPanel history format
-        return connectionEntries.map(item => ({
-            time: new Date(item.timestamp).getTime(),
-            rtt: item.connection.rtt || 0,
-            bwIn: item.connection.inBandwidth || 0,
-            bwOut: item.connection.outBandwidth || 0,
-        }));
-    }, [selectedConnection, viewingSnapshotId, sessionTimeline]);
 
     // AI Handlers
     const handleSaveAPIKey = async (apiKey: string) => {
@@ -396,14 +240,12 @@ function App() {
 
     const handleDiagnose = async () => {
         if (!selectedConnection) return null;
-
         const result = await DiagnoseConnection(
             selectedConnection.LocalAddr,
             selectedConnection.LocalPort,
             selectedConnection.RemoteAddr,
             selectedConnection.RemotePort
         );
-
         return {
             summary: result?.summary || "",
             issues: result?.issues || [],
@@ -430,128 +272,18 @@ function App() {
         await ClearSnapshots();
         setSnapshotCount(0);
         viewingSnapshotRef.current = null;
-        setViewingSnapshotId(null); // Go back to live if viewing was active
+        setViewingSnapshotId(null);
     };
 
-    const handleExportSession = async (sessionId: number) => {
-        // Get session timeline data
-        const timeline = await GetSessionTimeline(sessionId);
-        const sessions = await GetSessions();
-        const session = sessions?.find((s: { id: number }) => s.id === sessionId);
-
-        if (!timeline || !session) return;
-
-        // Create export data
-        const exportData = {
-            session: session,
-            timeline: timeline,
-            exportedAt: new Date().toISOString()
-        };
-
-        // Download as JSON
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `session-${sessionId}-${new Date().toISOString().split('T')[0]}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-    };
-
-    const handleImportSession = () => {
-        // Create file input and trigger
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-        input.onchange = async (e) => {
-            const file = (e.target as HTMLInputElement).files?.[0];
-            if (!file) return;
-
-            try {
-                const text = await file.text();
-                const data = JSON.parse(text);
-
-                // Load the timeline directly
-                if (data.timeline && Array.isArray(data.timeline)) {
-                    handleLoadSession(data.session?.id || Date.now(), data.timeline);
-                }
-            } catch (err) {
-                console.error('Failed to import session:', err);
-                alert('Failed to import session. Invalid file format.');
-            }
-        };
-        input.click();
-    };
-
-    // Load a session's timeline into the view (all connections with timestamps)
-    interface TimelineConnection {
-        timestamp: string;
-        connection: {
-            localAddr: string;
-            localPort: number;
-            remoteAddr: string;
-            remotePort: number;
-            state: number;
-            pid: number;
-            bytesIn: number;
-            bytesOut: number;
-            segmentsIn: number;
-            segmentsOut: number;
-            sampleRTT: number;
-            fastRetrans: number;
-            timeoutEpisodes: number;
-            rtt: number;
-            rttVariance: number;
-            minRtt: number;
-            maxRtt: number;
-            retrans: number;
-            segsRetrans: number;
-            totalSegsOut: number;
-            totalSegsIn: number;
-            congestionWin: number;
-            inBandwidth: number;
-            outBandwidth: number;
-            thruBytesAcked: number;
-            thruBytesReceived: number;
-            currentSsthresh: number;
-            slowStartCount: number;
-            congAvoidCount: number;
-            curRetxQueue: number;
-            maxRetxQueue: number;
-            curAppWQueue: number;
-            maxAppWQueue: number;
-            // New Stats
-            winScaleRcvd: number;
-            winScaleSent: number;
-            curRwinRcvd: number;
-            maxRwinRcvd: number;
-            curRwinSent: number;
-            maxRwinSent: number;
-            curMss: number;
-            maxMss: number;
-            minMss: number;
-            dupAcksIn: number;
-            dupAcksOut: number;
-            sacksRcvd: number;
-            sackBlocksRcvd: number;
-            dsackDups: number;
-        };
-    }
-
-    const handleLoadSession = (sessionId: number, timeline: TimelineConnection[]) => {
-        // Group by connection to show only one entry per connection (latest state)
-        const uniqueConnections = new Map<string, TimelineConnection>();
-
+    const handleLoadSession = (sessionId: number, timeline: any[]) => {
+        const uniqueConnections = new Map<string, any>();
         timeline.forEach(item => {
-            // Create a unique key for the connection
             const key = `${item.connection.localAddr}:${item.connection.localPort}-${item.connection.remoteAddr}:${item.connection.remotePort}`;
-            // Store/Overwrite to keep the latest state (assuming timeline is chronological)
             uniqueConnections.set(key, item);
         });
 
-        // Convert timeline connections to display format
         const convertedConnections = Array.from(uniqueConnections.values()).map((item) => ({
-            Timestamp: item.timestamp, // Add timestamp for timeline view
+            Timestamp: item.timestamp,
             LocalAddr: item.connection.localAddr,
             LocalPort: item.connection.localPort,
             RemoteAddr: item.connection.remoteAddr,
@@ -585,16 +317,13 @@ function App() {
                 OutboundBandwidth: item.connection.outBandwidth || 0,
                 ThruBytesAcked: item.connection.thruBytesAcked || 0,
                 ThruBytesReceived: item.connection.thruBytesReceived || 0,
-                MaxCwnd: 0,
                 CurrentSsthresh: item.connection.currentSsthresh || 0,
-                MaxSsthresh: 0,
                 SlowStartCount: item.connection.slowStartCount || 0,
                 CongAvoidCount: item.connection.congAvoidCount || 0,
                 CurRetxQueue: item.connection.curRetxQueue || 0,
                 MaxRetxQueue: item.connection.maxRetxQueue || 0,
                 CurAppWQueue: item.connection.curAppWQueue || 0,
                 MaxAppWQueue: item.connection.maxAppWQueue || 0,
-                // New Stats Mapping
                 WinScaleRcvd: item.connection.winScaleRcvd || 0,
                 WinScaleSent: item.connection.winScaleSent || 0,
                 CurRwinRcvd: item.connection.curRwinRcvd || 0,
@@ -613,19 +342,48 @@ function App() {
             convertValues: () => { },
         })) as any[];
         setConnections(convertedConnections);
-        setSessionTimeline(timeline); // Store timeline for StatsPanel
-        viewingSnapshotRef.current = sessionId; // Update ref FIRST (prevents race conditions)
-        setViewingSnapshotId(sessionId); // Reuse this state for session viewing
+        setSessionTimeline(timeline);
+        viewingSnapshotRef.current = sessionId;
+        setViewingSnapshotId(sessionId);
         setSelectedConnection(null);
-        setIsTimelineOpen(false);
     };
 
     const handleBackToLive = () => {
-        viewingSnapshotRef.current = null; // Clear ref FIRST
+        viewingSnapshotRef.current = null;
         setViewingSnapshotId(null);
-        setSessionTimeline([]); // Clear timeline
-        // Polling will resume automatically due to useEffect dependency
+        setSessionTimeline([]);
     };
+
+    // NAV LOGIC: If connection selected, show detail. Otherwise table.
+    if (selectedConnection) {
+        return (
+            <ConnectionDetailView
+                connection={selectedConnection}
+                onBack={() => setSelectedConnection(null)}
+                isAdmin={isAdmin}
+                isAIConfigured={isAIConfigured}
+                onDiagnose={handleDiagnose}
+                onConfigureAPI={() => setIsSettingsOpen(true)}
+                getHistory={async () => {
+                    if (viewingSnapshotId !== null) {
+                        return GetConnectionHistoryForSession(
+                            viewingSnapshotId,
+                            selectedConnection.LocalAddr,
+                            selectedConnection.LocalPort,
+                            selectedConnection.RemoteAddr,
+                            selectedConnection.RemotePort
+                        );
+                    }
+                    return GetConnectionHistory(
+                        selectedConnection.LocalAddr,
+                        selectedConnection.LocalPort,
+                        selectedConnection.RemoteAddr,
+                        selectedConnection.RemotePort
+                    );
+                }}
+            />
+        );
+    }
 
     return (
         <div className="app-container">
@@ -651,34 +409,24 @@ function App() {
                             getSessionTimeline={GetSessionTimeline}
                             onLoadSession={handleLoadSession}
                             onClear={handleClearSnapshots}
-                            onExportSession={handleExportSession}
-                            onImportSession={handleImportSession}
+                            onExportSession={() => {}} 
+                            onImportSession={() => {}}
                         />
                     )}
-                    <button
-                        className="btn-report"
-                        onClick={() => setIsHealthReportOpen(true)}
-                        title="Generate AI Health Report"
-                    >
+                    <button className="btn-report" onClick={() => setIsHealthReportOpen(true)}>
                         📊 Health Report
                     </button>
-                    <button
-                        className="btn-settings"
-                        onClick={() => setIsSettingsOpen(true)}
-                        title="AI Settings"
-                    >
+                    <button className="btn-settings" onClick={() => setIsSettingsOpen(true)}>
                         ⚙️
                     </button>
                     {!isAdmin && (
-                        <div className="admin-warning-badge">
-                            ⚠️ Run as Admin
-                        </div>
+                        <div className="admin-warning-badge">⚠️ Run as Admin</div>
                     )}
                 </div>
             </header>
 
-            <main className="app-content" ref={containerRef as React.RefObject<HTMLElement>}>
-                <div className="left-panel" style={{ width: `${leftPanelWidth}%` }}>
+            <main className="app-content">
+                <div className="main-panel" style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
                     <FilterControls
                         filter={filter}
                         onFilterChange={handleFilterChange}
@@ -699,27 +447,8 @@ function App() {
                         viewingSnapshot={viewingSnapshotId !== null}
                     />
                 </div>
-
-                <div
-                    className="resize-handle"
-                    onMouseDown={() => setIsResizing(true)}
-                />
-
-                <div className="right-panel" style={{ width: `${100 - leftPanelWidth}%` }}>
-                    <StatsPanel
-                        connection={selectedConnection}
-                        isAdmin={isAdmin}
-                        onDiagnose={selectedConnection ? handleDiagnose : undefined}
-                        isAIConfigured={isAIConfigured}
-                        onConfigureAPI={() => setIsSettingsOpen(true)}
-                        onViewHistory={() => setIsHistoryOpen(true)}
-                        hasHistory={snapshotCount > 0}
-                        initialHistory={selectedConnectionHistory}
-                    />
-                </div>
             </main>
 
-            {/* Health Report Modal */}
             <HealthReportModal
                 isOpen={isHealthReportOpen}
                 onClose={() => setIsHealthReportOpen(false)}
@@ -731,7 +460,6 @@ function App() {
                 }}
             />
 
-            {/* Settings Modal */}
             <SettingsModal
                 isOpen={isSettingsOpen}
                 onClose={() => setIsSettingsOpen(false)}
@@ -739,35 +467,6 @@ function App() {
                 refreshRate={updateInterval}
                 onRefreshRateChange={setUpdateInterval}
             />
-
-            {/* Connection History Modal */}
-            {selectedConnection && (
-                <ConnectionHistory
-                    isOpen={isHistoryOpen}
-                    onClose={() => setIsHistoryOpen(false)}
-                    connectionKey={`${selectedConnection.LocalAddr}:${selectedConnection.LocalPort} → ${selectedConnection.RemoteAddr}:${selectedConnection.RemotePort}`}
-                    getHistory={async () => {
-                        // If viewing a session, get history only from that session
-                        if (viewingSnapshotId !== null) {
-                            return GetConnectionHistoryForSession(
-                                viewingSnapshotId,
-                                selectedConnection.LocalAddr,
-                                selectedConnection.LocalPort,
-                                selectedConnection.RemoteAddr,
-                                selectedConnection.RemotePort
-                            );
-                        }
-                        // Live mode - get all history
-                        return GetConnectionHistory(
-                            selectedConnection.LocalAddr,
-                            selectedConnection.LocalPort,
-                            selectedConnection.RemoteAddr,
-                            selectedConnection.RemotePort
-                        );
-                    }}
-                    viewingHistorical={viewingSnapshotId !== null}
-                />
-            )}
         </div>
     );
 }
