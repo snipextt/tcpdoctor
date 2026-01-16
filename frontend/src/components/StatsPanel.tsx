@@ -235,29 +235,8 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
 
   return (
     <div className="stats-panel">
-      {/* Header Info */}
-      <div className="stats-header">
-        <div className="connection-summary">
-          <div className="endpoints">
-            <span className="local">{formatEndpoint(connection.LocalAddr, connection.LocalPort)}</span>
-            <span className="arrow">→</span>
-            <span className="remote">{formatEndpoint(connection.RemoteAddr, connection.RemotePort)}</span>
-          </div>
-          <div className="meta-info">
-            <span className="badge pid">PID: {connection.PID}</span>
-            <span className="badge state" data-state={TCPStateNames[connection.State as TCPState]}>
-              {TCPStateNames[connection.State as TCPState]}
-            </span>
-            {connection.HighRetransmissionWarning && (
-              <span className="badge warning">High Retrans</span>
-            )}
-            {connection.HighRTTWarning && (
-              <span className="badge warning">High RTT</span>
-            )}
-          </div>
-        </div>
 
-        {/* Quick Actions */}
+      <div className="stats-header" style={{ justifyContent: 'flex-end', borderBottom: 'none', padding: '0 0 16px 0' }}>
         <div className="header-actions">
           {onViewHistory && hasHistory && (
             <button className="btn-action" onClick={onViewHistory} title="View History">
@@ -271,7 +250,10 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
               onClick={() => setIsViewMenuOpen(!isViewMenuOpen)}
               title="Customize View"
             >
-              👁️
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
             </button>
             {isViewMenuOpen && (
               <div className="view-dropdown animate-fade">
@@ -293,14 +275,16 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
       </div>
 
       {/* Admin Warning */}
-      {!isAdmin && (
-        <div className="admin-warning animate-fade">
-          <span className="icon">⚠️</span>
-          <span>
-            Elevated privileges required for extended TCP metrics (RTT, Retransmissions, Congestion Control).
-          </span>
-        </div>
-      )}
+      {
+        !isAdmin && (
+          <div className="admin-warning animate-fade">
+            <span className="icon">⚠️</span>
+            <span>
+              Elevated privileges required for extended TCP metrics (RTT, Retransmissions, Congestion Control).
+            </span>
+          </div>
+        )
+      }
 
       <div className="stats-content">
         {/* Charts Section */}
@@ -505,7 +489,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
           </div>
         ) : null}
       </div>
-    </div>
+    </div >
   );
 };
 
