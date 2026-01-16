@@ -147,24 +147,24 @@ const SnapshotControls: React.FC<SnapshotControlsProps> = ({
 
                     {/* Control Buttons */}
                     <div className="controls-row">
-                        <button
-                            className={`record-btn ${isRecording ? 'stop' : 'start'}`}
-                            onClick={handleRecordToggle}
-                        >
-                            {isRecording ? '⏹ Stop & Save' : '⏺ Start Snapshot'}
-                        </button>
-
-                        {isRecording && (
+                        {!isRecording ? (
                             <button
-                                className="record-btn lap"
+                                className="record-btn start"
+                                onClick={onStartRecording}
+                            >
+                                ⏺ Start Recording
+                            </button>
+                        ) : (
+                            <button
+                                className="record-btn save-new"
                                 onClick={() => {
                                     onStopRecording();
                                     setTimeout(onStartRecording, 200);
                                     setTimeout(loadSessions, 500);
                                 }}
-                                title="Save current and continue new snapshot"
+                                title="Save current recording and start a new one"
                             >
-                                ⏱ Lap (Save & New)
+                                💾 Save & New
                             </button>
                         )}
                     </div>
