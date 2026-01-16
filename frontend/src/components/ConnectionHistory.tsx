@@ -72,8 +72,8 @@ interface ConnectionHistoryProps {
     viewingHistorical?: boolean;
 }
 
-// Chart configuration constants - Dark Theme
-const COMMON_OPTIONS: ChartOptions<any> = {
+// Chart configuration constants - Dark Theme - NO FUNCTIONS HERE
+const COMMON_OPTIONS_BASE: ChartOptions<any> = {
     responsive: true,
     maintainAspectRatio: false,
     animation: false,
@@ -91,7 +91,7 @@ const COMMON_OPTIONS: ChartOptions<any> = {
     },
     plugins: {
         legend: {
-            display: false // Disable all legends to save space
+            display: false
         },
         tooltip: {
             enabled: false,
@@ -156,7 +156,6 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
 }) => {
     const chartRefs = useRef<(ChartJS | null)[]>([]);
 
-    // Custom Crosshair Plugin
     const crosshairPlugin = useMemo(() => ({
         id: 'crosshair',
         afterDraw: (chart: ChartJS) => {
@@ -179,7 +178,6 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
         }
     }), [hoverIndex, data]);
 
-    // Sync active elements across charts
     useEffect(() => {
         const index = hoverIndex;
         if (index === null) {
@@ -208,31 +206,82 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
         });
     }, [hoverIndex, data]);
 
-    // Build options with handlers
+    // Build options WITHOUT JSON serialization to preserve zoom plugin
     const options = useMemo(() => {
-        const opts = JSON.parse(JSON.stringify(COMMON_OPTIONS));
-
-        opts.plugins.zoom.zoom.onZoomComplete = ({ chart }: { chart: ChartJS }) => {
-            const { min, max } = chart.scales.x;
-            onZoom(min, max);
+        // Create fresh options object each time
+        const opts: ChartOptions<any> = {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            layout: {
+                padding: { top: 0, bottom: 0, left: 0, right: 0 }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: false },
+                zoom: {
+                    pan: {
+                        enabled: true,
+                        mode: 'x',
+                    }, zoom: {
+                        wheel: { enabled: true },
+                        pinch: { enabled: true },
+                        mode: 'x',
+                        onZoomComplete: ({ chart }: { chart: ChartJS }) => {
+                            const { min, max } = chart.scales.x;
+                            onZoom(min, max);
+                        },
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'second',
+                        displayFormats: { second: 'HH:mm:ss' },
+                        tooltipFormat: 'HH:mm:ss.SSS'
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.05)',
+                        drawBorder: false,
+                    },
+                    ticks: {
+                        color: '#6c757d',
+                        font: { size: 10, family: 'JetBrains Mono' },
+                        maxRotation: 0,
+                        autoSkip: true,
+                        maxTicksLimit: 8,
+                    },
+                    ...(zoomRange && { min: zoomRange.min, max: zoomRange.max })
+                },
+                y: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.05)',
+                        drawBorder: false,
+                    },
+                    ticks: {
+                        color: '#6c757d',
+                        font: { size: 10, family: 'JetBrains Mono' },
+                    },
+                    beginAtZero: true,
+                }
+            }
         };
 
         opts.onHover = (_: ChartEvent, elements: ActiveElement[]) => {
             if (elements && elements.length > 0) {
-                const newIndex = elements[0].index;
-                onHover(newIndex);
+                onHover(elements[0].index);
             }
         };
-
-        if (zoomRange) {
-            opts.scales.x.min = zoomRange.min;
-            opts.scales.x.max = zoomRange.max;
-        }
 
         return opts;
     }, [zoomRange, onZoom, onHover]);
 
-    // Data prep
     const chartData = useMemo(() => {
         const timestamps = data.map(d => new Date(d.timestamp).getTime());
 
@@ -543,7 +592,7 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                     {isLoading ? (
                         <div className="loading-state">Loading history...</div>
                     ) : displayData.length === 0 ? (
-                        <div className="empty-state">
+                        <div className="empty-state" >
                             <p>No history recorded for this connection.</p>
                             <p className="hint">Start recording to capture data.</p>
                         </div>
