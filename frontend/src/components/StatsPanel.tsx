@@ -229,9 +229,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
   const Section = ({ title, icon, children, delay }: { title: string, icon?: string, children: React.ReactNode, delay?: string }) => (
     <div className="stats-section" style={{ animationDelay: delay }}>
       <h3>{icon && <span className="section-icon">{icon}</span>}{title}</h3>
-      <div className="stats-grid">
-        {children}
-      </div>
+      {children}
     </div>
   );
 

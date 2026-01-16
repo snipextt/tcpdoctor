@@ -84,11 +84,11 @@
   display: flex;
   align-items: center;
   border-bottom: 1px solid var(--color-border-bright);
-  height: 48px;
-  min-height: 48px;
+  height: 40px;
+  min-height: 40px;
   padding: 0 16px;
   font-weight: 700;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-text-dim);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -121,33 +121,28 @@
   flex: 1;
   overflow: hidden;
   position: relative;
-  padding: 0 8px;
 }
 
+/* Row Styling */
 .connection-row {
   display: flex;
   align-items: center;
-  padding: 0 8px;
-  margin: 4px 0;
-  border-radius: var(--radius-md);
+  padding: 0 16px;
+  /* Match header padding */
+  border-bottom: 1px solid var(--color-border);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background 0.1s;
   font-size: 13px;
-  font-weight: 500;
   font-family: var(--font-mono);
-  border: 1px solid transparent;
 }
 
 .connection-row:hover {
-  background: var(--glass-bg);
-  border-color: var(--glass-border);
-  transform: translateX(4px);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .connection-row.selected {
   background: var(--color-primary-glow);
-  border-color: var(--color-primary);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-bottom-color: var(--color-primary);
 }
 
 .cell {
@@ -159,12 +154,14 @@
 }
 
 .state-badge {
-  padding: 4px 8px;
+  padding: 2px 6px;
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  background: var(--color-bg-accent);
+  border: 1px solid var(--color-border);
 }
 
 .table-message {

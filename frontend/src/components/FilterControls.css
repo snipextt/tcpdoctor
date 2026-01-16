@@ -1,0 +1,97 @@
+.filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 16px;
+    background: var(--color-bg-card);
+    border-bottom: 1px solid var(--color-border);
+    flex-wrap: wrap;
+}
+
+.filter-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-item label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--color-text-dim);
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.filter-input {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-main);
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.filter-input:focus {
+    border-color: var(--color-primary);
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.filter-input.short {
+    width: 80px;
+}
+
+.filter-input.medium {
+    width: 160px;
+}
+
+.filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.btn-add-filter {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-dim);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-add-filter:hover,
+.btn-add-filter.active {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.protocol-toggles {
+    display: flex;
+    gap: 12px;
+    border-left: 1px solid var(--color-border);
+    padding-left: 16px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--color-text-dim);
+    user-select: none;
+}
+
+.checkbox-label.active {
+    color: var(--color-primary);
+}
+
+.checkbox-label input {
+    margin: 0;
+}

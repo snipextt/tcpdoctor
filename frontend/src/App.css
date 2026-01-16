@@ -11,7 +11,8 @@
     display: flex;
     flex-direction: column;
     padding: 24px;
-    overflow-y: auto;
+    overflow: hidden;
+    /* Main content handles its own scrolling if needed */
     background-image:
         radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.05) 0px, transparent 50%),
         radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.05) 0px, transparent 50%);
@@ -21,7 +22,7 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 32px;
+    margin-bottom: 16px;
 }
 
 .view-title h2 {
@@ -63,17 +64,21 @@
 .dashboard-grid {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 12px;
     flex: 1;
+    min-height: 0;
 }
 
 .filters-section {
-    padding: 16px;
+    padding: 0;
+    /* Let internal components handle padding */
+    margin-bottom: 8px;
 }
 
 .table-section {
     flex: 1;
-    min-height: 400px;
+    min-height: 0;
+    /* Critical for flex scrolling */
     display: flex;
     flex-direction: column;
 }

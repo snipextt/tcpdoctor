@@ -9,12 +9,11 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 24px;
-    background: var(--glass-bg);
-    padding: 12px 20px;
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--glass-border);
-    backdrop-filter: var(--glass-blur);
+    margin-bottom: 16px;
+    background: var(--color-bg-card);
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
 }
 
 .btn-back {
@@ -89,7 +88,7 @@
     flex: 1;
     overflow: hidden;
     position: relative;
-    background: var(--color-bg);
+    background: transparent;
 }
 
 .history-view-container {

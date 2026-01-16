@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FilterControlsProps, TCPState, TCPStateNames } from '../types';
 import { tcpmonitor } from '../../wailsjs/go/models';
 import { FilterState } from './ConnectionFilters';
+import './FilterControls.css';
 import './ConnectionFilters.css';
 
 interface ExtendedFilterControlsProps extends FilterControlsProps {
@@ -113,21 +114,21 @@ const FilterControls: React.FC<ExtendedFilterControlsProps> = ({
   };
 
   return (
-    <div className="filter-controls">
+    <div className="filter-bar">
       {/* Search By Address */}
-      <div className="filter-group">
+      <div className="filter-item">
         <label>Search</label>
         <input
           type="text"
           placeholder="IP Address..."
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          className="filter-input"
+          className="filter-input medium"
         />
       </div>
 
       {/* PID Filter */}
-      <div className="filter-group">
+      <div className="filter-item">
         <label>PID</label>
         <input
           type="number"
@@ -139,7 +140,7 @@ const FilterControls: React.FC<ExtendedFilterControlsProps> = ({
       </div>
 
       {/* Port Filter */}
-      <div className="filter-group">
+      <div className="filter-item">
         <label>Port</label>
         <input
           type="number"
@@ -150,105 +151,109 @@ const FilterControls: React.FC<ExtendedFilterControlsProps> = ({
         />
       </div>
 
-      {/* Add Filter Button & Dropdown (replaces State dropdown) */}
-      <div className="filter-group add-filter-wrapper" ref={dropdownRef}>
-        <button
-          className={`btn-add-filter ${isAddMenuOpen ? 'active' : ''}`}
-          onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
-        >
-          + Add Filter
-        </button>
+      <div className="filter-actions">
+        {/* Add Filter Button & Dropdown */}
+        <div className="add-filter-wrapper" ref={dropdownRef}>
+          <button
+            className={`btn-add-filter ${isAddMenuOpen ? 'active' : ''}`}
+            onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
+          >
+            + More Filters
+          </button>
 
-        {isAddMenuOpen && !editingMetric && (
-          <div className="filter-dropdown-menu">
-            <div className="menu-section">
-              <span className="menu-header">Toggles</span>
-              <button className="menu-item" onClick={() => updateAdvancedFilter('hideInternal', !advancedFilters.hideInternal)}>
-                {advancedFilters.hideInternal ? '✓ ' : ''}Hide Internal
-              </button>
-              <button className="menu-item" onClick={() => updateAdvancedFilter('hideLocalhost', !advancedFilters.hideLocalhost)}>
-                {advancedFilters.hideLocalhost ? '✓ ' : ''}Hide Localhost
-              </button>
-              <button className="menu-item" onClick={() => updateAdvancedFilter('showOnlyRetrans', !advancedFilters.showOnlyRetrans)}>
-                {advancedFilters.showOnlyRetrans ? '✓ ' : ''}Retransmissions Only
-              </button>
-            </div>
-
-            <div className="menu-section">
-              <span className="menu-header">State</span>
-              {TCP_STATES.map(state => (
-                <button
-                  key={state.value}
-                  className="menu-item"
-                  onClick={() => {
-                    updateAdvancedFilter('stateFilter', state.value);
-                    setIsAddMenuOpen(false);
-                  }}
-                >
-                  {advancedFilters.stateFilter === state.value ? '✓ ' : ''}{state.label}
+          {isAddMenuOpen && !editingMetric && (
+            <div className="filter-dropdown-menu">
+              <div className="menu-section">
+                <span className="menu-header">Quick Toggles</span>
+                <button className="menu-item" onClick={() => updateAdvancedFilter('hideInternal', !advancedFilters.hideInternal)}>
+                  {advancedFilters.hideInternal ? '✓ ' : ''}Hide Internal
                 </button>
-              ))}
-            </div>
-
-            <div className="menu-section">
-              <span className="menu-header">Metrics</span>
-              {METRIC_FILTERS.map(m => (
-                <button
-                  key={m.key}
-                  className="menu-item"
-                  onClick={() => {
-                    setEditingMetric({ key: m.key as keyof FilterState, label: m.label });
-                    setMetricValue('');
-                  }}
-                >
-                  {m.label}...
+                <button className="menu-item" onClick={() => updateAdvancedFilter('hideLocalhost', !advancedFilters.hideLocalhost)}>
+                  {advancedFilters.hideLocalhost ? '✓ ' : ''}Hide Localhost
                 </button>
-              ))}
-            </div>
-          </div>
-        )}
+                <button className="menu-item" onClick={() => updateAdvancedFilter('showOnlyRetrans', !advancedFilters.showOnlyRetrans)}>
+                  {advancedFilters.showOnlyRetrans ? '✓ ' : ''}Retransmissions Only
+                </button>
+              </div>
 
-        {/* Metric Input Popover */}
-        {isAddMenuOpen && editingMetric && (
-          <div className="metric-input-popover">
-            <div className="popover-header">
-              <span>Filter by {editingMetric.label}</span>
-              <button className="btn-close-popover" onClick={() => setEditingMetric(null)}>×</button>
+              <div className="menu-section">
+                <span className="menu-header">TCP State</span>
+                <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                  {TCP_STATES.map(state => (
+                    <button
+                      key={state.value}
+                      className="menu-item"
+                      onClick={() => {
+                        updateAdvancedFilter('stateFilter', state.value);
+                        setIsAddMenuOpen(false);
+                      }}
+                    >
+                      {advancedFilters.stateFilter === state.value ? '✓ ' : ''}{state.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="menu-section">
+                <span className="menu-header">Performance Metrics</span>
+                {METRIC_FILTERS.map(m => (
+                  <button
+                    key={m.key}
+                    className="menu-item"
+                    onClick={() => {
+                      setEditingMetric({ key: m.key as keyof FilterState, label: m.label });
+                      setMetricValue('');
+                    }}
+                  >
+                    {m.label}...
+                  </button>
+                ))}
+              </div>
             </div>
+          )}
+
+          {/* Metric Input Popover */}
+          {isAddMenuOpen && editingMetric && (
+            <div className="metric-input-popover">
+              <div className="popover-header">
+                <span>Filter by {editingMetric.label}</span>
+                <button className="btn-close-popover" onClick={() => setEditingMetric(null)}>×</button>
+              </div>
+              <input
+                autoFocus
+                type="text"
+                placeholder={editingMetric.key === 'rtt' ? 'e.g. > 50 (ms)' : 'e.g. > 1M, < 500K'}
+                value={metricValue}
+                onChange={e => setMetricValue(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleMetricSubmit()}
+              />
+              <div className="popover-actions">
+                <button className="btn-cancel" onClick={() => setEditingMetric(null)}>Back</button>
+                <button className="btn-apply" onClick={handleMetricSubmit}>Apply</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Protocol Toggles */}
+        <div className="protocol-toggles">
+          <label className={`checkbox-label ${filter.IPv4Only ? 'active' : ''}`}>
             <input
-              autoFocus
-              type="text"
-              placeholder={editingMetric.key === 'rtt' ? 'e.g. > 50 (ms)' : 'e.g. > 1M, < 500K'}
-              value={metricValue}
-              onChange={e => setMetricValue(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleMetricSubmit()}
+              type="checkbox"
+              checked={filter.IPv4Only}
+              onChange={toggleIPv4}
             />
-            <div className="popover-actions">
-              <button className="btn-cancel" onClick={() => setEditingMetric(null)}>Back</button>
-              <button className="btn-apply" onClick={handleMetricSubmit}>Apply</button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Protocol Toggles */}
-      <div className="filter-group checkbox-group">
-        <label className={`checkbox-label ${filter.IPv4Only ? 'active' : ''}`}>
-          <input
-            type="checkbox"
-            checked={filter.IPv4Only}
-            onChange={toggleIPv4}
-          />
-          IPv4 Only
-        </label>
-        <label className={`checkbox-label ${filter.IPv6Only ? 'active' : ''}`}>
-          <input
-            type="checkbox"
-            checked={filter.IPv6Only}
-            onChange={toggleIPv6}
-          />
-          IPv6 Only
-        </label>
+            IPv4
+          </label>
+          <label className={`checkbox-label ${filter.IPv6Only ? 'active' : ''}`}>
+            <input
+              type="checkbox"
+              checked={filter.IPv6Only}
+              onChange={toggleIPv6}
+            />
+            IPv6
+          </label>
+        </div>
       </div>
     </div>
   );
