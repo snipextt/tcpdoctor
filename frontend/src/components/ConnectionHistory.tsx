@@ -81,6 +81,9 @@ const COMMON_OPTIONS: ChartOptions<any> = {
         mode: 'index',
         intersect: false,
     },
+    layout: {
+        padding: 0
+    },
     plugins: {
         legend: {
             position: 'top' as const,
@@ -89,7 +92,8 @@ const COMMON_OPTIONS: ChartOptions<any> = {
                 boxWidth: 8,
                 usePointStyle: true,
                 font: { size: 11, family: 'JetBrains Mono' },
-                color: '#9ca3af'
+                color: '#9ca3af',
+                padding: 10
             }
         },
         tooltip: {
@@ -193,68 +197,61 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
 
         chartRefs.current.forEach(chart => {
             if (chart && chart.ctx) {
-                // Find visible elements for this chart at the given index
-                // Since we use 'index' mode, we can just construct the active element manually if we know the dataset index
-                // But safer to asking chart for element at index.
-                // Assuming dataset 0 is always the one we want to highlight or all datasets.
-
+                // Safe active element setting
                 const activeElements: ActiveElement[] = [];
                 chart.data.datasets.forEach((_, datasetIndex) => {
-                    // Check if an element exists at this index (it might be hidden or filtered)
-                    // Chart.js internal meta data
                     const meta = chart.getDatasetMeta(datasetIndex);
                     const element = meta.data[index];
                     if (element) {
                         activeElements.push({ datasetIndex, index, element: element as any });
                     }
                 });
-
                 chart.setActiveElements(activeElements);
                 chart.update();
             }
         });
-    }, [hoverIndex, data]); // Re-run when hover index or data changes
+    }, [hoverIndex, data]);
 
-    // Shared options with dynamic zoom limits
-    const options = useMemo(() => {
-        const opts = JSON.parse(JSON.stringify(COMMON_OPTIONS)); // Deep clone
+    // Calculate options ONCE with all handlers, then derive specific versions
+    // We remove hoverIndex from dependency to avoid expensive re-calcs on hover
+    const { options, optionsNoLegend } = useMemo(() => {
+        const baseOpts = JSON.parse(JSON.stringify(COMMON_OPTIONS)); // Start with clean state
 
-        // Add zoom callback
-        opts.plugins.zoom.zoom.onZoomComplete = ({ chart }: { chart: ChartJS }) => {
+        // Add Handlers
+        baseOpts.plugins.zoom.zoom.onZoomComplete = ({ chart }: { chart: ChartJS }) => {
             const { min, max } = chart.scales.x;
             onZoom(min, max);
         };
 
-        // Apply current zoom range if exists
+        // Simplified hover handler - relies on React setState efficiency
+        baseOpts.onHover = (_: ChartEvent, elements: ActiveElement[]) => {
+            if (elements && elements.length > 0) {
+                const newIndex = elements[0].index;
+                onHover(newIndex);
+            }
+        };
+
+        // Apply Zoom Range
         if (zoomRange) {
-            opts.scales.x.min = zoomRange.min;
-            opts.scales.x.max = zoomRange.max;
+            baseOpts.scales.x.min = zoomRange.min;
+            baseOpts.scales.x.max = zoomRange.max;
         }
 
-        // Hover callback
-        opts.onHover = (_: ChartEvent, elements: ActiveElement[]) => {
-            if (elements && elements.length > 0) {
-                // Only update if index changed to avoid loops
-                const newIndex = elements[0].index;
-                if (newIndex !== hoverIndex) {
-                    onHover(newIndex);
+        // Create No-Legend variant by shallow copying the structure
+        // We MUST preserve Function references in plugins.zoom and onHover
+        const noLegendOpts = {
+            ...baseOpts,
+            plugins: {
+                ...baseOpts.plugins,
+                legend: {
+                    ...baseOpts.plugins.legend,
+                    display: false
                 }
             }
         };
 
-        // Add crosshair plugin locally to options if Chart.js supported it directly in options,
-        // but plugins need to be registered or passed in the plugins prop of component.
-        return opts;
-    }, [zoomRange, onZoom, onHover, hoverIndex]);
-
-    // Options for Single-Series Charts (No Legend)
-    const optionsNoLegend = useMemo(() => {
-        const opts = JSON.parse(JSON.stringify(options));
-        if (!opts.plugins) opts.plugins = {};
-        if (!opts.plugins.legend) opts.plugins.legend = {};
-        opts.plugins.legend.display = false;
-        return opts;
-    }, [options]);
+        return { options: baseOpts, optionsNoLegend: noLegendOpts };
+    }, [zoomRange, onZoom, onHover]); // Removed hoverIndex dependency
 
     // Data prep
     const chartData = useMemo(() => {
@@ -385,6 +382,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
     );
 });
 
+// Main component, largely unchanged but included for completeness of overwrite
 const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
     isOpen,
     onClose,
