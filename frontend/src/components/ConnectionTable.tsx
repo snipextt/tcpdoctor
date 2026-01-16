@@ -39,10 +39,10 @@ interface ColumnDefinition {
 }
 
 const ALL_COLUMNS: ColumnDefinition[] = [
-  { key: 'localAddr', label: 'Local Address', width: 170, align: 'left', defaultVisible: true },
-  { key: 'localPort', label: 'Local Port', width: 90, align: 'left', defaultVisible: true },
-  { key: 'remoteAddr', label: 'Remote Address', width: 170, align: 'left', defaultVisible: true },
-  { key: 'remotePort', label: 'Remote Port', width: 90, align: 'left', defaultVisible: true },
+  { key: 'localAddr', label: 'Local Address', width: 220, align: 'left', defaultVisible: true },
+  { key: 'localPort', label: 'Local Port', width: 110, align: 'left', defaultVisible: true },
+  { key: 'remoteAddr', label: 'Remote Address', width: 220, align: 'left', defaultVisible: true },
+  { key: 'remotePort', label: 'Remote Port', width: 110, align: 'left', defaultVisible: true },
   { key: 'state', label: 'State', width: 110, align: 'left', defaultVisible: true },
   { key: 'pid', label: 'PID', width: 70, align: 'left', defaultVisible: true },
   { key: 'bytesIn', label: 'Bytes In', width: 110, align: 'left', defaultVisible: true },
@@ -419,13 +419,13 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
           let content: React.ReactNode = null;
           switch (col.key) {
             case 'localAddr':
-              content = <span className="text-main">{conn.LocalAddr}</span>;
+              content = <span>{conn.LocalAddr}</span>;
               break;
             case 'localPort':
               content = <span className="text-dim">{conn.LocalPort}</span>;
               break;
             case 'remoteAddr':
-              content = <span className="text-main">{conn.RemoteAddr}</span>;
+              content = <span>{conn.RemoteAddr}</span>;
               break;
             case 'remotePort':
               content = <span className="text-dim">{conn.RemotePort}</span>;

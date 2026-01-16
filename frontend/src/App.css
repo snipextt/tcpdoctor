@@ -56,6 +56,16 @@
 }
 
 /* Dashboard Specific */
+.dashboard-view,
+.recordings-view,
+.ai-view,
+.settings-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
 .dashboard-grid {
     display: flex;
     flex-direction: column;

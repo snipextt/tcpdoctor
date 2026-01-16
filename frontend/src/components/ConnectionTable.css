@@ -132,7 +132,8 @@
   cursor: pointer;
   transition: background 0.1s;
   font-size: 13px;
-  font-family: var(--font-mono);
+  font-family: var(--font-main);
+  color: var(--color-text-main);
 }
 
 .connection-row:hover {
