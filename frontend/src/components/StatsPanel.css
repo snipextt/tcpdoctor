@@ -25,7 +25,7 @@
     flex: 1;
     overflow-y: auto;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 16px;
     padding-bottom: 24px;
 }
@@ -59,12 +59,12 @@
 }
 
 .stat-label {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--color-text-dim);
 }
 
 .stat-value {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 700;
     font-family: var(--font-mono);
     color: var(--color-text-main);
@@ -109,7 +109,7 @@
     background: #050505 !important;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm) !important;
-    height: 160px !important;
+    height: 180px !important;
 }
 
 .admin-warning {

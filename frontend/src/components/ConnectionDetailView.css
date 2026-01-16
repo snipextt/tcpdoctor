@@ -10,20 +10,26 @@
     align-items: center;
     justify-content: space-between;
     margin-bottom: 16px;
-    background: var(--color-bg-sidebar);
-    padding: 8px 16px;
+    background: #1a1a1a;
+    padding: 12px 20px;
     border-radius: var(--radius-sm);
-    border: 1px solid var(--color-border-bright);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .btn-back {
     background: transparent;
     border: 1px solid var(--color-border);
     color: var(--color-text-dim);
-    padding: 8px 16px;
-    border-radius: var(--radius-md);
-    font-size: 13px;
-    font-weight: 600;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 18px;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -39,8 +45,8 @@
     align-items: center;
     gap: 12px;
     font-family: var(--font-mono);
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 600;
 }
 
 .connection-title .addr {

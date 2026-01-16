@@ -39,69 +39,69 @@ interface ColumnDefinition {
 }
 
 const ALL_COLUMNS: ColumnDefinition[] = [
-  { key: 'localAddr', label: 'Local Address', width: 280, align: 'left', defaultVisible: true },
-  { key: 'localPort', label: 'Local Port', width: 140, align: 'left', defaultVisible: true },
-  { key: 'remoteAddr', label: 'Remote Address', width: 280, align: 'left', defaultVisible: true },
-  { key: 'remotePort', label: 'Remote Port', width: 140, align: 'left', defaultVisible: true },
-  { key: 'state', label: 'State', width: 110, align: 'left', defaultVisible: true },
-  { key: 'pid', label: 'PID', width: 70, align: 'left', defaultVisible: true },
-  { key: 'bytesIn', label: 'Bytes In', width: 110, align: 'left', defaultVisible: true },
-  { key: 'bytesOut', label: 'Bytes Out', width: 110, align: 'left', defaultVisible: true },
+  { key: 'localAddr', label: 'Local Address', width: 240, align: 'left', defaultVisible: true },
+  { key: 'localPort', label: 'Local Port', width: 100, align: 'left', defaultVisible: true },
+  { key: 'remoteAddr', label: 'Remote Address', width: 240, align: 'left', defaultVisible: true },
+  { key: 'remotePort', label: 'Remote Port', width: 100, align: 'left', defaultVisible: true },
+  { key: 'state', label: 'State', width: 120, align: 'left', defaultVisible: true },
+  { key: 'pid', label: 'PID', width: 80, align: 'left', defaultVisible: true },
+  { key: 'bytesIn', label: 'Bytes In', width: 140, align: 'left', defaultVisible: true },
+  { key: 'bytesOut', label: 'Bytes Out', width: 140, align: 'left', defaultVisible: true },
 
   // Data Transfer
-  { key: 'totalSegsOut', label: 'Segs Out', width: 100, align: 'left', defaultVisible: false },
-  { key: 'totalSegsIn', label: 'Segs In', width: 100, align: 'left', defaultVisible: false },
+  { key: 'totalSegsOut', label: 'Segs Out', width: 140, align: 'left', defaultVisible: false },
+  { key: 'totalSegsIn', label: 'Segs In', width: 140, align: 'left', defaultVisible: false },
 
   // Retransmissions
-  { key: 'segsRetrans', label: 'Retrans Segs', width: 110, align: 'left', defaultVisible: false },
-  { key: 'bytesRetrans', label: 'Retrans Bytes', width: 110, align: 'left', defaultVisible: false },
-  { key: 'fastRetrans', label: 'Fast Retrans', width: 100, align: 'left', defaultVisible: false },
-  { key: 'timeoutEpisodes', label: 'Timeouts', width: 90, align: 'left', defaultVisible: false },
+  { key: 'segsRetrans', label: 'Retrans Segs', width: 140, align: 'left', defaultVisible: false },
+  { key: 'bytesRetrans', label: 'Retrans Bytes', width: 140, align: 'left', defaultVisible: false },
+  { key: 'fastRetrans', label: 'Fast Retrans', width: 140, align: 'left', defaultVisible: false },
+  { key: 'timeoutEpisodes', label: 'Timeouts', width: 140, align: 'left', defaultVisible: false },
 
   // RTT
-  { key: 'sampleRTT', label: 'Sample RTT', width: 100, align: 'left', defaultVisible: false },
-  { key: 'smoothedRTT', label: 'RTT (ms)', width: 100, align: 'left', defaultVisible: false },
-  { key: 'rttVariance', label: 'RTT Var', width: 90, align: 'left', defaultVisible: false },
-  { key: 'minRTT', label: 'Min RTT', width: 90, align: 'left', defaultVisible: false },
-  { key: 'maxRTT', label: 'Max RTT', width: 90, align: 'left', defaultVisible: false },
+  { key: 'sampleRTT', label: 'Sample RTT', width: 140, align: 'left', defaultVisible: false },
+  { key: 'smoothedRTT', label: 'RTT (ms)', width: 140, align: 'left', defaultVisible: false },
+  { key: 'rttVariance', label: 'RTT Var', width: 140, align: 'left', defaultVisible: false },
+  { key: 'minRTT', label: 'Min RTT', width: 140, align: 'left', defaultVisible: false },
+  { key: 'maxRTT', label: 'Max RTT', width: 140, align: 'left', defaultVisible: false },
 
   // Congestion Control
-  { key: 'currentCwnd', label: 'Cwnd', width: 100, align: 'left', defaultVisible: false },
-  { key: 'currentSsthresh', label: 'Ssthresh', width: 100, align: 'left', defaultVisible: false },
-  { key: 'slowStartCount', label: 'SS Count', width: 90, align: 'left', defaultVisible: false },
-  { key: 'congAvoidCount', label: 'CA Count', width: 90, align: 'left', defaultVisible: false },
+  { key: 'currentCwnd', label: 'Cwnd', width: 140, align: 'left', defaultVisible: false },
+  { key: 'currentSsthresh', label: 'Ssthresh', width: 140, align: 'left', defaultVisible: false },
+  { key: 'slowStartCount', label: 'SS Count', width: 140, align: 'left', defaultVisible: false },
+  { key: 'congAvoidCount', label: 'CA Count', width: 140, align: 'left', defaultVisible: false },
 
   // Bandwidth & Throughput
-  { key: 'inboundBandwidth', label: 'In Bandwidth', width: 120, align: 'left', defaultVisible: false },
-  { key: 'outboundBandwidth', label: 'Out Bandwidth', width: 120, align: 'left', defaultVisible: false },
-  { key: 'thruBytesAcked', label: 'Thru Acked', width: 120, align: 'left', defaultVisible: false },
-  { key: 'thruBytesReceived', label: 'Thru Rcvd', width: 120, align: 'left', defaultVisible: false },
+  { key: 'inboundBandwidth', label: 'In Bandwidth', width: 140, align: 'left', defaultVisible: false },
+  { key: 'outboundBandwidth', label: 'Out Bandwidth', width: 140, align: 'left', defaultVisible: false },
+  { key: 'thruBytesAcked', label: 'Thru Acked', width: 140, align: 'left', defaultVisible: false },
+  { key: 'thruBytesReceived', label: 'Thru Rcvd', width: 140, align: 'left', defaultVisible: false },
 
   // Buffers
-  { key: 'curRetxQueue', label: 'Cur Retx Q', width: 100, align: 'left', defaultVisible: false },
-  { key: 'maxRetxQueue', label: 'Max Retx Q', width: 100, align: 'left', defaultVisible: false },
-  { key: 'curAppWQueue', label: 'Cur App Q', width: 100, align: 'left', defaultVisible: false },
-  { key: 'maxAppWQueue', label: 'Max App Q', width: 100, align: 'left', defaultVisible: false },
+  { key: 'curRetxQueue', label: 'Cur Retx Q', width: 140, align: 'left', defaultVisible: false },
+  { key: 'maxRetxQueue', label: 'Max Retx Q', width: 140, align: 'left', defaultVisible: false },
+  { key: 'curAppWQueue', label: 'Cur App Q', width: 140, align: 'left', defaultVisible: false },
+  { key: 'maxAppWQueue', label: 'Max App Q', width: 140, align: 'left', defaultVisible: false },
 
   // Window & Scaling
-  { key: 'winScaleSent', label: 'Snd Scale', width: 90, align: 'left', defaultVisible: false },
-  { key: 'winScaleRcvd', label: 'Rcv Scale', width: 90, align: 'left', defaultVisible: false },
-  { key: 'curRwinSent', label: 'Cur Snd Win', width: 120, align: 'left', defaultVisible: false },
-  { key: 'maxRwinSent', label: 'Max Snd Win', width: 120, align: 'left', defaultVisible: false },
-  { key: 'curRwinRcvd', label: 'Cur Rcv Win', width: 120, align: 'left', defaultVisible: false },
-  { key: 'maxRwinRcvd', label: 'Max Rcv Win', width: 120, align: 'left', defaultVisible: false },
+  { key: 'winScaleSent', label: 'Snd Scale', width: 140, align: 'left', defaultVisible: false },
+  { key: 'winScaleRcvd', label: 'Rcv Scale', width: 140, align: 'left', defaultVisible: false },
+  { key: 'curRwinSent', label: 'Cur Snd Win', width: 140, align: 'left', defaultVisible: false },
+  { key: 'maxRwinSent', label: 'Max Snd Win', width: 140, align: 'left', defaultVisible: false },
+  { key: 'curRwinRcvd', label: 'Cur Rcv Win', width: 140, align: 'left', defaultVisible: false },
+  { key: 'maxRwinRcvd', label: 'Max Rcv Win', width: 140, align: 'left', defaultVisible: false },
 
   // MSS
-  { key: 'curMss', label: 'Cur MSS', width: 100, align: 'left', defaultVisible: false },
-  { key: 'maxMss', label: 'Max MSS', width: 100, align: 'left', defaultVisible: false },
-  { key: 'minMss', label: 'Min MSS', width: 100, align: 'left', defaultVisible: false },
+  { key: 'curMss', label: 'Cur MSS', width: 140, align: 'left', defaultVisible: false },
+  { key: 'maxMss', label: 'Max MSS', width: 140, align: 'left', defaultVisible: false },
+  { key: 'minMss', label: 'Min MSS', width: 140, align: 'left', defaultVisible: false },
 
   // SACKs & Duplicates
-  { key: 'dupAcksIn', label: 'Dup ACKs In', width: 110, align: 'left', defaultVisible: false },
-  { key: 'dupAcksOut', label: 'Dup ACKs Out', width: 110, align: 'left', defaultVisible: false },
-  { key: 'sacksRcvd', label: 'SACKs Rcvd', width: 110, align: 'left', defaultVisible: false },
-  { key: 'sackBlocksRcvd', label: 'SACK Blocks', width: 110, align: 'left', defaultVisible: false },
-  { key: 'dsackDups', label: 'DSACK Dups', width: 110, align: 'left', defaultVisible: false },
+  { key: 'dupAcksIn', label: 'Dup ACKs In', width: 140, align: 'left', defaultVisible: false },
+  { key: 'dupAcksOut', label: 'Dup ACKs Out', width: 140, align: 'left', defaultVisible: false },
+  { key: 'sacksRcvd', label: 'SACKs Rcvd', width: 140, align: 'left', defaultVisible: false },
+  { key: 'sackBlocksRcvd', label: 'SACK Blocks', width: 140, align: 'left', defaultVisible: false },
+  { key: 'dsackDups', label: 'DSACK Dups', width: 140, align: 'left', defaultVisible: false },
 ];
 
 const ROW_HEIGHT = 56;
