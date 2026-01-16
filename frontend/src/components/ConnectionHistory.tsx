@@ -110,48 +110,39 @@ const COMMON_OPTIONS: ChartOptions<any> = {
                 mode: 'x',
             }
         }
-                drag: {
-            enabled: true,
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            borderColor: 'rgba(59, 130, 246, 0.5)',
-            borderWidth: 1,
-        },
-        mode: 'x',
     },
-},
-    },
-scales: {
-    x: {
-        type: 'time',
+    scales: {
+        x: {
+            type: 'time',
             time: {
-            unit: 'second',
+                unit: 'second',
                 displayFormats: { second: 'HH:mm:ss' },
-            tooltipFormat: 'HH:mm:ss.SSS'
-        },
-        grid: {
-            color: 'rgba(255, 255, 255, 0.05)',
+                tooltipFormat: 'HH:mm:ss.SSS'
+            },
+            grid: {
+                color: 'rgba(255, 255, 255, 0.05)',
                 drawBorder: false,
             },
-        ticks: {
-            color: '#6c757d',
+            ticks: {
+                color: '#6c757d',
                 font: { size: 10, family: 'JetBrains Mono' },
-            maxRotation: 0,
+                maxRotation: 0,
                 autoSkip: true,
-                    maxTicksLimit: 8,
+                maxTicksLimit: 8,
             }
-    },
-    y: {
-        grid: {
-            color: 'rgba(255, 255, 255, 0.05)',
+        },
+        y: {
+            grid: {
+                color: 'rgba(255, 255, 255, 0.05)',
                 drawBorder: false,
             },
-        ticks: {
-            color: '#6c757d',
+            ticks: {
+                color: '#6c757d',
                 font: { size: 10, family: 'JetBrains Mono' },
-        },
-        beginAtZero: true,
+            },
+            beginAtZero: true,
         }
-}
+    }
 };
 
 const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex, visibleCharts }: {
@@ -192,7 +183,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
         const index = hoverIndex;
         if (index === null) {
             chartRefs.current.forEach(chart => {
-                if (chart && !chart.destroyed) {
+                if (chart && chart.ctx) {
                     chart.setActiveElements([]);
                     chart.update();
                 }
@@ -201,7 +192,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
         }
 
         chartRefs.current.forEach(chart => {
-            if (chart && !chart.destroyed) {
+            if (chart && chart.ctx) {
                 // Find visible elements for this chart at the given index
                 // Since we use 'index' mode, we can just construct the active element manually if we know the dataset index
                 // But safer to asking chart for element at index.
@@ -214,7 +205,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
                     const meta = chart.getDatasetMeta(datasetIndex);
                     const element = meta.data[index];
                     if (element) {
-                        activeElements.push({ datasetIndex, index });
+                        activeElements.push({ datasetIndex, index, element: element as any });
                     }
                 });
 
