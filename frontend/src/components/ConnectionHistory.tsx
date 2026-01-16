@@ -82,22 +82,19 @@ const COMMON_OPTIONS: ChartOptions<any> = {
         intersect: false,
     },
     layout: {
-        padding: 0
+        padding: {
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0
+        }
     },
     plugins: {
         legend: {
-            position: 'top' as const,
-            align: 'end' as const,
-            labels: {
-                boxWidth: 8,
-                usePointStyle: true,
-                font: { size: 11, family: 'JetBrains Mono' },
-                color: '#9ca3af',
-                padding: 10
-            }
+            display: false // Disable all legends to save space
         },
         tooltip: {
-            enabled: false, // We use custom external inspector
+            enabled: false,
         },
         zoom: {
             pan: {
@@ -159,7 +156,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
 }) => {
     const chartRefs = useRef<(ChartJS | null)[]>([]);
 
-    // Custom Crosshair Plugin - Draws vertical line on all charts
+    // Custom Crosshair Plugin
     const crosshairPlugin = useMemo(() => ({
         id: 'crosshair',
         afterDraw: (chart: ChartJS) => {
@@ -182,7 +179,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
         }
     }), [hoverIndex, data]);
 
-    // Sync active elements (highlights) across all charts
+    // Sync active elements across charts
     useEffect(() => {
         const index = hoverIndex;
         if (index === null) {
@@ -197,7 +194,6 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
 
         chartRefs.current.forEach(chart => {
             if (chart && chart.ctx) {
-                // Safe active element setting
                 const activeElements: ActiveElement[] = [];
                 chart.data.datasets.forEach((_, datasetIndex) => {
                     const meta = chart.getDatasetMeta(datasetIndex);
@@ -212,46 +208,29 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
         });
     }, [hoverIndex, data]);
 
-    // Calculate options ONCE with all handlers, then derive specific versions
-    // We remove hoverIndex from dependency to avoid expensive re-calcs on hover
-    const { options, optionsNoLegend } = useMemo(() => {
-        const baseOpts = JSON.parse(JSON.stringify(COMMON_OPTIONS)); // Start with clean state
+    // Build options with handlers
+    const options = useMemo(() => {
+        const opts = JSON.parse(JSON.stringify(COMMON_OPTIONS));
 
-        // Add Handlers
-        baseOpts.plugins.zoom.zoom.onZoomComplete = ({ chart }: { chart: ChartJS }) => {
+        opts.plugins.zoom.zoom.onZoomComplete = ({ chart }: { chart: ChartJS }) => {
             const { min, max } = chart.scales.x;
             onZoom(min, max);
         };
 
-        // Simplified hover handler - relies on React setState efficiency
-        baseOpts.onHover = (_: ChartEvent, elements: ActiveElement[]) => {
+        opts.onHover = (_: ChartEvent, elements: ActiveElement[]) => {
             if (elements && elements.length > 0) {
                 const newIndex = elements[0].index;
                 onHover(newIndex);
             }
         };
 
-        // Apply Zoom Range
         if (zoomRange) {
-            baseOpts.scales.x.min = zoomRange.min;
-            baseOpts.scales.x.max = zoomRange.max;
+            opts.scales.x.min = zoomRange.min;
+            opts.scales.x.max = zoomRange.max;
         }
 
-        // Create No-Legend variant by shallow copying the structure
-        // We MUST preserve Function references in plugins.zoom and onHover
-        const noLegendOpts = {
-            ...baseOpts,
-            plugins: {
-                ...baseOpts.plugins,
-                legend: {
-                    ...baseOpts.plugins.legend,
-                    display: false
-                }
-            }
-        };
-
-        return { options: baseOpts, optionsNoLegend: noLegendOpts };
-    }, [zoomRange, onZoom, onHover]); // Removed hoverIndex dependency
+        return opts;
+    }, [zoomRange, onZoom, onHover]);
 
     // Data prep
     const chartData = useMemo(() => {
@@ -345,7 +324,13 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
         <div className="charts-container" onMouseLeave={() => onHover(null)}>
             {visibleCharts.has('bandwidth') && (
                 <div className="chart-section">
-                    <div className="chart-title">Bandwidth (Mbps)</div>
+                    <div className="chart-title">
+                        Bandwidth (Mbps)
+                        <span className="inline-legend">
+                            <span className="legend-item"><span className="legend-dot" style={{ backgroundColor: '#22c55e' }}></span> In</span>
+                            <span className="legend-item"><span className="legend-dot" style={{ backgroundColor: '#3b82f6' }}></span> Out</span>
+                        </span>
+                    </div>
                     <div style={{ height: 200 }}>
                         <Line ref={(el: any) => chartRefs.current[0] = el} data={chartData.bandwidth} options={options} plugins={plugins as any} />
                     </div>
@@ -356,7 +341,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
                 <div className="chart-section">
                     <div className="chart-title">Retransmissions (Bytes)</div>
                     <div style={{ height: 160 }}>
-                        <Bar ref={(el: any) => chartRefs.current[1] = el} data={chartData.retrans} options={optionsNoLegend} plugins={plugins as any} />
+                        <Bar ref={(el: any) => chartRefs.current[1] = el} data={chartData.retrans} options={options} plugins={plugins as any} />
                     </div>
                 </div>
             )}
@@ -365,7 +350,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
                 <div className="chart-section">
                     <div className="chart-title">Congestion Window (CWND)</div>
                     <div style={{ height: 180 }}>
-                        <Line ref={(el: any) => chartRefs.current[2] = el} data={chartData.cwnd} options={optionsNoLegend} plugins={plugins as any} />
+                        <Line ref={(el: any) => chartRefs.current[2] = el} data={chartData.cwnd} options={options} plugins={plugins as any} />
                     </div>
                 </div>
             )}
@@ -374,7 +359,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
                 <div className="chart-section">
                     <div className="chart-title">Round Trip Time (ms)</div>
                     <div style={{ height: 180 }}>
-                        <Line ref={(el: any) => chartRefs.current[3] = el} data={chartData.rtt} options={optionsNoLegend} plugins={plugins as any} />
+                        <Line ref={(el: any) => chartRefs.current[3] = el} data={chartData.rtt} options={options} plugins={plugins as any} />
                     </div>
                 </div>
             )}
@@ -382,7 +367,6 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
     );
 });
 
-// Main component, largely unchanged but included for completeness of overwrite
 const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
     isOpen,
     onClose,
@@ -402,25 +386,22 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
         }
     }, [isOpen]);
 
-    // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (!isOpen || !zoomRange) return;
 
             const span = zoomRange.max - zoomRange.min;
-            const shift = span * 0.2; // 20% shift
+            const shift = span * 0.2;
 
             if (e.key === 'ArrowLeft') {
                 handleZoom(zoomRange.min - shift, zoomRange.max - shift);
             } else if (e.key === 'ArrowRight') {
                 handleZoom(zoomRange.min + shift, zoomRange.max + shift);
             } else if (e.key === '+' || e.key === '=') {
-                // Zoom in 20%
                 const newSpan = span * 0.8;
                 const mid = zoomRange.min + newSpan / 2;
                 handleZoom(mid - newSpan / 2, mid + newSpan / 2);
             } else if (e.key === '-' || e.key === '_') {
-                // Zoom out 20%
                 const newSpan = span * 1.2;
                 const mid = zoomRange.min + newSpan / 2;
                 handleZoom(mid - newSpan / 2, mid + newSpan / 2);
@@ -437,7 +418,6 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
         setIsLoading(true);
         try {
             const rawData = await getHistory();
-            // Pre-process for Chart.js
             const formatted = rawData.map((point, i) => ({
                 ...point,
                 uiKey: `${point.timestamp}-${i}`,
@@ -479,10 +459,8 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
         setVisibleCharts(newSet);
     };
 
-    // Zoom buttons logic
     const zoomStep = (factor: number) => {
         if (!zoomRange && displayData.length > 0) {
-            // Init zoom range if not set
             const start = new Date(displayData[0].timestamp).getTime();
             const end = new Date(displayData[displayData.length - 1].timestamp).getTime();
             const span = end - start;
@@ -507,7 +485,6 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
 
     if (!isOpen) return null;
 
-    // Current data point for inspector
     const currentData = hoverIndex !== null && displayData[hoverIndex]
         ? displayData[hoverIndex]
         : (displayData.length > 0 ? displayData[displayData.length - 1] : null);
@@ -533,7 +510,6 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
 
                 <div className="connection-label">{connectionKey}</div>
 
-                {/* Data Inspector Header */}
                 {currentData && (
                     <div className="inspector-header">
                         <div className="inspector-item">

@@ -179,7 +179,7 @@
     background: var(--color-bg-card);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
-    padding: 12px;
+    padding: 10px;
 }
 
 .chart-title {
@@ -188,15 +188,38 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--color-text-dim);
-    margin-bottom: 8px;
-    padding-bottom: 6px;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
     border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-/* Chart canvas container - for react-chartjs-2 */
+.inline-legend {
+    display: flex;
+    gap: 12px;
+    font-size: 11px;
+    text-transform: none;
+    font-weight: 500;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+/* Chart canvas container */
 .chart-section>div {
     position: relative;
-    height: 200px;
 }
 
 .chart-section canvas {
