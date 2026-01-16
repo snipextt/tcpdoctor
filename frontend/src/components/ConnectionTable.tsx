@@ -39,10 +39,10 @@ interface ColumnDefinition {
 }
 
 const ALL_COLUMNS: ColumnDefinition[] = [
-  { key: 'localAddr', label: 'Local Address', width: 260, align: 'left', defaultVisible: true },
-  { key: 'localPort', label: 'Local Port', width: 120, align: 'left', defaultVisible: true },
-  { key: 'remoteAddr', label: 'Remote Address', width: 260, align: 'left', defaultVisible: true },
-  { key: 'remotePort', label: 'Remote Port', width: 120, align: 'left', defaultVisible: true },
+  { key: 'localAddr', label: 'Local Address', width: 280, align: 'left', defaultVisible: true },
+  { key: 'localPort', label: 'Local Port', width: 140, align: 'left', defaultVisible: true },
+  { key: 'remoteAddr', label: 'Remote Address', width: 280, align: 'left', defaultVisible: true },
+  { key: 'remotePort', label: 'Remote Port', width: 140, align: 'left', defaultVisible: true },
   { key: 'state', label: 'State', width: 110, align: 'left', defaultVisible: true },
   { key: 'pid', label: 'PID', width: 70, align: 'left', defaultVisible: true },
   { key: 'bytesIn', label: 'Bytes In', width: 110, align: 'left', defaultVisible: true },
@@ -431,16 +431,8 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
               content = <span className="text-dim">{conn.RemotePort}</span>;
               break;
             case 'state':
-              const stateColor = getTCPStateColor(conn.State);
               content = (
-                <span
-                  className="state-badge"
-                  style={{
-                    backgroundColor: `${stateColor}22`,
-                    color: stateColor,
-                    border: `1px solid ${stateColor}44`
-                  }}
-                >
+                <span className="state-text">
                   {TCPStateNames[conn.State as TCPState] || 'UNKNOWN'}
                 </span>
               );

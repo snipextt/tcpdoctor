@@ -67,7 +67,7 @@
 .btn-add-filter.active {
     border-color: var(--color-primary);
     color: var(--color-primary);
-    background: #1a1a1a;
+    background: var(--color-bg-accent);
 }
 
 /* Dropdown Menu */
@@ -76,7 +76,7 @@
     top: 100%;
     right: 0;
     margin-top: 0.5rem;
-    background: #111111;
+    background: var(--color-bg-card);
     border: 1px solid var(--color-border-bright);
     border-radius: var(--radius-sm);
     width: 220px;
@@ -130,7 +130,7 @@
     top: 100%;
     right: 0;
     margin-top: 0.5rem;
-    background: #151515;
+    background: var(--color-bg-card);
     border: 1px solid var(--color-border-bright);
     border-radius: var(--radius-sm);
     padding: 1rem;

@@ -1,28 +1,34 @@
 /* Global styles and CSS variables */
 
 :root {
-  /* Neutral Palette - Strictly Monochrome */
+  /* Neutral Palette - Softer Dark Mode */
   --color-primary: #ffffff;
-  --color-primary-hover: #e2e8f0;
-  --color-primary-glow: rgba(255, 255, 255, 0.1);
+  --color-primary-hover: #e5e5e5;
+  --color-primary-glow: rgba(255, 255, 255, 0.05);
 
-  --color-bg-main: #000000;
-  --color-bg-sidebar: #0a0a0a;
-  --color-bg-card: #0e0e0e;
-  --color-bg-accent: #1a1a1a;
+  --color-bg-main: #121212;
+  /* Was #000000 */
+  --color-bg-sidebar: #181818;
+  /* Was #0a0a0a */
+  --color-bg-card: #1e1e1e;
+  /* Was #0e0e0e */
+  --color-bg-accent: #2a2a2a;
+  /* Was #1a1a1a */
 
-  --color-text-main: #ffffff;
+  --color-text-main: #f0f0f0;
+  /* Slightly softer white */
   --color-text-dim: #a0a0a0;
   --color-text-muted: #666666;
 
-  --color-border: #222222;
+  --color-border: #333333;
+  /* Was #222222 */
   --color-border-bright: #444444;
 
-  /* Status (Muted for Monochrome feel) */
+  /* Status (Muted) */
   --color-success: #ffffff;
-  --color-warning: #a0a0a0;
-  --color-error: #ff4444;
-  --color-info: #888888;
+  --color-warning: #cccccc;
+  --color-error: #ff6b6b;
+  --color-info: #999999;
 
   /* Typography */
   --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
