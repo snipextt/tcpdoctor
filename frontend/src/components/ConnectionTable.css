@@ -136,11 +136,11 @@
 }
 
 .connection-row:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: #151515;
 }
 
 .connection-row.selected {
-  background: var(--color-primary-glow);
+  background: #222;
   border-bottom-color: var(--color-primary);
 }
 

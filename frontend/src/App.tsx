@@ -441,7 +441,7 @@ function App() {
                                 />
                             </div>
 
-                            <div className="table-section panel shadow-sm">
+                            <div className="table-section">
                                 <ConnectionTable
                                     connections={filteredConnections}
                                     selectedConnection={selectedConnection}

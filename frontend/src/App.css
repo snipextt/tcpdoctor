@@ -67,13 +67,12 @@
 .filters-section {
     padding: 0;
     /* Let internal components handle padding */
-    margin-bottom: 8px;
+    margin-bottom: 24px;
 }
 
 .table-section {
     flex: 1;
     min-height: 0;
-    /* Critical for flex scrolling */
     display: flex;
     flex-direction: column;
 }
