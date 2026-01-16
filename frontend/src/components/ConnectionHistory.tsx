@@ -72,80 +72,6 @@ interface ConnectionHistoryProps {
     viewingHistorical?: boolean;
 }
 
-// Chart configuration constants - Dark Theme - NO FUNCTIONS HERE
-const COMMON_OPTIONS_BASE: ChartOptions<any> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: false,
-    interaction: {
-        mode: 'index',
-        intersect: false,
-    },
-    layout: {
-        padding: {
-            top: 0,
-            bottom: 0,
-            left: 0,
-            right: 0
-        }
-    },
-    plugins: {
-        legend: {
-            display: false
-        },
-        tooltip: {
-            enabled: false,
-        },
-        zoom: {
-            pan: {
-                enabled: true,
-                mode: 'x',
-            },
-            zoom: {
-                wheel: {
-                    enabled: true,
-                },
-                pinch: {
-                    enabled: true
-                },
-                mode: 'x',
-            }
-        }
-    },
-    scales: {
-        x: {
-            type: 'time',
-            time: {
-                unit: 'second',
-                displayFormats: { second: 'HH:mm:ss' },
-                tooltipFormat: 'HH:mm:ss.SSS'
-            },
-            grid: {
-                color: 'rgba(255, 255, 255, 0.05)',
-                drawBorder: false,
-            },
-            ticks: {
-                color: '#6c757d',
-                font: { size: 10, family: 'JetBrains Mono' },
-                maxRotation: 0,
-                autoSkip: true,
-                maxTicksLimit: 8,
-            }
-        },
-        y: {
-            grid: {
-                color: 'rgba(255, 255, 255, 0.05)',
-                drawBorder: false,
-            },
-            ticks: {
-                color: '#6c757d',
-                font: { size: 10, family: 'JetBrains Mono' },
-            },
-            beginAtZero: true,
-        }
-    }
-};
-
 const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex, visibleCharts }: {
     data: ConnectionHistoryPoint[];
     onHover: (index: number | null) => void;
@@ -206,9 +132,8 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
         });
     }, [hoverIndex, data]);
 
-    // Build options WITHOUT JSON serialization to preserve zoom plugin
+    //Build options with tooltip ENABLED
     const options = useMemo(() => {
-        // Create fresh options object each time
         const opts: ChartOptions<any> = {
             responsive: true,
             maintainAspectRatio: false,
@@ -222,12 +147,42 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
             },
             plugins: {
                 legend: { display: false },
-                tooltip: { enabled: false },
+                tooltip: {
+                    enabled: true,
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: '#666',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: true,
+                    titleFont: { size: 12, family: 'JetBrains Mono' },
+                    bodyFont: { size: 11, family: 'JetBrains Mono' },
+                    callbacks: {
+                        label: function (context: any) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null && context.parsed.y !== undefined) {
+                                label += context.parsed.y.toFixed(2);
+                            }
+                            return label;
+                        }
+                    }
+                },
                 zoom: {
+                    limits: {
+                        x: { min: 'original', max: 'original' }
+                    },
                     pan: {
                         enabled: true,
                         mode: 'x',
-                    }, zoom: {
+                        modifierKey: 'ctrl',
+                    },
+                    zoom: {
                         wheel: { enabled: true },
                         pinch: { enabled: true },
                         mode: 'x',
@@ -290,7 +245,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
                 labels: timestamps,
                 datasets: [
                     {
-                        label: 'In',
+                        label: 'In (Mbps)',
                         data: data.map(d => d.inBwMbps),
                         borderColor: '#22c55e',
                         backgroundColor: '#22c55e',
@@ -299,7 +254,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
                         tension: 0.2,
                     },
                     {
-                        label: 'Out',
+                        label: 'Out (Mbps)',
                         data: data.map(d => d.outBwMbps),
                         borderColor: '#3b82f6',
                         backgroundColor: '#3b82f6',
@@ -314,7 +269,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
                 datasets: [
                     {
                         type: 'bar' as const,
-                        label: 'Retrans',
+                        label: 'Retrans (Bytes)',
                         data: data.map(d => d.retrans),
                         backgroundColor: 'rgba(239, 68, 68, 0.8)',
                         borderColor: '#ef4444',
@@ -328,7 +283,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
                 labels: timestamps,
                 datasets: [
                     {
-                        label: 'CWND',
+                        label: 'CWND (KB)',
                         data: data.map(d => d.cwndKB),
                         borderColor: '#3b82f6',
                         backgroundColor: (context: ScriptableContext<'line'>) => {
@@ -348,7 +303,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
                 labels: timestamps,
                 datasets: [
                     {
-                        label: 'RTT',
+                        label: 'RTT (ms)',
                         data: data.map(d => d.rttMs),
                         borderColor: '#f59e0b',
                         backgroundColor: (context: ScriptableContext<'line'>) => {
@@ -437,24 +392,9 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (!isOpen || !zoomRange) return;
+            if (!isOpen) return;
 
-            const span = zoomRange.max - zoomRange.min;
-            const shift = span * 0.2;
-
-            if (e.key === 'ArrowLeft') {
-                handleZoom(zoomRange.min - shift, zoomRange.max - shift);
-            } else if (e.key === 'ArrowRight') {
-                handleZoom(zoomRange.min + shift, zoomRange.max + shift);
-            } else if (e.key === '+' || e.key === '=') {
-                const newSpan = span * 0.8;
-                const mid = zoomRange.min + newSpan / 2;
-                handleZoom(mid - newSpan / 2, mid + newSpan / 2);
-            } else if (e.key === '-' || e.key === '_') {
-                const newSpan = span * 1.2;
-                const mid = zoomRange.min + newSpan / 2;
-                handleZoom(mid - newSpan / 2, mid + newSpan / 2);
-            } else if (e.key === 'r') {
+            if (e.key === 'r' && zoomRange) {
                 resetZoom();
             }
         };
@@ -544,8 +484,8 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                 <div className="modal-header">
                     <h2>📈 Connection History</h2>
                     <div className="control-toolbar">
-                        <button className="tool-btn" onClick={() => zoomStep(0.8)} title="Zoom In (+)">+</button>
-                        <button className="tool-btn" onClick={() => zoomStep(1.2)} title="Zoom Out (-)">-</button>
+                        <button className="tool-btn" onClick={() => zoomStep(0.8)} title="Zoom In - Click to zoom in 20%">🔍+</button>
+                        <button className="tool-btn" onClick={() => zoomStep(1.2)} title="Zoom Out - Click to zoom out 20%">🔍-</button>
                         <div className="tool-separator"></div>
                         <button className="tool-btn" onClick={resetZoom} disabled={!zoomRange} title="Reset Zoom (R)">⟲</button>
                         <div className="tool-separator"></div>
@@ -592,7 +532,7 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                     {isLoading ? (
                         <div className="loading-state">Loading history...</div>
                     ) : displayData.length === 0 ? (
-                        <div className="empty-state" >
+                        <div className="empty-state">
                             <p>No history recorded for this connection.</p>
                             <p className="hint">Start recording to capture data.</p>
                         </div>
