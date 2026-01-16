@@ -96,50 +96,62 @@ const COMMON_OPTIONS: ChartOptions<any> = {
             enabled: false, // We use custom external inspector
         },
         zoom: {
-            pan: { enabled: false }, // We implement custom pan buttons
-            zoom: {
-                drag: {
-                    enabled: true,
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    borderColor: 'rgba(59, 130, 246, 0.5)',
-                    borderWidth: 1,
-                },
+            pan: {
+                enabled: true,
                 mode: 'x',
             },
-        },
-    },
-    scales: {
-        x: {
-            type: 'time',
-            time: {
-                unit: 'second',
-                displayFormats: { second: 'HH:mm:ss' },
-                tooltipFormat: 'HH:mm:ss.SSS'
-            },
-            grid: {
-                color: 'rgba(255, 255, 255, 0.05)',
-                drawBorder: false,
-            },
-            ticks: {
-                color: '#6c757d',
-                font: { size: 10, family: 'JetBrains Mono' },
-                maxRotation: 0,
-                autoSkip: true,
-                maxTicksLimit: 8,
+            zoom: {
+                wheel: {
+                    enabled: true,
+                },
+                pinch: {
+                    enabled: true
+                },
+                mode: 'x',
             }
+        }
+                drag: {
+            enabled: true,
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            borderColor: 'rgba(59, 130, 246, 0.5)',
+            borderWidth: 1,
         },
-        y: {
-            grid: {
-                color: 'rgba(255, 255, 255, 0.05)',
+        mode: 'x',
+    },
+},
+    },
+scales: {
+    x: {
+        type: 'time',
+            time: {
+            unit: 'second',
+                displayFormats: { second: 'HH:mm:ss' },
+            tooltipFormat: 'HH:mm:ss.SSS'
+        },
+        grid: {
+            color: 'rgba(255, 255, 255, 0.05)',
                 drawBorder: false,
             },
-            ticks: {
-                color: '#6c757d',
+        ticks: {
+            color: '#6c757d',
                 font: { size: 10, family: 'JetBrains Mono' },
+            maxRotation: 0,
+                autoSkip: true,
+                    maxTicksLimit: 8,
+            }
+    },
+    y: {
+        grid: {
+            color: 'rgba(255, 255, 255, 0.05)',
+                drawBorder: false,
             },
-            beginAtZero: true,
+        ticks: {
+            color: '#6c757d',
+                font: { size: 10, family: 'JetBrains Mono' },
+        },
+        beginAtZero: true,
         }
-    }
+}
 };
 
 const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex, visibleCharts }: {
@@ -175,6 +187,43 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
         }
     }), [hoverIndex, data]);
 
+    // Sync active elements (highlights) across all charts
+    useEffect(() => {
+        const index = hoverIndex;
+        if (index === null) {
+            chartRefs.current.forEach(chart => {
+                if (chart && !chart.destroyed) {
+                    chart.setActiveElements([]);
+                    chart.update();
+                }
+            });
+            return;
+        }
+
+        chartRefs.current.forEach(chart => {
+            if (chart && !chart.destroyed) {
+                // Find visible elements for this chart at the given index
+                // Since we use 'index' mode, we can just construct the active element manually if we know the dataset index
+                // But safer to asking chart for element at index.
+                // Assuming dataset 0 is always the one we want to highlight or all datasets.
+
+                const activeElements: ActiveElement[] = [];
+                chart.data.datasets.forEach((_, datasetIndex) => {
+                    // Check if an element exists at this index (it might be hidden or filtered)
+                    // Chart.js internal meta data
+                    const meta = chart.getDatasetMeta(datasetIndex);
+                    const element = meta.data[index];
+                    if (element) {
+                        activeElements.push({ datasetIndex, index });
+                    }
+                });
+
+                chart.setActiveElements(activeElements);
+                chart.update();
+            }
+        });
+    }, [hoverIndex, data]); // Re-run when hover index or data changes
+
     // Shared options with dynamic zoom limits
     const options = useMemo(() => {
         const opts = JSON.parse(JSON.stringify(COMMON_OPTIONS)); // Deep clone
@@ -194,14 +243,18 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
         // Hover callback
         opts.onHover = (_: ChartEvent, elements: ActiveElement[]) => {
             if (elements && elements.length > 0) {
-                onHover(elements[0].index);
+                // Only update if index changed to avoid loops
+                const newIndex = elements[0].index;
+                if (newIndex !== hoverIndex) {
+                    onHover(newIndex);
+                }
             }
         };
 
         // Add crosshair plugin locally to options if Chart.js supported it directly in options,
         // but plugins need to be registered or passed in the plugins prop of component.
         return opts;
-    }, [zoomRange, onZoom, onHover]);
+    }, [zoomRange, onZoom, onHover, hoverIndex]);
 
     // Data prep
     const chartData = useMemo(() => {

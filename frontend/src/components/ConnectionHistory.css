@@ -196,6 +196,7 @@
 /* Chart canvas container - for react-chartjs-2 */
 .chart-section>div {
     position: relative;
+    height: 200px;
 }
 
 .chart-section canvas {
