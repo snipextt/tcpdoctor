@@ -157,7 +157,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
         id: 'crosshair',
         afterDraw: (chart: ChartJS) => {
             if (hoverIndex === null || !chart.scales.x) return;
-            
+
             const ctx = chart.ctx;
             const x = chart.scales.x.getPixelForValue(new Date(data[hoverIndex].timestamp).getTime());
             const top = chart.chartArea.top;
@@ -178,7 +178,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
     // Shared options with dynamic zoom limits
     const options = useMemo(() => {
         const opts = JSON.parse(JSON.stringify(COMMON_OPTIONS)); // Deep clone
-        
+
         // Add zoom callback
         opts.plugins.zoom.zoom.onZoomComplete = ({ chart }: { chart: ChartJS }) => {
             const { min, max } = chart.scales.x;
@@ -197,7 +197,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
                 onHover(elements[0].index);
             }
         };
-        
+
         // Add crosshair plugin locally to options if Chart.js supported it directly in options,
         // but plugins need to be registered or passed in the plugins prop of component.
         return opts;
@@ -206,7 +206,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
     // Data prep
     const chartData = useMemo(() => {
         const timestamps = data.map(d => new Date(d.timestamp).getTime());
-        
+
         return {
             bandwidth: {
                 labels: timestamps,
@@ -294,39 +294,39 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
     return (
         <div className="charts-container" onMouseLeave={() => onHover(null)}>
             {visibleCharts.has('bandwidth') && (
-            <div className="chart-section">
-                <div className="chart-title">Bandwidth (Mbps)</div>
-                <div style={{ height: 140 }}>
-                    <Line ref={(el: any) => chartRefs.current[0] = el} data={chartData.bandwidth} options={options} plugins={plugins as any} />
+                <div className="chart-section">
+                    <div className="chart-title">Bandwidth (Mbps)</div>
+                    <div style={{ height: 200 }}>
+                        <Line ref={(el: any) => chartRefs.current[0] = el} data={chartData.bandwidth} options={options} plugins={plugins as any} />
+                    </div>
                 </div>
-            </div>
             )}
-            
+
             {visibleCharts.has('retrans') && (
-            <div className="chart-section">
-                <div className="chart-title">Retransmissions (Bytes)</div>
-                <div style={{ height: 100 }}>
-                    <Bar ref={(el: any) => chartRefs.current[1] = el} data={chartData.retrans} options={options} plugins={plugins as any} />
+                <div className="chart-section">
+                    <div className="chart-title">Retransmissions (Bytes)</div>
+                    <div style={{ height: 160 }}>
+                        <Bar ref={(el: any) => chartRefs.current[1] = el} data={chartData.retrans} options={options} plugins={plugins as any} />
+                    </div>
                 </div>
-            </div>
             )}
 
             {visibleCharts.has('cwnd') && (
-            <div className="chart-section">
-                <div className="chart-title">Congestion Window (CWND)</div>
-                <div style={{ height: 120 }}>
-                    <Line ref={(el: any) => chartRefs.current[2] = el} data={chartData.cwnd} options={options} plugins={plugins as any} />
+                <div className="chart-section">
+                    <div className="chart-title">Congestion Window (CWND)</div>
+                    <div style={{ height: 180 }}>
+                        <Line ref={(el: any) => chartRefs.current[2] = el} data={chartData.cwnd} options={options} plugins={plugins as any} />
+                    </div>
                 </div>
-            </div>
             )}
 
             {visibleCharts.has('rtt') && (
-            <div className="chart-section">
-                <div className="chart-title">Round Trip Time (ms)</div>
-                <div style={{ height: 120 }}>
-                    <Line ref={(el: any) => chartRefs.current[3] = el} data={chartData.rtt} options={options} plugins={plugins as any} />
+                <div className="chart-section">
+                    <div className="chart-title">Round Trip Time (ms)</div>
+                    <div style={{ height: 180 }}>
+                        <Line ref={(el: any) => chartRefs.current[3] = el} data={chartData.rtt} options={options} plugins={plugins as any} />
+                    </div>
                 </div>
-            </div>
             )}
         </div>
     );
@@ -401,7 +401,7 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                 outBwMbps: point.outBandwidth / 1000000,
                 cwndKB: point.congestionWin / 1024,
             }));
-            
+
             setFullHistory(formatted);
             setDisplayData(formatted.length > 5000 ? downsampleData(formatted as any, 2000) as ConnectionHistoryPoint[] : formatted);
         } catch (e) {
@@ -457,8 +457,8 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
     if (!isOpen) return null;
 
     // Current data point for inspector
-    const currentData = hoverIndex !== null && displayData[hoverIndex] 
-        ? displayData[hoverIndex] 
+    const currentData = hoverIndex !== null && displayData[hoverIndex]
+        ? displayData[hoverIndex]
         : (displayData.length > 0 ? displayData[displayData.length - 1] : null);
 
     return (
@@ -521,8 +521,8 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                             <p className="hint">Start recording to capture data.</p>
                         </div>
                     ) : (
-                        <HistoryCharts 
-                            data={displayData} 
+                        <HistoryCharts
+                            data={displayData}
                             onHover={setHoverIndex}
                             onZoom={handleZoom}
                             zoomRange={zoomRange}
