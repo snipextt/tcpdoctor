@@ -264,15 +264,6 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
               📈
             </button>
           )}
-          {onDiagnose && onConfigureAPI && (
-            <button
-              className={`btn-action ${!isAIConfigured ? 'setup' : ''}`}
-              onClick={() => isAIConfigured ? onDiagnose() : onConfigureAPI()}
-              title={isAIConfigured ? 'Run AI Diagnosis' : 'Setup AI Assistant'}
-            >
-              {isAIConfigured ? '🤖' : '⚙️'}
-            </button>
-          )}
 
           <div className="view-menu-container" ref={viewMenuRef} style={{ position: 'relative' }}>
             <button

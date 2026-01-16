@@ -5,11 +5,9 @@ interface SidebarProps {
     activeTab: string;
     onTabChange: (tab: string) => void;
     isAdmin: boolean;
-    isAIDocked: boolean;
-    onToggleAIDock: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, isAdmin, isAIDocked, onToggleAIDock }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, isAdmin }) => {
     return (
         <aside className="sidebar">
             <div className="sidebar-header">
@@ -37,13 +35,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, isAdmin, isAI
                     <span className="nav-icon">🎬</span>
                     <span className="nav-label">Recordings</span>
                 </button>
-                <button
-                    className={`nav-item ${activeTab === 'ai-assistant' ? 'active' : ''}`}
-                    onClick={() => onTabChange('ai-assistant')}
-                >
-                    <span className="nav-icon">✨</span>
-                    <span className="nav-label">AI Assistant</span>
-                </button>
             </nav>
 
             <div className="sidebar-footer">
@@ -57,14 +48,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, isAdmin, isAI
                     </div>
                 )}
 
-                <button
-                    className={`nav-item ai-toggle-item ${isAIDocked ? 'docked' : ''}`}
-                    onClick={onToggleAIDock}
-                    title={isAIDocked ? "Undock AI Assistant" : "Dock AI Assistant"}
-                >
-                    <span className="nav-icon">{isAIDocked ? '🔓' : '📌'}</span>
-                    <span className="nav-label">{isAIDocked ? "Undock AI" : "Dock AI"}</span>
-                </button>
+                )}
 
                 <button
                     className={`nav-item settings-item ${activeTab === 'settings' ? 'active' : ''}`}

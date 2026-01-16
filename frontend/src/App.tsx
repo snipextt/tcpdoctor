@@ -28,9 +28,9 @@ import ConnectionTable from './components/ConnectionTable';
 import FilterControls from './components/FilterControls';
 import ConnectionFilters, { FilterState } from './components/ConnectionFilters';
 import ConnectionDetailView from './components/ConnectionDetailView';
-import AIAssistant from './components/AIAssistant';
-import SettingsModal from './components/SettingsModal';
-import HealthReportModal from './components/HealthReportModal';
+// import AIAssistant from './components/AIAssistant'; // Disabled
+// import SettingsModal from './components/SettingsModal'; // Not used in this view?
+// import HealthReportModal from './components/HealthReportModal'; // Disabled
 import SnapshotControls from './components/SnapshotControls';
 import Sidebar from './components/Sidebar';
 import './App.css';
@@ -50,14 +50,14 @@ function App() {
         SearchText: ""
     }));
     const [activeTab, setActiveTab] = useState('dashboard');
-    const [isAIDocked, setIsAIDocked] = useState(false);
+    // const [isAIDocked, setIsAIDocked] = useState(false);
     const [statsVisible, setStatsVisible] = useState(true); // Control visibility of bottom panel
     const [isLoading, setIsLoading] = useState(true);
 
-    // AI State
-    const [isHealthReportOpen, setIsHealthReportOpen] = useState(false);
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const [isAIConfigured, setIsAIConfigured] = useState(false);
+    // AI State (Disabled)
+    // const [isHealthReportOpen, setIsHealthReportOpen] = useState(false);
+    // const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    // const [isAIConfigured, setIsAIConfigured] = useState(false);
 
     // Snapshot State
     const [isRecording, setIsRecording] = useState(false);
@@ -83,22 +83,9 @@ function App() {
     useEffect(() => {
         const checkAIConfig = async () => {
             try {
-                const configured = await IsLLMConfigured();
-                setIsAIConfigured(configured);
-
-                // Try to load from localStorage if not configured
-                if (!configured) {
-                    const savedKey = localStorage.getItem('gemini_api_key');
-                    if (savedKey) {
-                        try {
-                            await ConfigureLLM(savedKey);
-                            setIsAIConfigured(true);
-                        } catch (e) {
-                            console.warn("Failed to restore API key:", e);
-                            localStorage.removeItem('gemini_api_key');
-                        }
-                    }
-                }
+                // AI Check Disabled
+                // const configured = await IsLLMConfigured();
+                // setIsAIConfigured(configured);
             } catch (e) {
                 console.error("Failed to check AI config:", e);
             }
@@ -229,8 +216,9 @@ function App() {
 
     // AI Handlers
     const handleSaveAPIKey = async (apiKey: string) => {
-        await ConfigureLLM(apiKey);
-        setIsAIConfigured(true);
+        // AI Disabled
+        // await ConfigureLLM(apiKey);
+        // setIsAIConfigured(true);
     };
 
     const handleGenerateReport = async () => {
@@ -367,9 +355,11 @@ function App() {
                 connection={selectedConnection}
                 onBack={() => setSelectedConnection(null)}
                 isAdmin={isAdmin}
-                isAIConfigured={isAIConfigured}
-                onDiagnose={handleDiagnose}
-                onConfigureAPI={() => setIsSettingsOpen(true)}
+                onBack={() => setSelectedConnection(null)}
+                isAdmin={isAdmin}
+                isAIConfigured={false}
+                onDiagnose={async () => null} // AI Disabled
+                onConfigureAPI={() => { }} // AI Disabled
                 getHistory={async () => {
                     if (viewingSnapshotId !== null) {
                         return GetConnectionHistoryForSession(
@@ -397,8 +387,6 @@ function App() {
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
                 isAdmin={isAdmin}
-                isAIDocked={isAIDocked}
-                onToggleAIDock={() => setIsAIDocked(!isAIDocked)}
             />
 
             <main className="main-content">
@@ -411,17 +399,10 @@ function App() {
                             </div>
                             <div className="view-actions">
                                 {viewingSnapshotId !== null ? (
-                                    <div className="viewing-snapshot-indicator">
-                                        <span className="snapshot-badge">🎬 Session #{viewingSnapshotId}</span>
-                                        <button className="btn-back-live" onClick={handleBackToLive}>
-                                            ← Return to Live
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <button className="btn-report" onClick={() => setIsHealthReportOpen(true)}>
-                                        📊 Health Report
+                                    <button className="btn-back-live" onClick={handleBackToLive}>
+                                        ← Return to Live
                                     </button>
-                                )}
+                                ) : null}
                             </div>
                         </header>
 
@@ -452,70 +433,49 @@ function App() {
                             </div>
                         </div>
                     </div>
-                )}
-
-                {activeTab === 'recordings' && (
-                    <div className="recordings-view animate-fade">
-                        <header className="view-header">
-                            <div className="view-title">
-                                <h2>Traffic Recordings</h2>
-                                <p>Analyze historical network activity</p>
-                            </div>
-                        </header>
-                        <div className="recordings-content panel shadow-sm">
-                            <SnapshotControls
-                                isRecording={isRecording}
-                                sessionCount={snapshotCount}
-                                onStartRecording={handleStartRecording}
-                                onStopRecording={handleStopRecording}
-                                getSessions={GetSessions}
-                                getSessionTimeline={GetSessionTimeline}
-                                onLoadSession={(id, timeline) => {
-                                    handleLoadSession(id, timeline);
-                                    setActiveTab('dashboard');
-                                }}
-                                onClear={handleClearSnapshots}
-                                onExportSession={() => { }}
-                                onImportSession={() => { }}
-                            />
+    activeTab === 'recordings' && (
+                <div className="recordings-view animate-fade">
+                    <header className="view-header">
+                        <div className="view-title">
+                            <h2>Traffic Recordings</h2>
+                            <p>Analyze historical network activity</p>
                         </div>
+                    </header>
+                    <div className="recordings-content panel shadow-sm">
+                        <SnapshotControls
+                            isRecording={isRecording}
+                            sessionCount={snapshotCount}
+                            onStartRecording={handleStartRecording}
+                            onStopRecording={handleStopRecording}
+                            getSessions={GetSessions}
+                            getSessionTimeline={GetSessionTimeline}
+                            onLoadSession={(id, timeline) => {
+                                handleLoadSession(id, timeline);
+                                setActiveTab('dashboard');
+                            }}
+                            onClear={handleClearSnapshots}
+                            onExportSession={() => { }}
+                            onImportSession={() => { }}
+                        />
                     </div>
-                )}
+                </div>
+                )
+}
 
-                {activeTab === 'ai-assistant' && (
-                    <div className="ai-view animate-fade">
-                        <header className="view-header">
-                            <div className="view-title">
-                                <h2>AI Network Assistant</h2>
-                                <p>Automated diagnostics and natural language queries</p>
-                            </div>
-                        </header>
-                        <div className="ai-content-inner panel shadow-sm">
-                            <AIAssistant
-                                isOpen={true}
-                                onClose={() => setActiveTab('dashboard')}
-                                onConfigureAPI={() => setActiveTab('settings')}
-                                isConfigured={isAIConfigured}
-                                queryConnections={QueryConnections}
-                                generateHealthReport={handleGenerateReport}
-                                onDiagnose={handleDiagnose}
-                                selectedConnectionInfo={selectedConnection ? `${(selectedConnection as any).LocalAddr}:${(selectedConnection as any).LocalPort}` : undefined}
-                                isDocked={false}
-                            />
-                        </div>
-                    </div>
-                )}
 
-                {activeTab === 'settings' && (
-                    <div className="settings-view animate-fade">
-                        <header className="view-header">
-                            <div className="view-title">
-                                <h2>Application Settings</h2>
-                                <p>Configure preferences and API integrations</p>
-                            </div>
-                        </header>
-                        <div className="settings-content-inner panel shadow-sm">
-                            <div className="settings-card">
+                {
+                    activeTab === 'settings' && (
+                        <div className="settings-view animate-fade">
+                            <header className="view-header">
+                                <div className="view-title">
+                                    <h2>Application Settings</h2>
+                                    <p>Configure preferences and API integrations</p>
+                                </div>
+                            </header>
+                            <div className="settings-content-inner panel shadow-sm">
+                                <div className="settings-card">
+                                    {/* AI Config Disabled */}
+                                    {/* 
                                 <h3>AI Configuration</h3>
                                 <p className="text-dim">Enter your Google Gemini API key to enable AI-powered network diagnostics.</p>
                                 <div className="setting-item">
@@ -528,48 +488,27 @@ function App() {
                                         defaultValue={localStorage.getItem('gemini_api_key') || ''}
                                     />
                                 </div>
+                                */}
 
-                                <h3 style={{ marginTop: '32px' }}>Polling Interval</h3>
-                                <p className="text-dim">Control how frequently the dashboard updates connection metrics.</p>
-                                <div className="setting-item">
-                                    <label>Update Every (ms)</label>
-                                    <input
-                                        type="number"
-                                        className="filter-input"
-                                        value={updateInterval}
-                                        onChange={(e) => setUpdateInterval(parseInt(e.target.value))}
-                                    />
+                                    <h3 style={{ marginTop: '0' }}>Polling Interval</h3>
+                                    <p className="text-dim">Control how frequently the dashboard updates connection metrics.</p>
+                                    <div className="setting-item">
+                                        <label>Update Every (ms)</label>
+                                        <input
+                                            type="number"
+                                            className="filter-input"
+                                            value={updateInterval}
+                                            onChange={(e) => setUpdateInterval(parseInt(e.target.value))}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                )}
-            </main>
+                    )
+                }
+            </main >
 
-            {/* Dockable AI Assistant */}
-            <AIAssistant
-                isOpen={isAIDocked && activeTab !== 'ai-assistant'}
-                onClose={() => setIsAIDocked(false)}
-                onConfigureAPI={() => setActiveTab('settings')}
-                isConfigured={isAIConfigured}
-                queryConnections={QueryConnections}
-                generateHealthReport={handleGenerateReport}
-                onDiagnose={handleDiagnose}
-                selectedConnectionInfo={selectedConnection ? `${(selectedConnection as any).LocalAddr}:${(selectedConnection as any).LocalPort}` : undefined}
-                isDocked={true}
-            />
-
-            <HealthReportModal
-                isOpen={isHealthReportOpen}
-                onClose={() => setIsHealthReportOpen(false)}
-                generateReport={handleGenerateReport}
-                isConfigured={isAIConfigured}
-                onConfigureAPI={() => {
-                    setIsHealthReportOpen(false);
-                    setActiveTab('settings');
-                }}
-            />
-        </div>
+        </div >
     );
 }
 
