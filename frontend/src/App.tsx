@@ -355,8 +355,6 @@ function App() {
                 connection={selectedConnection}
                 onBack={() => setSelectedConnection(null)}
                 isAdmin={isAdmin}
-                onBack={() => setSelectedConnection(null)}
-                isAdmin={isAdmin}
                 isAIConfigured={false}
                 onDiagnose={async () => null} // AI Disabled
                 onConfigureAPI={() => { }} // AI Disabled
@@ -433,35 +431,35 @@ function App() {
                             </div>
                         </div>
                     </div>
-    activeTab === 'recordings' && (
-                <div className="recordings-view animate-fade">
-                    <header className="view-header">
-                        <div className="view-title">
-                            <h2>Traffic Recordings</h2>
-                            <p>Analyze historical network activity</p>
-                        </div>
-                    </header>
-                    <div className="recordings-content panel shadow-sm">
-                        <SnapshotControls
-                            isRecording={isRecording}
-                            sessionCount={snapshotCount}
-                            onStartRecording={handleStartRecording}
-                            onStopRecording={handleStopRecording}
-                            getSessions={GetSessions}
-                            getSessionTimeline={GetSessionTimeline}
-                            onLoadSession={(id, timeline) => {
-                                handleLoadSession(id, timeline);
-                                setActiveTab('dashboard');
-                            }}
-                            onClear={handleClearSnapshots}
-                            onExportSession={() => { }}
-                            onImportSession={() => { }}
-                        />
-                    </div>
-                </div>
-                )
-}
+                )}
 
+                {activeTab === 'recordings' && (
+                    <div className="recordings-view animate-fade">
+                        <header className="view-header">
+                            <div className="view-title">
+                                <h2>Traffic Recordings</h2>
+                                <p>Analyze historical network activity</p>
+                            </div>
+                        </header>
+                        <div className="recordings-content panel shadow-sm">
+                            <SnapshotControls
+                                isRecording={isRecording}
+                                sessionCount={snapshotCount}
+                                onStartRecording={handleStartRecording}
+                                onStopRecording={handleStopRecording}
+                                getSessions={GetSessions}
+                                getSessionTimeline={GetSessionTimeline}
+                                onLoadSession={(id, timeline) => {
+                                    handleLoadSession(id, timeline);
+                                    setActiveTab('dashboard');
+                                }}
+                                onClear={handleClearSnapshots}
+                                onExportSession={() => { }}
+                                onImportSession={() => { }}
+                            />
+                        </div>
+                    </div>
+                )}
 
                 {
                     activeTab === 'settings' && (

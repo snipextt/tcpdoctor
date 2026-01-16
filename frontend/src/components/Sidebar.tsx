@@ -48,7 +48,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, isAdmin }) =>
                     </div>
                 )}
 
-                )}
 
                 <button
                     className={`nav-item settings-item ${activeTab === 'settings' ? 'active' : ''}`}
