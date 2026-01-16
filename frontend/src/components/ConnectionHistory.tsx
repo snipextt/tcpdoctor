@@ -247,6 +247,15 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
         return opts;
     }, [zoomRange, onZoom, onHover, hoverIndex]);
 
+    // Options for Single-Series Charts (No Legend)
+    const optionsNoLegend = useMemo(() => {
+        const opts = JSON.parse(JSON.stringify(options));
+        if (!opts.plugins) opts.plugins = {};
+        if (!opts.plugins.legend) opts.plugins.legend = {};
+        opts.plugins.legend.display = false;
+        return opts;
+    }, [options]);
+
     // Data prep
     const chartData = useMemo(() => {
         const timestamps = data.map(d => new Date(d.timestamp).getTime());
@@ -350,7 +359,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
                 <div className="chart-section">
                     <div className="chart-title">Retransmissions (Bytes)</div>
                     <div style={{ height: 160 }}>
-                        <Bar ref={(el: any) => chartRefs.current[1] = el} data={chartData.retrans} options={options} plugins={plugins as any} />
+                        <Bar ref={(el: any) => chartRefs.current[1] = el} data={chartData.retrans} options={optionsNoLegend} plugins={plugins as any} />
                     </div>
                 </div>
             )}
@@ -359,7 +368,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
                 <div className="chart-section">
                     <div className="chart-title">Congestion Window (CWND)</div>
                     <div style={{ height: 180 }}>
-                        <Line ref={(el: any) => chartRefs.current[2] = el} data={chartData.cwnd} options={options} plugins={plugins as any} />
+                        <Line ref={(el: any) => chartRefs.current[2] = el} data={chartData.cwnd} options={optionsNoLegend} plugins={plugins as any} />
                     </div>
                 </div>
             )}
@@ -368,7 +377,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
                 <div className="chart-section">
                     <div className="chart-title">Round Trip Time (ms)</div>
                     <div style={{ height: 180 }}>
-                        <Line ref={(el: any) => chartRefs.current[3] = el} data={chartData.rtt} options={options} plugins={plugins as any} />
+                        <Line ref={(el: any) => chartRefs.current[3] = el} data={chartData.rtt} options={optionsNoLegend} plugins={plugins as any} />
                     </div>
                 </div>
             )}
