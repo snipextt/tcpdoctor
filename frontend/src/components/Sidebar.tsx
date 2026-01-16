@@ -28,13 +28,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, isAdmin }) =>
                     <span className="nav-icon">📊</span>
                     <span className="nav-label">Dashboard</span>
                 </button>
-                <button
-                    className={`nav-item ${activeTab === 'recordings' ? 'active' : ''}`}
-                    onClick={() => onTabChange('recordings')}
-                >
-                    <span className="nav-icon">🎬</span>
-                    <span className="nav-label">Recordings</span>
-                </button>
             </nav>
 
             <div className="sidebar-footer">

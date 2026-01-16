@@ -138,13 +138,36 @@ const SnapshotControls: React.FC<SnapshotControlsProps> = ({
 
             {isOpen && (
                 <div className="sessions-popover">
-                    {/* Record Button */}
-                    <button
-                        className={`record-btn ${isRecording ? 'stop' : 'start'}`}
-                        onClick={handleRecordToggle}
-                    >
-                        {isRecording ? '⏹ Stop Recording' : '⏺ Start Recording'}
-                    </button>
+                    <div className="popover-header-row">
+                        <div className="limit-info">
+                            <span className="icon">ℹ️</span>
+                            <span>Rolling 1h buffer (auto-discards old data)</span>
+                        </div>
+                    </div>
+
+                    {/* Control Buttons */}
+                    <div className="controls-row">
+                        <button
+                            className={`record-btn ${isRecording ? 'stop' : 'start'}`}
+                            onClick={handleRecordToggle}
+                        >
+                            {isRecording ? '⏹ Stop & Save' : '⏺ Start Snapshot'}
+                        </button>
+
+                        {isRecording && (
+                            <button
+                                className="record-btn lap"
+                                onClick={() => {
+                                    onStopRecording();
+                                    setTimeout(onStartRecording, 200);
+                                    setTimeout(loadSessions, 500);
+                                }}
+                                title="Save current and continue new snapshot"
+                            >
+                                ⏱ Lap (Save & New)
+                            </button>
+                        )}
+                    </div>
 
                     {/* Action Buttons */}
                     <div className="action-row">
