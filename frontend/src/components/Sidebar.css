@@ -2,7 +2,6 @@
     width: 260px;
     height: 100vh;
     background: var(--color-bg-sidebar);
-    backdrop-filter: var(--glass-blur);
     border-right: 1px solid var(--color-border);
     display: flex;
     flex-direction: column;
@@ -24,14 +23,14 @@
 
 .logo-icon {
     font-size: 24px;
-    background: var(--color-primary-glow);
+    background: var(--color-bg-accent);
     width: 40px;
     height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-glow);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border-bright);
 }
 
 .logo-text {
@@ -79,16 +78,15 @@
 }
 
 .nav-item:hover {
-    background: var(--glass-bg);
+    background: var(--color-bg-accent);
     color: var(--color-text-main);
-    border-color: var(--glass-border);
+    border-color: var(--color-border-bright);
 }
 
 .nav-item.active {
-    background: var(--color-primary-glow);
-    color: var(--color-text-main);
+    background: var(--color-primary);
+    color: var(--color-bg-main);
     border-color: var(--color-primary);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
 }
 
 .nav-icon {

@@ -12,10 +12,7 @@
     flex-direction: column;
     padding: 24px;
     overflow: hidden;
-    /* Main content handles its own scrolling if needed */
-    background-image:
-        radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.05) 0px, transparent 50%),
-        radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.05) 0px, transparent 50%);
+    background-color: var(--color-bg-main);
 }
 
 .view-header {
@@ -45,11 +42,9 @@
 /* Panel Styles */
 .panel {
     background: var(--color-bg-card);
-    backdrop-filter: var(--glass-blur);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
     padding: 24px;
-    transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
 .panel:hover {
@@ -57,7 +52,7 @@
 }
 
 .shadow-sm {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow: none;
 }
 
 /* Dashboard Specific */
@@ -103,23 +98,22 @@
 }
 
 .btn-report {
-    background: var(--glass-bg);
-    border: 1px solid var(--color-primary);
-    color: var(--color-primary);
-    border-radius: var(--radius-md);
-    padding: 10px 16px;
-    font-size: 14px;
+    background: transparent;
+    border: 1px solid var(--color-border-bright);
+    color: var(--color-text-main);
+    border-radius: var(--radius-sm);
+    padding: 8px 16px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 8px;
-    transition: all 0.2s;
+    transition: all 0.1s;
 }
 
 .btn-report:hover {
-    background: var(--color-primary-glow);
-    color: white;
+    background: var(--color-bg-accent);
 }
 
 .btn-back-live {
