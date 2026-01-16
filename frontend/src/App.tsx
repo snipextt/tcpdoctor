@@ -396,6 +396,18 @@ function App() {
                                 <p>Monitoring {connectionCount} active connections</p>
                             </div>
                             <div className="view-actions">
+                                <SnapshotControls
+                                    isRecording={isRecording}
+                                    sessionCount={snapshotCount}
+                                    onStartRecording={handleStartRecording}
+                                    onStopRecording={handleStopRecording}
+                                    getSessions={GetSessions}
+                                    getSessionTimeline={GetSessionTimeline}
+                                    onLoadSession={handleLoadSession}
+                                    onClear={handleClearSnapshots}
+                                    onExportSession={() => { }} // Todo
+                                    onImportSession={() => { }} // Todo
+                                />
                                 {viewingSnapshotId !== null ? (
                                     <button className="btn-back-live" onClick={handleBackToLive}>
                                         ← Return to Live
