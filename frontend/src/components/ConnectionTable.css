@@ -7,6 +7,14 @@
   position: relative;
 }
 
+.table-scroll-container {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .table-actions {
   position: absolute;
   top: -50px;
@@ -83,14 +91,12 @@
   display: flex;
   align-items: center;
   border-bottom: 1px solid var(--color-border-bright);
-  height: 40px;
-  min-height: 40px;
   padding: 0 16px;
   font-weight: 700;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-text-dim);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
   background: #050505;
 }
 
@@ -135,13 +141,13 @@
   border-bottom: 1px solid var(--color-border);
   cursor: pointer;
   transition: background 0.1s;
-  font-size: 13px;
+  font-size: 14px;
   font-family: var(--font-main);
   color: var(--color-text-main);
 }
 
 .connection-row:hover {
-  background: #151515;
+  background: #121212;
 }
 
 .connection-row.selected {
@@ -158,9 +164,9 @@
 }
 
 .state-badge {
-  padding: 2px 6px;
+  padding: 4px 10px;
   border-radius: var(--radius-sm);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;

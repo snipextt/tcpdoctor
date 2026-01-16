@@ -39,10 +39,10 @@ interface ColumnDefinition {
 }
 
 const ALL_COLUMNS: ColumnDefinition[] = [
-  { key: 'localAddr', label: 'Local Address', width: 220, align: 'left', defaultVisible: true },
-  { key: 'localPort', label: 'Local Port', width: 110, align: 'left', defaultVisible: true },
-  { key: 'remoteAddr', label: 'Remote Address', width: 220, align: 'left', defaultVisible: true },
-  { key: 'remotePort', label: 'Remote Port', width: 110, align: 'left', defaultVisible: true },
+  { key: 'localAddr', label: 'Local Address', width: 260, align: 'left', defaultVisible: true },
+  { key: 'localPort', label: 'Local Port', width: 120, align: 'left', defaultVisible: true },
+  { key: 'remoteAddr', label: 'Remote Address', width: 260, align: 'left', defaultVisible: true },
+  { key: 'remotePort', label: 'Remote Port', width: 120, align: 'left', defaultVisible: true },
   { key: 'state', label: 'State', width: 110, align: 'left', defaultVisible: true },
   { key: 'pid', label: 'PID', width: 70, align: 'left', defaultVisible: true },
   { key: 'bytesIn', label: 'Bytes In', width: 110, align: 'left', defaultVisible: true },
@@ -104,8 +104,8 @@ const ALL_COLUMNS: ColumnDefinition[] = [
   { key: 'dsackDups', label: 'DSACK Dups', width: 110, align: 'left', defaultVisible: false },
 ];
 
-const ROW_HEIGHT = 48;
-const HEADER_HEIGHT = 44;
+const ROW_HEIGHT = 56;
+const HEADER_HEIGHT = 52;
 
 function ConnectionTable({ connections, selectedConnection, onSelectConnection, isLoading = false, viewingSnapshot = false }: ConnectionTableProps) {
   const [sortColumn, setSortColumn] = useState<SortColumn>('localPort');
@@ -519,53 +519,60 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
         </div>
       </div>
 
-      {/* Header */}
-      <div className="connection-table-header">
-        {columns.map(column => (
-          <div
-            key={column.key}
-            className={`header-cell ${sortColumn === column.key ? 'sorted' : ''}`}
-            style={{ width: column.width, textAlign: column.align }}
-            onClick={() => handleSort(column.key)}
-          >
-            <span>{column.label}</span>
-            {sortColumn === column.key && (
-              <span className="sort-indicator">
-                {sortDirection === 'asc' ? ' ↑' : ' ↓'}
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Table Body */}
-      <div className="connection-table-body">
-        {isLoading ? (
-          <div className="table-message">
-            <div className="spinner"></div>
-            <span>Synchronizing network state...</span>
-          </div>
-        ) : connections.length === 0 ? (
-          <div className="table-message">
-            <span style={{ fontSize: '32px' }}>📡</span>
-            <span>No active TCP connections detected</span>
-          </div>
-        ) : (
-          <AutoSizer>
-            {({ height, width }: { height: number; width: number }) => (
-              <List
-                height={height}
-                itemCount={sortedConnections.length}
-                itemSize={ROW_HEIGHT}
-                width={Math.max(width, totalWidth)}
-                overscanCount={5}
-                itemData={itemData}
+      {/* Table Content with Horizontal Scroll Support */}
+      <div className="table-scroll-container">
+        <div style={{ minWidth: totalWidth }}>
+          {/* Header */}
+          <div className="connection-table-header" style={{ height: HEADER_HEIGHT }}>
+            {columns.map(column => (
+              <div
+                key={column.key}
+                className={`header-cell ${sortColumn === column.key ? 'sorted' : ''}`}
+                style={{ width: column.width, textAlign: column.align }}
+                onClick={() => handleSort(column.key)}
               >
-                {Row}
-              </List>
+                <span>{column.label}</span>
+                {sortColumn === column.key && (
+                  <span className="sort-indicator">
+                    {sortDirection === 'asc' ? ' ↑' : ' ↓'}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Table Body */}
+          <div className="connection-table-body">
+            {isLoading ? (
+              <div className="table-message">
+                <div className="spinner"></div>
+                <span>Synchronizing network state...</span>
+              </div>
+            ) : connections.length === 0 ? (
+              <div className="table-message">
+                <span style={{ fontSize: '32px' }}>📡</span>
+                <span>No active TCP connections detected</span>
+              </div>
+            ) : (
+              <div style={{ height: 'calc(100vh - 350px)', minHeight: '400px' }}>
+                <AutoSizer>
+                  {({ height, width }: { height: number; width: number }) => (
+                    <List
+                      height={height}
+                      itemCount={sortedConnections.length}
+                      itemSize={ROW_HEIGHT}
+                      width={width}
+                      overscanCount={5}
+                      itemData={itemData}
+                    >
+                      {Row}
+                    </List>
+                  )}
+                </AutoSizer>
+              </div>
             )}
-          </AutoSizer>
-        )}
+          </div>
+        </div>
       </div>
 
       {/* Footer */}
