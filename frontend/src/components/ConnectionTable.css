@@ -1,243 +1,191 @@
-/* Connection Table - Modern Dark Theme */
-
 .connection-table-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background-color: var(--color-bg-secondary);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    position: relative; /* Ensure dropdown positioning relative to container */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  overflow: hidden;
+  position: relative;
 }
 
-/* Table Actions & Column Selector */
 .table-actions {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    z-index: 20;
+  position: absolute;
+  top: -50px;
+  right: 0;
+  z-index: 20;
 }
 
 .btn-columns {
-    background: var(--color-bg-tertiary);
-    border: 1px solid var(--color-border);
-    color: var(--color-text-secondary);
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.2s;
+  background: var(--glass-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-dim);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  backdrop-filter: var(--glass-blur);
 }
 
 .btn-columns:hover {
-    background: var(--color-bg-hover);
-    color: var(--color-text);
+  background: var(--color-bg-accent);
+  color: var(--color-text-main);
+  border-color: var(--color-primary);
 }
 
 .column-dropdown {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 4px;
-    background: var(--color-bg);
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    min-width: 180px;
-    padding: 8px 0;
-    z-index: 100;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-/* Custom scrollbar for dropdown */
-.column-dropdown::-webkit-scrollbar {
-    width: 6px;
-}
-
-.column-dropdown::-webkit-scrollbar-thumb {
-    background-color: var(--color-border);
-    border-radius: 3px;
-}
-
-.column-dropdown::-webkit-scrollbar-track {
-    background-color: transparent;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: var(--color-bg-accent);
+  border: 1px solid var(--color-border-bright);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  min-width: 200px;
+  padding: 12px 0;
+  z-index: 100;
+  max-height: 480px;
+  overflow-y: auto;
 }
 
 .dropdown-header {
-    padding: 4px 12px 8px;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    color: var(--color-text-dim);
-    border-bottom: 1px solid var(--color-border);
-    margin-bottom: 4px;
-    font-weight: 600;
-    position: sticky;
-    top: 0;
-    background: var(--color-bg);
-    z-index: 1;
+  padding: 0 16px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
 }
 
 .column-option {
-    display: flex;
-    align-items: center;
-    padding: 6px 12px;
-    font-size: 0.9rem;
-    color: var(--color-text);
-    cursor: pointer;
-    transition: background-color 0.15s;
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--color-text-dim);
+  cursor: pointer;
+  transition: all 0.15s;
 }
 
 .column-option:hover {
-    background-color: var(--color-bg-hover);
+  background: var(--glass-bg);
+  color: var(--color-text-main);
 }
 
 .column-option input {
-    margin-right: 8px;
-    accent-color: var(--color-primary);
-}
-
-.column-option input:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  margin-right: 12px;
+  accent-color: var(--color-primary);
 }
 
 .connection-table-header {
-    display: flex;
-    align-items: center;
-    background-color: var(--color-bg-tertiary);
-    border-bottom: 1px solid var(--color-border);
-    height: 44px;
-    min-height: 44px;
-    font-weight: 600;
-    font-size: 0.85rem;
-    color: var(--color-text-secondary);
-    user-select: none;
-    padding-right: 80px; /* Make space for the columns button */
-    overflow-x: hidden; /* Hide header overflow, synced with body via script if needed or just let body scroll */
-}
-
-/* Update: Allow horizontal scroll in body */
-.connection-table-body {
-    flex: 1;
-    overflow-y: hidden; /* Let react-window handle vertical scroll */
-    overflow-x: auto;   /* Allow horizontal scroll */
-}
-
-.health-indicator-header {
-  width: 4px;
-  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border-bright);
+  height: 48px;
+  min-height: 48px;
+  padding: 0 16px;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--color-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .header-cell {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0 0.5rem;
+  gap: 8px;
+  padding: 0 8px;
   cursor: pointer;
   transition: color 0.15s;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .header-cell:hover {
-  color: var(--color-text);
-}
-
-.header-cell:last-child {
-  flex-grow: 1;
+  color: var(--color-text-main);
 }
 
 .header-cell.sorted {
   color: var(--color-primary);
 }
 
-/* Table Body */
+.sort-indicator {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
 .connection-table-body {
   flex: 1;
   overflow: hidden;
   position: relative;
+  padding: 0 8px;
+}
+
+.connection-row {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  margin: 4px 0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  border: 1px solid transparent;
+}
+
+.connection-row:hover {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+  transform: translateX(4px);
+}
+
+.connection-row.selected {
+  background: var(--color-primary-glow);
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.cell {
+  padding: 0 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text-main);
+}
+
+.state-badge {
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .table-message {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100%;
   color: var(--color-text-dim);
-  font-size: 0.85rem;
+  gap: 16px;
+  font-size: 14px;
 }
 
-/* Connection Row */
-.connection-row {
-  display: flex;
-  align-items: center;
-  padding: 0 0.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  cursor: pointer;
-  transition: background 0.1s;
-  font-size: 0.8rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.connection-row:hover {
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.connection-row.selected {
-  background: rgba(59, 130, 246, 0.15);
-  border-left: 2px solid var(--color-primary);
-}
-
-.connection-row.selected:hover {
-  background: rgba(59, 130, 246, 0.2);
-}
-
-/* Health Indicator */
-.health-indicator {
-  width: 4px;
-  height: 20px;
-  border-radius: 2px;
-  margin-right: 0.5rem;
-  flex-shrink: 0;
-}
-
-/* Cell */
-.cell {
-  padding: 0 0.5rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--color-text);
-}
-
-.state-cell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.state-badge {
-  padding: 0.2rem 0.5rem;
-  border-radius: 3px;
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-/* Footer */
 .connection-table-footer {
   display: flex;
   align-items: center;
-  height: 32px;
-  padding: 0 1rem;
-  background: var(--color-bg-secondary);
+  justify-content: flex-end;
+  height: 40px;
+  padding: 0 16px;
   border-top: 1px solid var(--color-border);
-  font-size: 0.75rem;
-  color: var(--color-text-dim);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
 }
-
-/* Remove all responsive and dark mode overrides - already dark */

@@ -110,7 +110,7 @@ const HEADER_HEIGHT = 44;
 function ConnectionTable({ connections, selectedConnection, onSelectConnection, isLoading = false, viewingSnapshot = false }: ConnectionTableProps) {
   const [sortColumn, setSortColumn] = useState<SortColumn>('localPort');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  
+
   // State for visible columns
   const [visibleColumns, setVisibleColumns] = useState<Set<SortColumn>>(() => {
     // Load saved preferences or default
@@ -400,7 +400,7 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
   }), [sortedConnections, columns, selectedConnection, onSelectConnection]);
 
   // Render a single row
-  const Row = useCallback(({ index, style, data }: any) => {
+  const Row = React.memo(({ index, style, data }: any) => {
     const conn = data.connections[index];
     const cols = data.columns as ColumnDefinition[];
     const selected = data.selectedConnection &&
@@ -409,40 +409,36 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
       data.selectedConnection.RemoteAddr === conn.RemoteAddr &&
       data.selectedConnection.RemotePort === conn.RemotePort;
 
-    // Just a basic check to prevent crashes if health is missing
-    const healthColor = getHealthColor(false, false);
-
     return (
       <div
         style={style}
         className={`connection-row ${selected ? 'selected' : ''}`}
-        onMouseDown={() => data.onSelectConnection(conn)}
+        onClick={() => data.onSelectConnection(conn)}
       >
-        {/* Health Indicator */}
-        <div className="health-indicator" style={{ backgroundColor: healthColor }} />
-
         {cols.map((col: ColumnDefinition) => {
           let content: React.ReactNode = null;
           switch (col.key) {
             case 'localAddr':
-              content = conn.LocalAddr;
+              content = <span className="text-main">{conn.LocalAddr}</span>;
               break;
             case 'localPort':
-              content = conn.LocalPort;
+              content = <span className="text-dim">{conn.LocalPort}</span>;
               break;
             case 'remoteAddr':
-              content = conn.RemoteAddr;
+              content = <span className="text-main">{conn.RemoteAddr}</span>;
               break;
             case 'remotePort':
-              content = conn.RemotePort;
+              content = <span className="text-dim">{conn.RemotePort}</span>;
               break;
             case 'state':
+              const stateColor = getTCPStateColor(conn.State);
               content = (
                 <span
                   className="state-badge"
                   style={{
-                    backgroundColor: getTCPStateColor(conn.State),
-                    color: '#ffffff'
+                    backgroundColor: `${stateColor}22`,
+                    color: stateColor,
+                    border: `1px solid ${stateColor}44`
                   }}
                 >
                   {TCPStateNames[conn.State as TCPState] || 'UNKNOWN'}
@@ -450,7 +446,7 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
               );
               break;
             case 'pid':
-              content = formatCount(conn.PID);
+              content = <span className="text-muted">{conn.PID}</span>;
               break;
             case 'bytesIn':
               content = conn.BasicStats ? formatBytes(conn.BasicStats.DataBytesIn).formatted : '—';
@@ -458,117 +454,21 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
             case 'bytesOut':
               content = conn.BasicStats ? formatBytes(conn.BasicStats.DataBytesOut).formatted : '—';
               break;
-            case 'totalSegsOut':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.TotalSegsOut) : '—';
-              break;
-            case 'totalSegsIn':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.TotalSegsIn) : '—';
-              break;
-            case 'segsRetrans':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.SegsRetrans) : '—';
-              break;
-            case 'bytesRetrans':
-              content = conn.ExtendedStats ? formatBytes(conn.ExtendedStats.BytesRetrans).formatted : '—';
-              break;
-            case 'fastRetrans':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.FastRetrans) : '—';
-              break;
-            case 'timeoutEpisodes':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.TimeoutEpisodes) : '—';
-              break;
-            case 'sampleRTT':
-              content = conn.ExtendedStats ? formatRTT(conn.ExtendedStats.SampleRTT).formatted : '—';
-              break;
-            case 'smoothedRTT':
-              content = conn.ExtendedStats ? formatRTT(conn.ExtendedStats.SmoothedRTT).formatted : '—';
-              break;
-            case 'rttVariance':
-              content = conn.ExtendedStats ? formatRTT(conn.ExtendedStats.RTTVariance).formatted : '—';
-              break;
-            case 'minRTT':
-              content = conn.ExtendedStats ? formatRTT(conn.ExtendedStats.MinRTT).formatted : '—';
-              break;
-            case 'maxRTT':
-              content = conn.ExtendedStats ? formatRTT(conn.ExtendedStats.MaxRTT).formatted : '—';
-              break;
-            case 'currentCwnd':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.CurrentCwnd) : '—';
-              break;
-            case 'currentSsthresh':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.CurrentSsthresh) : '—';
-              break;
-            case 'slowStartCount':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.SlowStartCount) : '—';
-              break;
-            case 'congAvoidCount':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.CongAvoidCount) : '—';
-              break;
             case 'inboundBandwidth':
               content = conn.ExtendedStats ? formatBandwidth(conn.ExtendedStats.InboundBandwidth).formatted : '—';
               break;
             case 'outboundBandwidth':
               content = conn.ExtendedStats ? formatBandwidth(conn.ExtendedStats.OutboundBandwidth).formatted : '—';
               break;
-            case 'thruBytesAcked':
-              content = conn.ExtendedStats ? formatBytes(conn.ExtendedStats.ThruBytesAcked).formatted : '—';
-              break;
-            case 'thruBytesReceived':
-              content = conn.ExtendedStats ? formatBytes(conn.ExtendedStats.ThruBytesReceived).formatted : '—';
-              break;
-            case 'curRetxQueue':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.CurRetxQueue) : '—';
-              break;
-            case 'maxRetxQueue':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.MaxRetxQueue) : '—';
-              break;
-            case 'curAppWQueue':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.CurAppWQueue) : '—';
-              break;
-            case 'maxAppWQueue':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.MaxAppWQueue) : '—';
-              break;
-            case 'winScaleSent':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.WinScaleSent) : '—';
-              break;
-            case 'winScaleRcvd':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.WinScaleRcvd) : '—';
-              break;
-            case 'curRwinSent':
-              content = conn.ExtendedStats ? formatBytes(conn.ExtendedStats.CurRwinSent).formatted : '—';
-              break;
-            case 'maxRwinSent':
-              content = conn.ExtendedStats ? formatBytes(conn.ExtendedStats.MaxRwinSent).formatted : '—';
-              break;
-            case 'curRwinRcvd':
-              content = conn.ExtendedStats ? formatBytes(conn.ExtendedStats.CurRwinRcvd).formatted : '—';
-              break;
-            case 'maxRwinRcvd':
-              content = conn.ExtendedStats ? formatBytes(conn.ExtendedStats.MaxRwinRcvd).formatted : '—';
-              break;
-            case 'curMss':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.CurMss) : '—';
-              break;
-            case 'maxMss':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.MaxMss) : '—';
-              break;
-            case 'minMss':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.MinMss) : '—';
-              break;
-            case 'dupAcksIn':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.DupAcksIn) : '—';
-              break;
-            case 'dupAcksOut':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.DupAcksOut) : '—';
-              break;
-            case 'sacksRcvd':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.SacksRcvd) : '—';
-              break;
-            case 'sackBlocksRcvd':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.SackBlocksRcvd) : '—';
-              break;
-            case 'dsackDups':
-              content = conn.ExtendedStats ? formatCount(conn.ExtendedStats.DsackDups) : '—';
-              break;
+            default:
+              // Generic handling for other columns
+              const key = col.key;
+              const stats = conn.ExtendedStats as any;
+              if (stats && stats[key] !== undefined) {
+                content = String(stats[key]);
+              } else {
+                content = '—';
+              }
           }
 
           return (
@@ -583,27 +483,26 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
         })}
       </div>
     );
-  }, []); // Dependencies are handled via data prop
+  });
 
   // Calculate total width for the table
-  const totalWidth = columns.reduce((sum, col) => sum + col.width, 0) + 8; // +8 for health indicator
+  const totalWidth = columns.reduce((sum, col) => sum + col.width, 0);
 
   return (
     <div className="connection-table-container">
       {/* Column Selector Menu */}
       <div className="table-actions">
         <div className="column-selector" ref={columnMenuRef}>
-          <button 
+          <button
             className="btn-columns"
             onClick={() => setIsColumnMenuOpen(!isColumnMenuOpen)}
-            title="Select Columns"
           >
-            📋 Columns
+            📂 Manage Columns
           </button>
-          
+
           {isColumnMenuOpen && (
-            <div className="column-dropdown">
-              <div className="dropdown-header">Visible Columns</div>
+            <div className="column-dropdown animate-fade">
+              <div className="dropdown-header">Table Customization</div>
               {ALL_COLUMNS.map(col => (
                 <label key={col.key} className="column-option">
                   <input
@@ -622,7 +521,6 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
 
       {/* Header */}
       <div className="connection-table-header">
-        <div className="health-indicator-header" />
         {columns.map(column => (
           <div
             key={column.key}
@@ -633,7 +531,7 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
             <span>{column.label}</span>
             {sortColumn === column.key && (
               <span className="sort-indicator">
-                {sortDirection === 'asc' ? '▲' : '▼'}
+                {sortDirection === 'asc' ? ' ↑' : ' ↓'}
               </span>
             )}
           </div>
@@ -643,9 +541,15 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
       {/* Table Body */}
       <div className="connection-table-body">
         {isLoading ? (
-          <div className="table-message">Loading connections...</div>
+          <div className="table-message">
+            <div className="spinner"></div>
+            <span>Synchronizing network state...</span>
+          </div>
         ) : connections.length === 0 ? (
-          <div className="table-message">No connections found</div>
+          <div className="table-message">
+            <span style={{ fontSize: '32px' }}>📡</span>
+            <span>No active TCP connections detected</span>
+          </div>
         ) : (
           <AutoSizer>
             {({ height, width }: { height: number; width: number }) => (
@@ -664,9 +568,9 @@ function ConnectionTable({ connections, selectedConnection, onSelectConnection, 
         )}
       </div>
 
-      {/* Footer with connection count */}
+      {/* Footer */}
       <div className="connection-table-footer">
-        <span>{formatCount(connections.length)} connection{connections.length !== 1 ? 's' : ''}</span>
+        <span>Displaying {formatCount(connections.length)} connections</span>
       </div>
     </div>
   );

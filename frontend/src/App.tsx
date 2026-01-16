@@ -8,6 +8,7 @@ import {
     IsLLMConfigured,
     DiagnoseConnection,
     GenerateHealthReport,
+    QueryConnections,
     StartRecording,
     StopRecording,
     IsRecording,
@@ -27,9 +28,11 @@ import ConnectionTable from './components/ConnectionTable';
 import FilterControls from './components/FilterControls';
 import ConnectionFilters, { FilterState } from './components/ConnectionFilters';
 import ConnectionDetailView from './components/ConnectionDetailView';
+import AIAssistant from './components/AIAssistant';
 import SettingsModal from './components/SettingsModal';
 import HealthReportModal from './components/HealthReportModal';
 import SnapshotControls from './components/SnapshotControls';
+import Sidebar from './components/Sidebar';
 import './App.css';
 
 function App() {
@@ -46,6 +49,9 @@ function App() {
         IPv6Only: false,
         SearchText: ""
     }));
+    const [activeTab, setActiveTab] = useState('dashboard');
+    const [isAIDocked, setIsAIDocked] = useState(false);
+    const [statsVisible, setStatsVisible] = useState(true); // Control visibility of bottom panel
     const [isLoading, setIsLoading] = useState(true);
 
     // AI State
@@ -108,7 +114,7 @@ function App() {
                 setIsAdmin(admin);
                 const interval = await GetUpdateInterval();
                 setUpdateInterval(interval);
-                
+
                 // Sync recording state
                 const recording = await IsRecording();
                 setIsRecording(recording);
@@ -212,7 +218,7 @@ function App() {
                 if (isPrivate(conn.RemoteAddr)) return false;
             }
             if (advancedFilters.stateFilter && conn.State !== parseInt(advancedFilters.stateFilter)) return false;
-            
+
             // Simplified metric checks...
             if (advancedFilters.showOnlyRetrans) {
                 if ((conn.ExtendedStats?.BytesRetrans || 0) === 0 && (conn.ExtendedStats?.SegsRetrans || 0) === 0) return false;
@@ -386,68 +392,172 @@ function App() {
     }
 
     return (
-        <div className="app-container">
-            <header className="app-header">
-                <div className="logo">
-                    <h1>TCP Doctor</h1>
-                </div>
-                <div className="header-actions">
-                    {viewingSnapshotId !== null ? (
-                        <div className="viewing-snapshot-indicator">
-                            <span className="snapshot-badge">🎬 Viewing Session #{viewingSnapshotId}</span>
-                            <button className="btn-back-live" onClick={handleBackToLive}>
-                                ← Back to Live
-                            </button>
-                        </div>
-                    ) : (
-                        <SnapshotControls
-                            isRecording={isRecording}
-                            sessionCount={snapshotCount}
-                            onStartRecording={handleStartRecording}
-                            onStopRecording={handleStopRecording}
-                            getSessions={GetSessions}
-                            getSessionTimeline={GetSessionTimeline}
-                            onLoadSession={handleLoadSession}
-                            onClear={handleClearSnapshots}
-                            onExportSession={() => {}} 
-                            onImportSession={() => {}}
-                        />
-                    )}
-                    <button className="btn-report" onClick={() => setIsHealthReportOpen(true)}>
-                        📊 Health Report
-                    </button>
-                    <button className="btn-settings" onClick={() => setIsSettingsOpen(true)}>
-                        ⚙️
-                    </button>
-                    {!isAdmin && (
-                        <div className="admin-warning-badge">⚠️ Run as Admin</div>
-                    )}
-                </div>
-            </header>
+        <div className="app-shell">
+            <Sidebar
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                isAdmin={isAdmin}
+                isAIDocked={isAIDocked}
+                onToggleAIDock={() => setIsAIDocked(!isAIDocked)}
+            />
 
-            <main className="app-content">
-                <div className="main-panel" style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
-                    <FilterControls
-                        filter={filter}
-                        onFilterChange={handleFilterChange}
-                        advancedFilters={advancedFilters}
-                        onAdvancedFiltersChange={setAdvancedFilters}
-                    />
-                    <ConnectionFilters
-                        filters={advancedFilters}
-                        onFiltersChange={setAdvancedFilters}
-                        isExpanded={filtersExpanded}
-                        onToggleExpand={() => setFiltersExpanded(!filtersExpanded)}
-                    />
-                    <ConnectionTable
-                        connections={filteredConnections}
-                        selectedConnection={selectedConnection}
-                        onSelectConnection={setSelectedConnection}
-                        isLoading={isLoading}
-                        viewingSnapshot={viewingSnapshotId !== null}
-                    />
-                </div>
+            <main className="main-content">
+                {activeTab === 'dashboard' && (
+                    <div className="dashboard-view animate-fade">
+                        <header className="view-header">
+                            <div className="view-title">
+                                <h2>Network Dashboard</h2>
+                                <p>Monitoring {connectionCount} active connections</p>
+                            </div>
+                            <div className="view-actions">
+                                {viewingSnapshotId !== null ? (
+                                    <div className="viewing-snapshot-indicator">
+                                        <span className="snapshot-badge">🎬 Session #{viewingSnapshotId}</span>
+                                        <button className="btn-back-live" onClick={handleBackToLive}>
+                                            ← Return to Live
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button className="btn-report" onClick={() => setIsHealthReportOpen(true)}>
+                                        📊 Health Report
+                                    </button>
+                                )}
+                            </div>
+                        </header>
+
+                        <div className="dashboard-grid">
+                            <div className="filters-section panel shadow-sm">
+                                <FilterControls
+                                    filter={filter}
+                                    onFilterChange={handleFilterChange}
+                                    advancedFilters={advancedFilters}
+                                    onAdvancedFiltersChange={setAdvancedFilters}
+                                />
+                                <ConnectionFilters
+                                    filters={advancedFilters}
+                                    onFiltersChange={setAdvancedFilters}
+                                    isExpanded={filtersExpanded}
+                                    onToggleExpand={() => setFiltersExpanded(!filtersExpanded)}
+                                />
+                            </div>
+
+                            <div className="table-section panel shadow-sm">
+                                <ConnectionTable
+                                    connections={filteredConnections}
+                                    selectedConnection={selectedConnection}
+                                    onSelectConnection={setSelectedConnection}
+                                    isLoading={isLoading}
+                                    viewingSnapshot={viewingSnapshotId !== null}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'recordings' && (
+                    <div className="recordings-view animate-fade">
+                        <header className="view-header">
+                            <div className="view-title">
+                                <h2>Traffic Recordings</h2>
+                                <p>Analyze historical network activity</p>
+                            </div>
+                        </header>
+                        <div className="recordings-content panel shadow-sm">
+                            <SnapshotControls
+                                isRecording={isRecording}
+                                sessionCount={snapshotCount}
+                                onStartRecording={handleStartRecording}
+                                onStopRecording={handleStopRecording}
+                                getSessions={GetSessions}
+                                getSessionTimeline={GetSessionTimeline}
+                                onLoadSession={(id, timeline) => {
+                                    handleLoadSession(id, timeline);
+                                    setActiveTab('dashboard');
+                                }}
+                                onClear={handleClearSnapshots}
+                                onExportSession={() => { }}
+                                onImportSession={() => { }}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'ai-assistant' && (
+                    <div className="ai-view animate-fade">
+                        <header className="view-header">
+                            <div className="view-title">
+                                <h2>AI Network Assistant</h2>
+                                <p>Automated diagnostics and natural language queries</p>
+                            </div>
+                        </header>
+                        <div className="ai-content-inner panel shadow-sm">
+                            <AIAssistant
+                                isOpen={true}
+                                onClose={() => setActiveTab('dashboard')}
+                                onConfigureAPI={() => setActiveTab('settings')}
+                                isConfigured={isAIConfigured}
+                                queryConnections={QueryConnections}
+                                generateHealthReport={handleGenerateReport}
+                                onDiagnose={handleDiagnose}
+                                selectedConnectionInfo={selectedConnection ? `${(selectedConnection as any).LocalAddr}:${(selectedConnection as any).LocalPort}` : undefined}
+                                isDocked={false}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'settings' && (
+                    <div className="settings-view animate-fade">
+                        <header className="view-header">
+                            <div className="view-title">
+                                <h2>Application Settings</h2>
+                                <p>Configure preferences and API integrations</p>
+                            </div>
+                        </header>
+                        <div className="settings-content-inner panel shadow-sm">
+                            <div className="settings-card">
+                                <h3>AI Configuration</h3>
+                                <p className="text-dim">Enter your Google Gemini API key to enable AI-powered network diagnostics.</p>
+                                <div className="setting-item">
+                                    <label>Gemini API Key</label>
+                                    <input
+                                        type="password"
+                                        className="filter-input"
+                                        placeholder="Enter key..."
+                                        onBlur={(e) => handleSaveAPIKey(e.target.value)}
+                                        defaultValue={localStorage.getItem('gemini_api_key') || ''}
+                                    />
+                                </div>
+
+                                <h3 style={{ marginTop: '32px' }}>Polling Interval</h3>
+                                <p className="text-dim">Control how frequently the dashboard updates connection metrics.</p>
+                                <div className="setting-item">
+                                    <label>Update Every (ms)</label>
+                                    <input
+                                        type="number"
+                                        className="filter-input"
+                                        value={updateInterval}
+                                        onChange={(e) => setUpdateInterval(parseInt(e.target.value))}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
+
+            {/* Dockable AI Assistant */}
+            <AIAssistant
+                isOpen={isAIDocked && activeTab !== 'ai-assistant'}
+                onClose={() => setIsAIDocked(false)}
+                onConfigureAPI={() => setActiveTab('settings')}
+                isConfigured={isAIConfigured}
+                queryConnections={QueryConnections}
+                generateHealthReport={handleGenerateReport}
+                onDiagnose={handleDiagnose}
+                selectedConnectionInfo={selectedConnection ? `${(selectedConnection as any).LocalAddr}:${(selectedConnection as any).LocalPort}` : undefined}
+                isDocked={true}
+            />
 
             <HealthReportModal
                 isOpen={isHealthReportOpen}
@@ -456,16 +566,8 @@ function App() {
                 isConfigured={isAIConfigured}
                 onConfigureAPI={() => {
                     setIsHealthReportOpen(false);
-                    setIsSettingsOpen(true);
+                    setActiveTab('settings');
                 }}
-            />
-
-            <SettingsModal
-                isOpen={isSettingsOpen}
-                onClose={() => setIsSettingsOpen(false)}
-                onSaveAPIKey={handleSaveAPIKey}
-                refreshRate={updateInterval}
-                onRefreshRateChange={setUpdateInterval}
             />
         </div>
     );

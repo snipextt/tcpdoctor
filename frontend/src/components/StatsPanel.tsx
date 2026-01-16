@@ -20,6 +20,7 @@ import {
   ChartOptions
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import './StatsPanel.css';
 
 // Register ChartJS components
 ChartJS.register(
@@ -63,7 +64,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
   initialHistory,
 }) => {
   const [history, setHistory] = useState<TimeSeriesData[]>([]);
-  
+
   // View options state
   const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
   const viewMenuRef = React.useRef<HTMLDivElement>(null);
@@ -72,7 +73,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
     if (saved) {
       try {
         return new Set(JSON.parse(saved));
-      } catch (e) {}
+      } catch (e) { }
     }
     return new Set(ALL_SECTIONS.map(s => s.id));
   });
@@ -195,7 +196,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
       y: {
         display: true,
         grid: { color: 'rgba(255,255,255,0.05)' },
-        ticks: { 
+        ticks: {
           color: '#6c757d',
           font: { size: 9 }
         }
@@ -225,9 +226,9 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
     </div>
   );
 
-  const Section = ({ title, children }: { title: string, children: React.ReactNode }) => (
-    <div className="stats-section">
-      <h3>{title}</h3>
+  const Section = ({ title, icon, children, delay }: { title: string, icon?: string, children: React.ReactNode, delay?: string }) => (
+    <div className="stats-section" style={{ animationDelay: delay }}>
+      <h3>{icon && <span className="section-icon">{icon}</span>}{title}</h3>
       <div className="stats-grid">
         {children}
       </div>
@@ -258,7 +259,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
           </div>
         </div>
 
-        {/* Quick Actions - inline buttons */}
+        {/* Quick Actions */}
         <div className="header-actions">
           {onViewHistory && hasHistory && (
             <button className="btn-action" onClick={onViewHistory} title="View History">
@@ -268,24 +269,23 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
           {onDiagnose && onConfigureAPI && (
             <button
               className={`btn-action ${!isAIConfigured ? 'setup' : ''}`}
-              onClick={() => isAIConfigured ? null : onConfigureAPI()}
-              title={isAIConfigured ? 'AI Configured' : 'Setup AI'}
+              onClick={() => isAIConfigured ? onDiagnose() : onConfigureAPI()}
+              title={isAIConfigured ? 'Run AI Diagnosis' : 'Setup AI Assistant'}
             >
               {isAIConfigured ? '🤖' : '⚙️'}
             </button>
           )}
-          
-          {/* View/Sections Dropdown */}
+
           <div className="view-menu-container" ref={viewMenuRef} style={{ position: 'relative' }}>
-            <button 
-              className="btn-action" 
-              onClick={() => setIsViewMenuOpen(!isViewMenuOpen)} 
-              title="Toggle Sections"
+            <button
+              className="btn-action"
+              onClick={() => setIsViewMenuOpen(!isViewMenuOpen)}
+              title="Customize View"
             >
               👁️
             </button>
             {isViewMenuOpen && (
-              <div className="view-dropdown">
+              <div className="view-dropdown animate-fade">
                 <div className="dropdown-header">Visible Sections</div>
                 {ALL_SECTIONS.map(section => (
                   <label key={section.id} className="view-option">
@@ -305,226 +305,209 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
 
       {/* Admin Warning */}
       {!isAdmin && (
-        <div className="admin-warning">
+        <div className="admin-warning animate-fade">
           <span className="icon">⚠️</span>
           <span>
-            Run as Administrator to view extended TCP statistics (RTT, Retransmissions, Congestion Control).
+            Elevated privileges required for extended TCP metrics (RTT, Retransmissions, Congestion Control).
           </span>
         </div>
       )}
 
       <div className="stats-content">
-        {/* Basic Stats (Always Available) */}
-        {visibleSections.has('data') && (
-        <Section title="Data Transfer">
-          <StatItem
-            label="Bytes In"
-            value={BasicStats ? formatBytes(BasicStats.DataBytesIn).formatted : '—'}
-          />
-          <StatItem
-            label="Bytes Out"
-            value={BasicStats ? formatBytes(BasicStats.DataBytesOut).formatted : '—'}
-          />
-          <StatItem
-            label="Segments In"
-            value={BasicStats ? formatCount(BasicStats.DataSegsIn) : '—'}
-          />
-          <StatItem
-            label="Segments Out"
-            value={BasicStats ? formatCount(BasicStats.DataSegsOut) : '—'}
-          />
-        </Section>
-        )}
-
-        {/* Extended Stats */}
-        {hasExtended && ExtendedStats ? (
-          <>
-            {/* Charts Section */}
-            {visibleSections.has('charts') && (
-            <div className="stats-section charts-section">
-              <h3>Live Performance</h3>
-
-              {/* RTT Chart - Own Row */}
-              <div className="chart-container" style={{ background: 'var(--color-bg-secondary)', borderRadius: '6px', padding: '10px', marginBottom: '1rem', height: '150px' }}>
-                <div className="chart-title" style={{ fontSize: '0.8rem', color: 'var(--color-text-dim)', marginBottom: '5px' }}>RTT History (ms)</div>
-                <div style={{ width: '100%', height: '85%' }}>
-                  <Line data={chartData.rtt} options={chartOptions} />
-                </div>
-              </div>
-
-              {/* Bandwidth Chart - Own Row */}
-              <div className="chart-container" style={{ background: 'var(--color-bg-secondary)', borderRadius: '6px', padding: '10px', height: '150px' }}>
-                <div className="chart-title" style={{ fontSize: '0.8rem', color: 'var(--color-text-dim)', marginBottom: '5px' }}>Bandwidth (bps)</div>
-                <div style={{ width: '100%', height: '85%' }}>
-                  <Line data={chartData.bandwidth} options={chartOptions} />
-                </div>
+        {/* Charts Section */}
+        {hasExtended && ExtendedStats && visibleSections.has('charts') && (
+          <div className="stats-section charts-section" style={{ animationDelay: '0.05s' }}>
+            <div className="chart-wrapper">
+              <h3><span className="section-icon">📈</span>RTT History (ms)</h3>
+              <div className="chart-container">
+                <Line data={chartData.rtt} options={chartOptions} />
               </div>
             </div>
-            )}
+            <div className="chart-wrapper">
+              <h3><span className="section-icon">📊</span>Throughput (bps)</h3>
+              <div className="chart-container">
+                <Line data={chartData.bandwidth} options={chartOptions} />
+              </div>
+            </div>
+          </div>
+        )}
 
+        {visibleSections.has('data') && (
+          <Section title="Data Transfer" icon="💾" delay="0.1s">
+            <StatItem
+              label="Bytes In"
+              value={BasicStats ? formatBytes(BasicStats.DataBytesIn).formatted : '—'}
+            />
+            <StatItem
+              label="Bytes Out"
+              value={BasicStats ? formatBytes(BasicStats.DataBytesOut).formatted : '—'}
+            />
+            <StatItem
+              label="Segments In"
+              value={BasicStats ? formatCount(BasicStats.DataSegsIn) : '—'}
+            />
+            <StatItem
+              label="Segments Out"
+              value={BasicStats ? formatCount(BasicStats.DataSegsOut) : '—'}
+            />
+          </Section>
+        )}
+
+        {hasExtended && ExtendedStats ? (
+          <>
             {visibleSections.has('retrans') && (
-            <Section title="Retransmissions">
-              <StatItem
-                label="Segments Retransmitted"
-                value={formatCount(ExtendedStats.SegsRetrans)}
-                subValue={ExtendedStats.TotalSegsOut > 0
-                  ? `${((ExtendedStats.SegsRetrans / ExtendedStats.TotalSegsOut) * 100).toFixed(2)}%`
-                  : '0%'}
-              />
-              <StatItem
-                label="Bytes Retransmitted"
-                value={formatBytes(ExtendedStats.BytesRetrans).formatted}
-              />
-              <StatItem
-                label="Fast Retransmits"
-                value={formatCount(ExtendedStats.FastRetrans)}
-              />
-              <StatItem
-                label="Timeouts"
-                value={formatCount(ExtendedStats.TimeoutEpisodes)}
-              />
-            </Section>
+              <Section title="Retransmissions" icon="🔄" delay="0.15s">
+                <StatItem
+                  label="Retrans Segments"
+                  value={formatCount(ExtendedStats.SegsRetrans)}
+                  subValue={ExtendedStats.TotalSegsOut > 0
+                    ? `${((ExtendedStats.SegsRetrans / ExtendedStats.TotalSegsOut) * 100).toFixed(2)}% loss`
+                    : '0% loss'}
+                />
+                <StatItem
+                  label="Retrans Bytes"
+                  value={formatBytes(ExtendedStats.BytesRetrans).formatted}
+                />
+                <StatItem
+                  label="Fast Retransmits"
+                  value={formatCount(ExtendedStats.FastRetrans)}
+                />
+                <StatItem
+                  label="Timeouts"
+                  value={formatCount(ExtendedStats.TimeoutEpisodes)}
+                />
+              </Section>
             )}
 
             {visibleSections.has('rtt') && (
-            <Section title="Round Trip Time (RTT)">
-              <StatItem
-                label="Smoothed RTT"
-                value={formatRTT(ExtendedStats.SmoothedRTT).formatted}
-              />
-              <StatItem
-                label="RTT Variance"
-                value={formatRTT(ExtendedStats.RTTVariance).formatted}
-              />
-              <StatItem
-                label="Min RTT"
-                value={formatRTT(ExtendedStats.MinRTT).formatted}
-              />
-              <StatItem
-                label="Max RTT"
-                value={formatRTT(ExtendedStats.MaxRTT).formatted}
-              />
-            </Section>
+              <Section title="Performance (RTT)" icon="⏱️" delay="0.2s">
+                <StatItem
+                  label="Smoothed RTT"
+                  value={formatRTT(ExtendedStats.SmoothedRTT).formatted}
+                />
+                <StatItem
+                  label="RTT Variance"
+                  value={formatRTT(ExtendedStats.RTTVariance).formatted}
+                />
+                <StatItem
+                  label="Min RTT"
+                  value={formatRTT(ExtendedStats.MinRTT).formatted}
+                />
+                <StatItem
+                  label="Max RTT"
+                  value={formatRTT(ExtendedStats.MaxRTT).formatted}
+                />
+              </Section>
             )}
 
             {visibleSections.has('congestion') && (
-            <Section title="Congestion Control">
-              <StatItem
-                label="Congestion Window"
-                value={formatCount(ExtendedStats.CurrentCwnd)}
-                subValue="Bytes"
-              />
-              <StatItem
-                label="Slow Start Threshold"
-                value={formatCount(ExtendedStats.CurrentSsthresh)}
-                subValue="Bytes"
-              />
-              <StatItem
-                label="Slow Start Count"
-                value={formatCount(ExtendedStats.SlowStartCount)}
-                subValue="Transitions"
-              />
-              <StatItem
-                label="Congestion Avoidance"
-                value={formatCount(ExtendedStats.CongAvoidCount)}
-                subValue="Transitions"
-              />
-            </Section>
+              <Section title="Congestion Control" icon="🚦" delay="0.25s">
+                <StatItem
+                  label="CWND"
+                  value={formatCount(ExtendedStats.CurrentCwnd)}
+                  subValue="Bytes"
+                />
+                <StatItem
+                  label="SSTHRESH"
+                  value={formatCount(ExtendedStats.CurrentSsthresh)}
+                  subValue="Bytes"
+                />
+                <StatItem
+                  label="Slow Start"
+                  value={formatCount(ExtendedStats.SlowStartCount)}
+                />
+                <StatItem
+                  label="Avoidance"
+                  value={formatCount(ExtendedStats.CongAvoidCount)}
+                />
+              </Section>
             )}
 
             {visibleSections.has('bandwidth') && (
-            <Section title="Bandwidth & Throughput">
-              <StatItem
-                label="Inbound Bandwidth"
-                value={formatBandwidth(ExtendedStats.InboundBandwidth).formatted}
-              />
-              <StatItem
-                label="Outbound Bandwidth"
-                value={formatBandwidth(ExtendedStats.OutboundBandwidth).formatted}
-              />
-              <StatItem
-                label="Throughput Bytes Acked"
-                value={formatBytes(ExtendedStats.ThruBytesAcked).formatted}
-              />
-              <StatItem
-                label="Throughput Bytes Received"
-                value={formatBytes(ExtendedStats.ThruBytesReceived).formatted}
-              />
-            </Section>
+              <Section title="Bandwidth" icon="⚡" delay="0.3s">
+                <StatItem
+                  label="Inbound BW"
+                  value={formatBandwidth(ExtendedStats.InboundBandwidth).formatted}
+                />
+                <StatItem
+                  label="Outbound BW"
+                  value={formatBandwidth(ExtendedStats.OutboundBandwidth).formatted}
+                />
+                <StatItem
+                  label="Thru Acked"
+                  value={formatBytes(ExtendedStats.ThruBytesAcked).formatted}
+                />
+                <StatItem
+                  label="Thru Rcvd"
+                  value={formatBytes(ExtendedStats.ThruBytesReceived).formatted}
+                />
+              </Section>
             )}
 
             {visibleSections.has('window') && (
-            <Section title="Window & Scaling">
-              <StatItem
-                label="Send Window Scale"
-                value={ExtendedStats.WinScaleSent?.toString() || '0'}
-              />
-              <StatItem
-                label="Rcv Window Scale"
-                value={ExtendedStats.WinScaleRcvd?.toString() || '0'}
-              />
-              <StatItem
-                label="Current Send Window"
-                value={formatBytes(ExtendedStats.CurRwinSent).formatted}
-              />
-               <StatItem
-                label="Max Send Window"
-                value={formatBytes(ExtendedStats.MaxRwinSent).formatted}
-              />
-               <StatItem
-                label="Current Rcv Window"
-                value={formatBytes(ExtendedStats.CurRwinRcvd).formatted}
-              />
-               <StatItem
-                label="Max Rcv Window"
-                value={formatBytes(ExtendedStats.MaxRwinRcvd).formatted}
-              />
-            </Section>
+              <Section title="Window Scaling" icon="🪟" delay="0.35s">
+                <StatItem
+                  label="Snd Scale"
+                  value={ExtendedStats.WinScaleSent?.toString() || '0'}
+                />
+                <StatItem
+                  label="Rcv Scale"
+                  value={ExtendedStats.WinScaleRcvd?.toString() || '0'}
+                />
+                <StatItem
+                  label="Cur Snd Win"
+                  value={formatBytes(ExtendedStats.CurRwinSent).formatted}
+                />
+                <StatItem
+                  label="Cur Rcv Win"
+                  value={formatBytes(ExtendedStats.CurRwinRcvd).formatted}
+                />
+              </Section>
             )}
 
             {visibleSections.has('segments') && (
-            <Section title="Segment Info & MSS">
-               <StatItem
-                label="Current MSS"
-                value={ExtendedStats.CurMss?.toString() || '-'}
-                subValue="Bytes"
-              />
-               <StatItem
-                label="Max MSS"
-                value={ExtendedStats.MaxMss?.toString() || '-'}
-                subValue="Bytes"
-              />
-               <StatItem
-                label="Min MSS"
-                value={ExtendedStats.MinMss?.toString() || '-'}
-                subValue="Bytes"
-              />
-            </Section>
+              <Section title="Segment Info & MSS" icon="📦" delay="0.4s">
+                <StatItem
+                  label="Current MSS"
+                  value={ExtendedStats.CurMss?.toString() || '-'}
+                  subValue="Bytes"
+                />
+                <StatItem
+                  label="Max MSS"
+                  value={ExtendedStats.MaxMss?.toString() || '-'}
+                  subValue="Bytes"
+                />
+                <StatItem
+                  label="Min MSS"
+                  value={ExtendedStats.MinMss?.toString() || '-'}
+                  subValue="Bytes"
+                />
+              </Section>
             )}
 
             {visibleSections.has('dups') && (
-             <Section title="Duplicate ACKs & SACKs">
-               <StatItem
-                label="Dup ACKs In"
-                value={formatCount(ExtendedStats.DupAcksIn)}
-              />
-               <StatItem
-                label="Dup ACKs Out"
-                value={formatCount(ExtendedStats.DupAcksOut)}
-              />
-               <StatItem
-                label="SACKs Rcvd"
-                value={formatCount(ExtendedStats.SacksRcvd)}
-              />
-              <StatItem
-                label="SACK Blocks Rcvd"
-                value={formatCount(ExtendedStats.SackBlocksRcvd)}
-              />
-               <StatItem
-                label="DSACK Dups"
-                value={formatCount(ExtendedStats.DsackDups)}
-              />
-            </Section>
+              <Section title="Duplicate ACKs & SACKs" icon="🔂" delay="0.45s">
+                <StatItem
+                  label="Dup ACKs In"
+                  value={formatCount(ExtendedStats.DupAcksIn)}
+                />
+                <StatItem
+                  label="Dup ACKs Out"
+                  value={formatCount(ExtendedStats.DupAcksOut)}
+                />
+                <StatItem
+                  label="SACKs Rcvd"
+                  value={formatCount(ExtendedStats.SacksRcvd)}
+                />
+                <StatItem
+                  label="SACK Blocks Rcvd"
+                  value={formatCount(ExtendedStats.SackBlocksRcvd)}
+                />
+                <StatItem
+                  label="DSACK Dups"
+                  value={formatCount(ExtendedStats.DsackDups)}
+                />
+              </Section>
             )}
           </>
         ) : isAdmin ? (

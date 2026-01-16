@@ -39,6 +39,7 @@ interface AIAssistantProps {
     generateHealthReport: () => Promise<HealthReport>;
     onDiagnose?: () => Promise<DiagnosticResult | null>;
     selectedConnectionInfo?: string;
+    isDocked?: boolean;
 }
 
 const AIAssistant: React.FC<AIAssistantProps> = ({
@@ -50,6 +51,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
     generateHealthReport,
     onDiagnose,
     selectedConnectionInfo,
+    isDocked = false,
 }) => {
     const [messages, setMessages] = useState<Message[]>([
         {
@@ -68,8 +70,10 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
     };
 
     useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
+        if (isOpen) {
+            scrollToBottom();
+        }
+    }, [messages, isOpen]);
 
     const addMessage = (role: 'user' | 'assistant', content: string) => {
         const newMessage: Message = {
@@ -91,10 +95,12 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 
         try {
             const result = await queryConnections(userQuery);
-            if (result.success) {
+            if (result && typeof result.answer === 'string') {
                 addMessage('assistant', result.answer);
+            } else if (result && (result as any).Answer) {
+                addMessage('assistant', (result as any).Answer);
             } else {
-                addMessage('assistant', '❌ ' + result.answer);
+                addMessage('assistant', "I received an empty or invalid response from the network analysis engine.");
             }
         } catch (error) {
             addMessage('assistant', `❌ Error: ${error}`);
@@ -111,16 +117,13 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 
         try {
             const report = await generateHealthReport();
-            let reportContent = `## Network Health Report\n\n**Score: ${report.score}/100**\n\n${report.summary}\n\n`;
+            let reportContent = `## Health Report: ${report.score}/100\n\n${report.summary}\n\n`;
 
             if (report.highlights?.length > 0) {
                 reportContent += '### ✅ Highlights\n' + report.highlights.map(h => `• ${h}`).join('\n') + '\n\n';
             }
             if (report.concerns?.length > 0) {
                 reportContent += '### ⚠️ Concerns\n' + report.concerns.map(c => `• ${c}`).join('\n') + '\n\n';
-            }
-            if (report.suggestions?.length > 0) {
-                reportContent += '### 💡 Suggestions\n' + report.suggestions.map(s => `• ${s}`).join('\n');
             }
 
             addMessage('assistant', reportContent);
@@ -145,13 +148,10 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
             }
 
             const severityIcon = result.severity === 'healthy' ? '✅' : result.severity === 'warning' ? '⚠️' : '❌';
-            let diagContent = `## ${severityIcon} Connection Diagnosis\n\n**${result.summary}**\n\n`;
+            let diagContent = `## ${severityIcon} Diagnosis\n\n${result.summary}\n\n`;
 
             if (result.issues?.length > 0) {
-                diagContent += '### Issues Detected\n' + result.issues.map(i => `• ${i}`).join('\n') + '\n\n';
-            }
-            if (result.possibleCauses?.length > 0) {
-                diagContent += '### Possible Causes\n' + result.possibleCauses.map(c => `• ${c}`).join('\n') + '\n\n';
+                diagContent += '### Issues\n' + result.issues.map(i => `• ${i}`).join('\n') + '\n\n';
             }
             if (result.recommendations?.length > 0) {
                 diagContent += '### Recommendations\n' + result.recommendations.map(r => `• ${r}`).join('\n');
@@ -174,47 +174,45 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 
     if (!isOpen) return null;
 
+    const panelClass = isDocked ? 'ai-docked-panel' : 'ai-full-panel';
+
     return (
-        <div className={`ai-assistant-overlay ${isOpen ? 'open' : ''}`}>
-            <div className="ai-assistant-panel">
-                {/* Header */}
-                <div className="ai-header">
-                    <div className="ai-header-title">
-                        <span className="ai-icon">🤖</span>
-                        <h3>AI Assistant</h3>
-                        {!isConfigured && <span className="not-configured-badge">Not Configured</span>}
-                    </div>
-                    <button className="close-btn" onClick={onClose}>×</button>
+        <div className={`ai-assistant-container ${panelClass} animate-slide-in-right`}>
+            {/* Header */}
+            <div className="ai-header">
+                <div className="ai-header-title">
+                    <span className="ai-icon">✨</span>
+                    <h3>TCP Doctor AI</h3>
+                    {!isConfigured && <span className="badge warning">No API Key</span>}
                 </div>
+                <button className="btn-close" onClick={onClose}>×</button>
+            </div>
 
-                {/* Not configured message */}
-                {!isConfigured && (
-                    <div className="config-prompt">
-                        <p>AI features require a Gemini API key.</p>
-                        <button className="btn-primary" onClick={onConfigureAPI}>
-                            Configure API Key
-                        </button>
-                    </div>
-                )}
-
+            <div className="ai-body">
                 {/* Messages */}
                 <div className="ai-messages">
                     {messages.map((msg) => (
                         <div key={msg.id} className={`message ${msg.role}`}>
                             <div className="message-content">
-                                {msg.content.split('\n').map((line, i) => (
-                                    <span key={i}>
-                                        {line.startsWith('##') ? <strong>{line.replace(/^#+\s*/, '')}</strong> :
-                                            line.startsWith('###') ? <em><strong>{line.replace(/^#+\s*/, '')}</strong></em> :
-                                                line.startsWith('•') ? <span className="bullet">{line}</span> :
-                                                    line.includes('**') ? <span dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} /> :
-                                                        line}
-                                        <br />
-                                    </span>
-                                ))}
+                                {msg.content.split('\n').map((line, i) => {
+                                    if (line.startsWith('##')) {
+                                        return <h2 key={i}>{line.replace(/^#+\s*/, '')}</h2>;
+                                    }
+                                    if (line.startsWith('###')) {
+                                        return <h3 key={i}>{line.replace(/^#+\s*/, '')}</h3>;
+                                    }
+                                    if (line.startsWith('•')) {
+                                        return <div key={i} className="bullet">{line}</div>;
+                                    }
+                                    return (
+                                        <p key={i} dangerouslySetInnerHTML={{
+                                            __html: line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                        }} />
+                                    );
+                                })}
                             </div>
                             <div className="message-time">
-                                {msg.timestamp.toLocaleTimeString()}
+                                {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </div>
                         </div>
                     ))}
@@ -228,41 +226,52 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                     <div ref={messagesEndRef} />
                 </div>
 
-                {/* Quick Actions */}
+                {!isConfigured && (
+                    <div className="config-overlay animate-fade">
+                        <div className="config-card">
+                            <span className="icon">🔑</span>
+                            <p>AI features require a Gemini API key to query the network analysis engine.</p>
+                            <button className="btn-primary" onClick={onConfigureAPI}>
+                                Configure Gemini
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Input & Quick Actions */}
+            <div className="ai-footer">
                 {isConfigured && (
                     <div className="quick-actions">
                         <button
-                            className="action-btn"
+                            className="btn-quick"
                             onClick={handleDiagnose}
                             disabled={isLoading || !onDiagnose}
-                            title="Diagnose selected connection"
                         >
                             🔍 Diagnose
                         </button>
                         <button
-                            className="action-btn"
+                            className="btn-quick"
                             onClick={handleGenerateReport}
                             disabled={isLoading}
-                            title="Generate network health report"
                         >
-                            📊 Health Report
+                            📊 Report
                         </button>
                     </div>
                 )}
 
-                {/* Input */}
-                <div className="ai-input-container">
+                <div className="ai-input-wrapper">
                     <textarea
                         className="ai-input"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={handleKeyPress}
-                        placeholder={isConfigured ? "Ask about your connections..." : "Configure API key to start..."}
+                        placeholder={isConfigured ? "Ask about traffic..." : "Configure API..."}
                         disabled={!isConfigured || isLoading}
                         rows={1}
                     />
                     <button
-                        className="send-btn"
+                        className="btn-send"
                         onClick={handleSend}
                         disabled={!input.trim() || isLoading || !isConfigured}
                     >
