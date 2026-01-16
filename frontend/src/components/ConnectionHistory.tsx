@@ -132,7 +132,7 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
         });
     }, [hoverIndex, data]);
 
-    //Build options with tooltip ENABLED
+    // Build options with tooltip ENABLED and DRAG-to-ZOOM enabled
     const options = useMemo(() => {
         const opts: ChartOptions<any> = {
             responsive: true,
@@ -174,15 +174,18 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
                     }
                 },
                 zoom: {
-                    limits: {
-                        x: { min: 'original', max: 'original' }
-                    },
                     pan: {
                         enabled: true,
                         mode: 'x',
-                        modifierKey: 'ctrl',
+                        modifierKey: 'alt',
                     },
                     zoom: {
+                        drag: {
+                            enabled: true,
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderColor: 'rgba(59, 130, 246, 0.4)',
+                            borderWidth: 1,
+                        },
                         wheel: { enabled: true },
                         pinch: { enabled: true },
                         mode: 'x',
@@ -376,6 +379,7 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
     onClose,
     connectionKey,
     getHistory,
+    viewingHistorical = false
 }) => {
     const [fullHistory, setFullHistory] = useState<ConnectionHistoryPoint[]>([]);
     const [displayData, setDisplayData] = useState<ConnectionHistoryPoint[]>([]);
@@ -478,65 +482,68 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
         ? displayData[hoverIndex]
         : (displayData.length > 0 ? displayData[displayData.length - 1] : null);
 
-    return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="history-modal unified-charts" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
-                    <h2>📈 Connection History</h2>
-                    <div className="control-toolbar">
-                        <button className="tool-btn" onClick={() => zoomStep(0.8)} title="Zoom In - Click to zoom in 20%">🔍+</button>
-                        <button className="tool-btn" onClick={() => zoomStep(1.2)} title="Zoom Out - Click to zoom out 20%">🔍-</button>
-                        <div className="tool-separator"></div>
-                        <button className="tool-btn" onClick={resetZoom} disabled={!zoomRange} title="Reset Zoom (R)">⟲</button>
-                        <div className="tool-separator"></div>
-                        <button className={`tool-btn ${visibleCharts.has('bandwidth') ? 'active' : ''}`} onClick={() => toggleChart('bandwidth')} title="Toggle Bandwidth">B</button>
-                        <button className={`tool-btn ${visibleCharts.has('retrans') ? 'active' : ''}`} onClick={() => toggleChart('retrans')} title="Toggle Retrans">R</button>
-                        <button className={`tool-btn ${visibleCharts.has('cwnd') ? 'active' : ''}`} onClick={() => toggleChart('cwnd')} title="Toggle CWND">C</button>
-                        <button className={`tool-btn ${visibleCharts.has('rtt') ? 'active' : ''}`} onClick={() => toggleChart('rtt')} title="Toggle RTT">T</button>
-                    </div>
-                    <button className="close-btn" onClick={onClose}>×</button>
+    const content = (
+        <div className={`history-modal unified-charts ${viewingHistorical ? 'embedded-mode' : ''}`} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+                <h2>📈 Connection History</h2>
+                <div className="control-toolbar">
+                    <button className="tool-btn" onClick={() => zoomStep(0.8)} title="Zoom In (+)">Zoom In</button>
+                    <button className="tool-btn" onClick={() => zoomStep(1.2)} title="Zoom Out (-)">Zoom Out</button>
+                    <div className="tool-separator"></div>
+                    <button className="tool-btn" onClick={resetZoom} disabled={!zoomRange} title="Reset Zoom (R)">⟲ Reset</button>
+                    <div className="tool-separator"></div>
+                    <button className={`tool-btn ${visibleCharts.has('bandwidth') ? 'active' : ''}`} onClick={() => toggleChart('bandwidth')} title="Toggle Bandwidth">B</button>
+                    <button className={`tool-btn ${visibleCharts.has('retrans') ? 'active' : ''}`} onClick={() => toggleChart('retrans')} title="Toggle Retrans">R</button>
+                    <button className={`tool-btn ${visibleCharts.has('cwnd') ? 'active' : ''}`} onClick={() => toggleChart('cwnd')} title="Toggle CWND">C</button>
+                    <button className={`tool-btn ${visibleCharts.has('rtt') ? 'active' : ''}`} onClick={() => toggleChart('rtt')} title="Toggle RTT">T</button>
                 </div>
+                {!viewingHistorical && <button className="close-btn" onClick={onClose}>×</button>}
+            </div>
 
-                <div className="connection-label">{connectionKey}</div>
+            {!viewingHistorical && <div className="connection-label">{connectionKey}</div>}
 
-                {currentData && (
-                    <div className="inspector-header">
-                        <div className="inspector-item">
-                            <span className="label">Time</span>
-                            <span className="value">{currentData.time}</span>
-                        </div>
-                        <div className="inspector-item">
-                            <span className="label">RTT</span>
-                            <span className="value rtt">{currentData.rttMs?.toFixed(0)} ms</span>
-                        </div>
-                        <div className="inspector-item">
-                            <span className="label">CWND</span>
-                            <span className="value cwnd">{currentData.cwndKB?.toFixed(1)} KB</span>
-                        </div>
-                        <div className="inspector-item">
-                            <span className="label">Retrans</span>
-                            <span className="value retrans">{formatBytes(currentData.retrans || 0)}</span>
-                        </div>
-                        <div className="inspector-item">
-                            <span className="label">BW In</span>
-                            <span className="value bw-in">{currentData.inBwMbps?.toFixed(2)} Mbps</span>
-                        </div>
-                        <div className="inspector-item">
-                            <span className="label">BW Out</span>
-                            <span className="value bw-out">{currentData.outBwMbps?.toFixed(2)} Mbps</span>
-                        </div>
+            {currentData && (
+                <div className="inspector-header">
+                    <div className="inspector-item">
+                        <span className="label">Time</span>
+                        <span className="value">{currentData.time}</span>
                     </div>
-                )}
+                    <div className="inspector-item">
+                        <span className="label">RTT</span>
+                        <span className="value rtt">{currentData.rttMs?.toFixed(0)} ms</span>
+                    </div>
+                    <div className="inspector-item">
+                        <span className="label">CWND</span>
+                        <span className="value cwnd">{currentData.cwndKB?.toFixed(1)} KB</span>
+                    </div>
+                    <div className="inspector-item">
+                        <span className="label">Retrans</span>
+                        <span className="value retrans">{formatBytes(currentData.retrans || 0)}</span>
+                    </div>
+                    <div className="inspector-item">
+                        <span className="label">BW In</span>
+                        <span className="value bw-in">{currentData.inBwMbps?.toFixed(2)} Mbps</span>
+                    </div>
+                    <div className="inspector-item">
+                        <span className="label">BW Out</span>
+                        <span className="value bw-out">{currentData.outBwMbps?.toFixed(2)} Mbps</span>
+                    </div>
+                </div>
+            )}
 
-                <div className="modal-body">
-                    {isLoading ? (
-                        <div className="loading-state">Loading history...</div>
-                    ) : displayData.length === 0 ? (
-                        <div className="empty-state">
-                            <p>No history recorded for this connection.</p>
-                            <p className="hint">Start recording to capture data.</p>
+            <div className="modal-body">
+                {isLoading ? (
+                    <div className="loading-state">Loading history...</div>
+                ) : displayData.length === 0 ? (
+                    <div className="empty-state">
+                        <p>No history recorded for this connection.</p>
+                        <p className="hint">Start recording to capture data.</p>
+                    </div>
+                ) : (
+                    <>
+                        <div className="interaction-hint">
+                            💡 Click and drag to zoom • Mouse wheel to zoom • Alt+Drag to pan • Press 'R' to reset
                         </div>
-                    ) : (
                         <HistoryCharts
                             data={displayData}
                             onHover={setHoverIndex}
@@ -545,9 +552,19 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                             hoverIndex={hoverIndex}
                             visibleCharts={visibleCharts}
                         />
-                    )}
-                </div>
+                    </>
+                )}
             </div>
+        </div>
+    );
+
+    if (viewingHistorical) {
+        return content;
+    }
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            {content}
         </div>
     );
 };
