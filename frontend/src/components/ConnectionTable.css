@@ -120,6 +120,10 @@
   flex: 1;
   overflow: hidden;
   position: relative;
+  min-height: 400px;
+  /* Minimum height to ensure visibility */
+  z-index: 5;
+  background: var(--color-bg-main);
 }
 
 /* Row Styling */
@@ -171,9 +175,11 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--color-text-dim);
+  color: #fff;
+  /* Explicit white for visibility */
   gap: 16px;
   font-size: 14px;
+  background: var(--color-bg-main);
 }
 
 .connection-table-footer {
