@@ -61,45 +61,10 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
   onConfigureAPI,
   onViewHistory,
   hasHistory = false,
+  visibleSections = new Set(ALL_SECTIONS.map(s => s.id)), // Default to all if not provided
   initialHistory,
 }) => {
   const [history, setHistory] = useState<TimeSeriesData[]>([]);
-
-  // View options state
-  const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
-  const viewMenuRef = React.useRef<HTMLDivElement>(null);
-  const [visibleSections, setVisibleSections] = useState<Set<string>>(() => {
-    const saved = localStorage.getItem('stats_visible_sections');
-    if (saved) {
-      try {
-        return new Set(JSON.parse(saved));
-      } catch (e) { }
-    }
-    return new Set(ALL_SECTIONS.map(s => s.id));
-  });
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (viewMenuRef.current && !viewMenuRef.current.contains(event.target as Node)) {
-        setIsViewMenuOpen(false);
-      }
-    };
-    if (isViewMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isViewMenuOpen]);
-
-  const toggleSection = (id: string) => {
-    const newSet = new Set(visibleSections);
-    if (newSet.has(id)) {
-      newSet.delete(id);
-    } else {
-      newSet.add(id);
-    }
-    setVisibleSections(newSet);
-    localStorage.setItem('stats_visible_sections', JSON.stringify(Array.from(newSet)));
-  };
 
   // Connection key to detect selection changes
   const connectionKey = connection
@@ -243,34 +208,6 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
               📈
             </button>
           )}
-
-          <div className="view-menu-container" ref={viewMenuRef} style={{ position: 'relative' }}>
-            <button
-              className="btn-action"
-              onClick={() => setIsViewMenuOpen(!isViewMenuOpen)}
-              title="Customize View"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-            </button>
-            {isViewMenuOpen && (
-              <div className="view-dropdown animate-fade">
-                <div className="dropdown-header">Visible Sections</div>
-                {ALL_SECTIONS.map(section => (
-                  <label key={section.id} className="view-option">
-                    <input
-                      type="checkbox"
-                      checked={visibleSections.has(section.id)}
-                      onChange={() => toggleSection(section.id)}
-                    />
-                    {section.label}
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
