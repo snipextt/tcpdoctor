@@ -278,15 +278,10 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 		}
 
 		// 3. Update History with what we SENT
-		// Determine role: if any part is a function response, role is "function" (or we rely on "user" if model is lenient,
-		// but formally it should be "function" for responses. Gemini Go SDK uses "function" for responses).
+		// The Gemini Go SDK (and API) strictly requires roles to be "user" or "model".
+		// Function responses are considered "user" input in the chat history context.
 		role := "user"
-		for _, p := range nextParts {
-			if p.FunctionResponse != nil {
-				role = "function"
-				break
-			}
-		}
+		// (Removed logic that set role to "function" because SDK rejects it)
 
 		// Create a copy of parts for history to avoid reference issues and convert to pointers
 		historyPartPtrs := make([]*genai.Part, len(nextParts))
