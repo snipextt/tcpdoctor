@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"google.golang.org/genai"
 )
@@ -50,6 +52,11 @@ func (g *GeminiService) Configure(apiKey string) error {
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{
 		APIKey:  apiKey,
 		Backend: genai.BackendGeminiAPI,
+		HTTPClient: &http.Client{
+			// Explicitly set a long timeout (10 minutes) for the underlying HTTP client
+			// to avoid 504 errors on long-running tool calls or large payloads.
+			Timeout: 10 * time.Minute,
+		},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create Gemini client: %w", err)
