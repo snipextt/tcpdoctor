@@ -19,3 +19,31 @@
     display: block;
     border-radius: 4px;
 }
+
+.chart-wrapper {
+    position: relative;
+}
+
+.chart-tooltip {
+    position: absolute;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    pointer-events: none;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    min-width: 80px;
+}
+
+.chart-tooltip .tooltip-label {
+    font-size: 11px;
+    color: var(--color-text-dim);
+    margin-bottom: 2px;
+}
+
+.chart-tooltip .tooltip-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-primary);
+}

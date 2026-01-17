@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './AIChart.css';
 
 interface DataPoint {
@@ -14,8 +14,19 @@ interface AIChartProps {
     yLabel?: string;
 }
 
+interface TooltipData {
+    visible: boolean;
+    x: number;
+    y: number;
+    label: string;
+    value: number;
+}
+
 const AIChart: React.FC<AIChartProps> = ({ type, title, dataPoints, xLabel, yLabel }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [tooltip, setTooltip] = useState<TooltipData>({ visible: false, x: 0, y: 0, label: '', value: 0 });
+    const dataPointsPositions = useRef<Array<{ x: number, y: number, label: string, value: number }>>([]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -31,8 +42,9 @@ const AIChart: React.FC<AIChartProps> = ({ type, title, dataPoints, xLabel, yLab
         canvas.height = rect.height * dpr;
         ctx.scale(dpr, dpr);
 
-        // Clear canvas
+        // Clear canvas and positions
         ctx.clearRect(0, 0, rect.width, rect.height);
+        dataPointsPositions.current = [];
 
         if (type === 'pie') {
             drawPieChart(ctx, dataPoints, rect.width, rect.height);
@@ -42,6 +54,36 @@ const AIChart: React.FC<AIChartProps> = ({ type, title, dataPoints, xLabel, yLab
             drawLineChart(ctx, dataPoints, rect.width, rect.height, xLabel, yLabel);
         }
     }, [type, dataPoints, xLabel, yLabel]);
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        // Check if mouse is near any data point
+        const threshold = 20;
+        for (const pos of dataPointsPositions.current) {
+            const distance = Math.sqrt((mouseX - pos.x) ** 2 + (mouseY - pos.y) ** 2);
+            if (distance < threshold) {
+                setTooltip({
+                    visible: true,
+                    x: pos.x,
+                    y: pos.y,
+                    label: pos.label,
+                    value: pos.value
+                });
+                return;
+            }
+        }
+        setTooltip(prev => ({ ...prev, visible: false }));
+    };
+
+    const handleMouseLeave = () => {
+        setTooltip(prev => ({ ...prev, visible: false }));
+    };
 
     const drawLineChart = (ctx: CanvasRenderingContext2D, data: DataPoint[], width: number, height: number, xLabel?: string, yLabel?: string) => {
         const padding = { top: 30, right: 30, bottom: 50, left: 60 };
@@ -104,10 +146,13 @@ const AIChart: React.FC<AIChartProps> = ({ type, title, dataPoints, xLabel, yLab
         ctx.fillStyle = gradient;
         ctx.fill();
 
-        // Draw points
+        // Draw points and store positions for tooltip
         data.forEach((point, idx) => {
             const x = padding.left + idx * xStep;
             const y = padding.top + chartHeight - (point.value / maxValue) * chartHeight;
+
+            // Store position for tooltip
+            dataPointsPositions.current.push({ x, y, label: point.label, value: point.value });
 
             ctx.beginPath();
             ctx.arc(x, y, 4, 0, Math.PI * 2);
@@ -154,6 +199,12 @@ const AIChart: React.FC<AIChartProps> = ({ type, title, dataPoints, xLabel, yLab
         data.forEach((point, idx) => {
             const sliceAngle = (point.value / total) * 2 * Math.PI;
             const endAngle = startAngle + sliceAngle;
+            const midAngle = startAngle + sliceAngle / 2;
+
+            // Store center of slice for tooltip
+            const tooltipX = centerX + (radius * 0.6) * Math.cos(midAngle);
+            const tooltipY = centerY + (radius * 0.6) * Math.sin(midAngle);
+            dataPointsPositions.current.push({ x: tooltipX, y: tooltipY, label: point.label, value: point.value });
 
             // Draw slice
             ctx.beginPath();
@@ -220,6 +271,14 @@ const AIChart: React.FC<AIChartProps> = ({ type, title, dataPoints, xLabel, yLab
             const x = padding.left + (idx * (barWidth + gap)) + gap / 2;
             const y = padding.top + chartHeight - barHeight;
 
+            // Store bar center for tooltip
+            dataPointsPositions.current.push({
+                x: x + barWidth / 2,
+                y: y + barHeight / 2,
+                label: point.label,
+                value: point.value
+            });
+
             ctx.fillStyle = gradient;
             ctx.fillRect(x, y, barWidth, barHeight);
             ctx.strokeStyle = '#0D47A1';
@@ -283,13 +342,29 @@ const AIChart: React.FC<AIChartProps> = ({ type, title, dataPoints, xLabel, yLab
     };
 
     return (
-        <div className="ai-chart-container">
+        <div className="ai-chart-container" ref={containerRef}>
             <div className="chart-title">{title}</div>
-            <canvas
-                ref={canvasRef}
-                className="ai-chart-canvas"
-                style={{ width: '100%', height: type === 'pie' ? '280px' : '320px' }}
-            />
+            <div className="chart-wrapper">
+                <canvas
+                    ref={canvasRef}
+                    className="ai-chart-canvas"
+                    style={{ width: '100%', height: type === 'pie' ? '280px' : '320px' }}
+                    onMouseMove={handleMouseMove}
+                    onMouseLeave={handleMouseLeave}
+                />
+                {tooltip.visible && (
+                    <div
+                        className="chart-tooltip"
+                        style={{
+                            left: tooltip.x + 10,
+                            top: tooltip.y - 40,
+                        }}
+                    >
+                        <div className="tooltip-label">{tooltip.label}</div>
+                        <div className="tooltip-value">{tooltip.value.toFixed(2)}</div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
