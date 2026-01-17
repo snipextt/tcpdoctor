@@ -160,6 +160,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
       x: { display: false },
       y: {
         display: true,
+        beginAtZero: true,
         grid: { color: 'rgba(255,255,255,0.05)' },
         ticks: {
           color: '#6c757d',
@@ -228,13 +229,13 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
         {hasExtended && ExtendedStats && visibleSections.has('charts') && (
           <div className="stats-section charts-section" style={{ animationDelay: '0.05s' }}>
             <div className="chart-wrapper">
-              <h3><span className="section-icon">📈</span>RTT History (ms)</h3>
+              <h3><span className="section-icon">📈</span>Live RTT (ms)</h3>
               <div className="chart-container">
                 <Line data={chartData.rtt} options={chartOptions} />
               </div>
             </div>
             <div className="chart-wrapper">
-              <h3><span className="section-icon">📊</span>Throughput (bps)</h3>
+              <h3><span className="section-icon">📊</span>Live Throughput (bps)</h3>
               <div className="chart-container">
                 <Line data={chartData.bandwidth} options={chartOptions} />
               </div>
