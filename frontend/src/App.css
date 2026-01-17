@@ -56,6 +56,15 @@
 }
 
 /* Dashboard Specific */
+.dashboard-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 0 4px;
+    /* Align with table edges */
+}
+
 .dashboard-view,
 .recordings-view,
 .ai-view,

@@ -188,11 +188,18 @@
 
 .ai-input-wrapper {
     display: flex;
-    background: #111;
-    border: 1px solid var(--color-border-bright);
-    border-radius: var(--radius-sm);
-    padding: 4px;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 8px;
     align-items: flex-end;
+    transition: border-color 0.2s;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.ai-input-wrapper:focus-within {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 1px var(--color-primary-glow);
 }
 
 .ai-input {
@@ -205,6 +212,7 @@
     resize: none;
     max-height: 120px;
     font-family: inherit;
+    line-height: 1.5;
 }
 
 .ai-input:focus {
@@ -214,21 +222,23 @@
 .btn-send {
     background: var(--color-primary);
     color: white;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: var(--radius-sm);
     border: none;
     cursor: pointer;
-    margin: 2px;
+    margin-left: 8px;
     transition: all 0.2s;
+    flex-shrink: 0;
 }
 
 .btn-send:hover:not(:disabled) {
-    transform: scale(1.05);
-    box-shadow: 0 0 10px var(--color-primary-glow);
+    background: var(--color-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--color-primary-glow);
 }
 
 .btn-send:disabled {

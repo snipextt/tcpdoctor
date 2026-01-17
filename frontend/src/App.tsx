@@ -198,8 +198,8 @@ function App() {
 
     const handleSaveAPIKey = async (key: string) => {
         try {
-            // @ts-ignore
-            await ConfigureLLM("gemini", "gemini-1.5-flash", key);
+            // ConfigureLLM expects a single string (the API key) based on wailsjs definition
+            await ConfigureLLM(key);
             setIsAIConfigured(true);
             checkAIConfig();
         } catch (e) {
