@@ -270,6 +270,24 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 		fmt.Printf("History Count: %d\n", len(sessionHistory))
 		fmt.Printf("Sending %d parts\n", len(nextParts))
 
+		// Calculate payload size estimation
+		totalBytes := 0
+		for idx, p := range nextParts {
+			partBytes := 0
+			if p.Text != "" {
+				partBytes += len(p.Text)
+			}
+			if p.FunctionResponse != nil {
+				// Rough check of json content
+				if res, ok := p.FunctionResponse.Response["result"].(string); ok {
+					partBytes += len(res)
+				}
+			}
+			totalBytes += partBytes
+			fmt.Printf("  Part[%d] TextLen: %d, FnResp Size: %d\n", idx, len(p.Text), partBytes)
+		}
+		fmt.Printf("TOTAL PAYLOAD SIZE approx: %d bytes\n", totalBytes)
+
 		// 2. Send the pending parts (User text OR Tool Responses)
 		result, err := chatSession.SendMessage(ctx, nextParts...)
 		if err != nil {
