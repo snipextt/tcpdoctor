@@ -81,6 +81,22 @@
     border-color: var(--color-primary);
 }
 
+/* Expert Analysis Button */
+.tool-btn.ai-analysis {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(139, 92, 246, 0.1);
+    color: #a78bfa;
+    border-color: rgba(139, 92, 246, 0.3);
+}
+
+.tool-btn.ai-analysis:hover {
+    background: rgba(139, 92, 246, 0.2);
+    color: #c4b5fd;
+    border-color: #a78bfa;
+}
+
 .tool-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;

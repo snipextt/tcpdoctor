@@ -223,13 +223,16 @@
 }
 
 .session-action-btn.primary {
-    background: var(--color-primary);
-    border-color: var(--color-primary);
+    background: #3b82f6;
+    /* Use a clear blue for Load */
+    border-color: #3b82f6;
     color: white;
 }
 
 .session-action-btn.primary:hover:not(:disabled) {
-    filter: brightness(1.1);
+    background: #2563eb;
+    border-color: #2563eb;
+    filter: none;
 }
 
 .session-action-btn:disabled {

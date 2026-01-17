@@ -497,6 +497,11 @@ const ConnectionHistory: React.FC<ConnectionHistoryProps> = ({
                     <button className={`tool-btn ${visibleCharts.has('cwnd') ? 'active' : ''}`} onClick={() => toggleChart('cwnd')} title="Toggle CWND">C</button>
                     <button className={`tool-btn ${visibleCharts.has('rtt') ? 'active' : ''}`} onClick={() => toggleChart('rtt')} title="Toggle RTT">T</button>
                 </div>
+                <div className="tool-separator"></div>
+                <button className="tool-btn ai-analysis" onClick={() => alert("AI Analysis triggered for " + connectionKey)} title="Ask AI Agent to analyze this history">
+                    <span>✨</span> Expert Analysis
+                </button>
+                <div className="tool-separator"></div>
                 {!viewingHistorical && <button className="close-btn" onClick={onClose}>×</button>}
             </div>
 

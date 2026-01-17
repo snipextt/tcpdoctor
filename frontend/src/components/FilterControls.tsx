@@ -8,6 +8,9 @@ import './ConnectionFilters.css';
 interface ExtendedFilterControlsProps extends FilterControlsProps {
   advancedFilters: FilterState;
   onAdvancedFiltersChange: (filters: FilterState) => void;
+  connectionCount?: number;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
 }
 
 const TCP_STATES = [
