@@ -145,7 +145,7 @@ const SnapshotControls: React.FC<SnapshotControlsProps> = ({
                                 className="record-btn start"
                                 onClick={onStartRecording}
                             >
-                                ⏺ Start Recording
+                                ● Start Capture
                             </button>
                         ) : (
                             <button
@@ -155,9 +155,9 @@ const SnapshotControls: React.FC<SnapshotControlsProps> = ({
                                     setTimeout(onStartRecording, 200);
                                     setTimeout(loadSessions, 500);
                                 }}
-                                title="Save current recording and start a new one"
+                                title="Save current capture and start a new one"
                             >
-                                💾 Save & New
+                                💾 Save & New Capture
                             </button>
                         )}
                     </div>
@@ -180,14 +180,14 @@ const SnapshotControls: React.FC<SnapshotControlsProps> = ({
                     <div className="sessions-list">
                         {sessions.length === 0 ? (
                             <div className="empty-state">
-                                No recordings yet.<br />
-                                Click "Start Recording" to begin.
+                                No captures yet.<br />
+                                Click "Start Capture" to begin.
                             </div>
                         ) : (
                             sessions.map((session) => {
                                 const ongoing = isSessionOngoing(session);
                                 const startTimeStr = formatTime(session.startTime);
-                                const endTimeStr = ongoing ? 'Recording...' : formatTime(session.endTime);
+                                const endTimeStr = ongoing ? 'Capturing...' : formatTime(session.endTime);
 
                                 return (
                                     <div key={session.id} className={`session-card ${ongoing ? 'ongoing' : ''}`}>

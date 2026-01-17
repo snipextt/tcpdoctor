@@ -265,7 +265,7 @@ function App() {
         setViewingSnapshotId(sessionId);
         viewingSnapshotRef.current = sessionId;
         setSessionTimeline(timeline);
-        setIsRecording(false); // Can't view and record? usually fine, just stop polling live view
+        // Note: We do NOT set isRecording to false here - recording continues in background
 
         // Transform timeline to ConnectionInfo[] for the table
         // Note: timeline contains CompactConnection (camelCase) but table expects ConnectionInfo (PascalCase)
