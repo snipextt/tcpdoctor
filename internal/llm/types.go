@@ -6,17 +6,33 @@ import (
 
 // DiagnosticResult contains the AI-generated analysis of a TCP connection
 type DiagnosticResult struct {
-	Summary         string   `json:"summary"`         // Brief summary of the connection status
-	Issues          []string `json:"issues"`          // List of detected issues
-	PossibleCauses  []string `json:"possibleCauses"`  // Possible causes for the issues
-	Recommendations []string `json:"recommendations"` // Recommended actions
-	Severity        string   `json:"severity"`        // "healthy", "warning", "critical"
+	Summary         string   `json:"summary"`         // Overall diagnosis summary
+	Issues          []string `json:"issues"`          // List of issues found
+	PossibleCauses  []string `json:"possibleCauses"`  // Potential root causes
+	Recommendations []string `json:"recommendations"` // Suggested fixes
+	Severity        string   `json:"severity"`        // healthy, warning, critical
 }
 
-// QueryResult contains the AI-generated response to a natural language query
+// GraphDataPoint represents a single data point for chart rendering
+type GraphDataPoint struct {
+	Label string  `json:"label"`
+	Value float64 `json:"value"`
+}
+
+// GraphSuggestion represents an AI-suggested graph visualization
+type GraphSuggestion struct {
+	Type       string           `json:"type"`             // line, bar, pie
+	Title      string           `json:"title"`            // Graph title
+	XLabel     string           `json:"xLabel,omitempty"` // X-axis label
+	YLabel     string           `json:"yLabel,omitempty"` // Y-axis label
+	DataPoints []GraphDataPoint `json:"dataPoints"`       // Data to plot
+}
+
+// QueryResult contains the AI response to a connection query
 type QueryResult struct {
-	Answer  string `json:"answer"`  // Natural language answer
-	Success bool   `json:"success"` // Whether the query was successful
+	Answer  string            `json:"answer"`           // Text response (markdown)
+	Graphs  []GraphSuggestion `json:"graphs,omitempty"` // Suggested graph visualizations
+	Success bool              `json:"success"`          // Whether query succeeded
 }
 
 // HealthReport contains an AI-generated summary of network health

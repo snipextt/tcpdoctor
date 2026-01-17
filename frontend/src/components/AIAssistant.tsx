@@ -6,6 +6,7 @@ interface Message {
     role: 'user' | 'assistant';
     content: string;
     timestamp: Date;
+    graphs?: GraphSuggestion[];
 }
 
 interface DiagnosticResult {
@@ -16,8 +17,22 @@ interface DiagnosticResult {
     severity: string;
 }
 
+interface GraphDataPoint {
+    label: string;
+    value: number;
+}
+
+interface GraphSuggestion {
+    type: 'bar' | 'line' | 'pie';
+    title: string;
+    xLabel?: string;
+    yLabel?: string;
+    dataPoints: GraphDataPoint[];
+}
+
 interface QueryResult {
     answer: string;
+    graphs?: GraphSuggestion[];
     success: boolean;
 }
 
@@ -91,12 +106,13 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
         }
     }, [messages, isOpen]);
 
-    const addMessage = (role: 'user' | 'assistant', content: string) => {
+    const addMessage = (role: 'user' | 'assistant', content: string, graphs?: GraphSuggestion[]) => {
         const newMessage: Message = {
             id: `${contextId}-${Date.now()}`,
             role,
             content,
             timestamp: new Date(),
+            graphs,
         };
         setMessagesByContext(prev => ({
             ...prev,
@@ -120,9 +136,12 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 
             const result = await queryConnections(userQuery, historyForContext);
             if (result && typeof result.answer === 'string') {
-                addMessage('assistant', result.answer);
+                addMessage('assistant', result.answer, result.graphs);
             } else if (result && (result as any).Answer) {
-                addMessage('assistant', (result as any).Answer);
+                addMessage('assistant', (result as any).Answer, (result as any).Graphs);
+            } else if (result && (result as any).response) {
+                // Handle JSON format with response field
+                addMessage('assistant', (result as any).response, (result as any).graphs);
             } else {
                 addMessage('assistant', "I received an empty or invalid response from the network analysis engine.");
             }
@@ -234,6 +253,51 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                                         }} />
                                     );
                                 })}
+
+                                {/* Render graphs if present */}
+                                {msg.graphs && msg.graphs.length > 0 && msg.graphs.map((graph, gIdx) => (
+                                    <div key={gIdx} className="ai-graph">
+                                        <div className="graph-title">{graph.title}</div>
+                                        {graph.type === 'bar' && (
+                                            <div className="bar-chart">
+                                                {graph.dataPoints.map((dp, dpIdx) => {
+                                                    const maxVal = Math.max(...graph.dataPoints.map(d => d.value));
+                                                    const pct = maxVal > 0 ? (dp.value / maxVal) * 100 : 0;
+                                                    return (
+                                                        <div key={dpIdx} className="bar-row">
+                                                            <span className="bar-label" title={dp.label}>{dp.label.length > 20 ? dp.label.slice(0, 17) + '...' : dp.label}</span>
+                                                            <div className="bar-track">
+                                                                <div className="bar-fill" style={{ width: `${pct}%` }} />
+                                                            </div>
+                                                            <span className="bar-value">{dp.value.toFixed(1)}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                        {graph.type === 'pie' && (
+                                            <div className="pie-chart">
+                                                {graph.dataPoints.map((dp, dpIdx) => {
+                                                    const total = graph.dataPoints.reduce((s, d) => s + d.value, 0);
+                                                    const pct = total > 0 ? (dp.value / total) * 100 : 0;
+                                                    const colors = ['#4CAF50', '#2196F3', '#FF9800', '#E91E63', '#9C27B0', '#00BCD4'];
+                                                    return (
+                                                        <div key={dpIdx} className="pie-item">
+                                                            <span className="pie-color" style={{ background: colors[dpIdx % colors.length] }} />
+                                                            <span className="pie-label">{dp.label}</span>
+                                                            <span className="pie-value">{pct.toFixed(1)}%</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                        {graph.type === 'line' && (
+                                            <div className="line-chart-placeholder">
+                                                📈 Line chart: {graph.dataPoints.map(d => d.label).join(', ')}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                             <div className="message-time">
                                 {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

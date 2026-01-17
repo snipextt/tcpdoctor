@@ -164,36 +164,45 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 		return nil, fmt.Errorf("failed to serialize connections: %w", err)
 	}
 
-	// Build conversation context from history
-	historyContext := ""
-	if len(history) > 0 {
-		historyContext = "\n\n=== CONVERSATION HISTORY ===\n"
-		// Limit to last 10 messages to save tokens
-		start := 0
-		if len(history) > 10 {
-			start = len(history) - 10
-		}
-		for _, msg := range history[start:] {
-			role := "User"
-			if msg.Role == "assistant" {
-				role = "Assistant"
-			}
-			historyContext += fmt.Sprintf("%s: %s\n\n", role, msg.Content)
-		}
-		historyContext += "=== END HISTORY ===\n"
+	// Build the context data
+	contextData := fmt.Sprintf("Current TCP connections (%d total):\n%s", len(connections), string(connJSON))
+
+	// Build chat history from previous messages
+	var chatHistory []*genai.Content
+
+	// Limit history to last 10 messages to save tokens
+	historyStart := 0
+	if len(history) > 10 {
+		historyStart = len(history) - 10
 	}
 
-	userPrompt := fmt.Sprintf("Current TCP connections (%d total):\n%s%s\n\nUser question: %s",
-		len(connections), string(connJSON), historyContext, query)
+	for _, msg := range history[historyStart:] {
+		var role genai.Role = "user"
+		if msg.Role == "assistant" {
+			role = "model"
+		}
+		chatHistory = append(chatHistory, genai.NewContentFromText(msg.Content, role))
+	}
 
-	config := &genai.GenerateContentConfig{
+	// Create chat config with system instruction and JSON response schema
+	chatConfig := &genai.GenerateContentConfig{
 		SystemInstruction: &genai.Content{
-			Parts: []*genai.Part{{Text: QuerySystemPrompt}},
+			Parts: []*genai.Part{{Text: QuerySystemPromptWithGraphs}},
 		},
-		Temperature: genai.Ptr(float32(0.5)),
+		Temperature:      genai.Ptr(float32(0.5)),
+		ResponseMIMEType: "application/json",
+		ResponseSchema:   queryResponseSchema(),
 	}
 
-	result, err := g.client.Models.GenerateContent(ctx, g.model, genai.Text(userPrompt), config)
+	// Create chat with history
+	chat, err := g.client.Chats.Create(ctx, g.model, chatConfig, chatHistory)
+	if err != nil {
+		return &QueryResult{Answer: fmt.Sprintf("Failed to create chat: %v", err), Success: false}, nil
+	}
+
+	// Send the current message with connection context
+	currentMessage := fmt.Sprintf("%s\n\nUser question: %s", contextData, query)
+	result, err := chat.SendMessage(ctx, genai.Part{Text: currentMessage})
 	if err != nil {
 		return &QueryResult{Answer: fmt.Sprintf("Error: %v", err), Success: false}, nil
 	}
@@ -202,7 +211,101 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 		return &QueryResult{Answer: "No response from AI", Success: false}, nil
 	}
 
-	return &QueryResult{Answer: result.Text(), Success: true}, nil
+	// Parse JSON response
+	var response struct {
+		Response string `json:"response"`
+		Graphs   []struct {
+			Type       string `json:"type"`
+			Title      string `json:"title"`
+			XLabel     string `json:"xLabel"`
+			YLabel     string `json:"yLabel"`
+			DataPoints []struct {
+				Label string  `json:"label"`
+				Value float64 `json:"value"`
+			} `json:"dataPoints"`
+		} `json:"graphs"`
+	}
+
+	if err := json.Unmarshal([]byte(result.Text()), &response); err != nil {
+		// Fallback to raw text if JSON parsing fails
+		return &QueryResult{Answer: result.Text(), Success: true}, nil
+	}
+
+	// Convert to QueryResult
+	qr := &QueryResult{
+		Answer:  response.Response,
+		Success: true,
+	}
+
+	for _, g := range response.Graphs {
+		graph := GraphSuggestion{
+			Type:   g.Type,
+			Title:  g.Title,
+			XLabel: g.XLabel,
+			YLabel: g.YLabel,
+		}
+		for _, dp := range g.DataPoints {
+			graph.DataPoints = append(graph.DataPoints, GraphDataPoint{
+				Label: dp.Label,
+				Value: dp.Value,
+			})
+		}
+		qr.Graphs = append(qr.Graphs, graph)
+	}
+
+	return qr, nil
+}
+
+// queryResponseSchema returns the JSON schema for query responses with graphs
+func queryResponseSchema() *genai.Schema {
+	return &genai.Schema{
+		Type: genai.TypeObject,
+		Properties: map[string]*genai.Schema{
+			"response": {
+				Type:        genai.TypeString,
+				Description: "Your text response in Markdown format. Be natural and helpful.",
+			},
+			"graphs": {
+				Type:        genai.TypeArray,
+				Description: "Optional array of graphs to visualize data. Only include when visualization would help understanding.",
+				Items: &genai.Schema{
+					Type: genai.TypeObject,
+					Properties: map[string]*genai.Schema{
+						"type": {
+							Type:        genai.TypeString,
+							Description: "Graph type",
+							Enum:        []string{"bar", "line", "pie"},
+						},
+						"title": {
+							Type:        genai.TypeString,
+							Description: "Graph title",
+						},
+						"xLabel": {
+							Type:        genai.TypeString,
+							Description: "X-axis label (optional)",
+						},
+						"yLabel": {
+							Type:        genai.TypeString,
+							Description: "Y-axis label (optional)",
+						},
+						"dataPoints": {
+							Type: genai.TypeArray,
+							Items: &genai.Schema{
+								Type: genai.TypeObject,
+								Properties: map[string]*genai.Schema{
+									"label": {Type: genai.TypeString},
+									"value": {Type: genai.TypeNumber},
+								},
+								Required: []string{"label", "value"},
+							},
+						},
+					},
+					Required: []string{"type", "title", "dataPoints"},
+				},
+			},
+		},
+		Required: []string{"response"},
+	}
 }
 
 // GenerateHealthReport creates a comprehensive health report
@@ -221,9 +324,10 @@ func (g *GeminiService) GenerateHealthReport(ctx context.Context, connections []
 
 	for _, c := range connections {
 		totalConns++
-		if c.State == "ESTABLISHED" {
+		switch c.State {
+		case "ESTABLISHED":
 			establishedConns++
-		} else if c.State == "LISTEN" {
+		case "LISTEN":
 			listenConns++
 		}
 		if c.HasWarning {
