@@ -45,7 +45,7 @@ func (s *Service) DiagnoseConnection(localAddr string, localPort uint16, remoteA
 	summary := s.buildConnectionSummary(conn)
 
 	// Call LLM service
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 600*time.Second)
 	defer cancel()
 
 	result, err := s.llmService.DiagnoseConnection(ctx, summary)
@@ -71,7 +71,8 @@ func (s *Service) QueryConnections(query string) (*llm.QueryResult, error) {
 	}
 
 	// Call LLM service
-	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	// Increased timeout to 5 minutes for complex queries
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 	defer cancel()
 
 	result, err := s.llmService.QueryConnections(ctx, query, summaries)
@@ -97,7 +98,8 @@ func (s *Service) QueryConnectionsWithHistory(query string, history []llm.ChatMe
 	}
 
 	// Call LLM service
-	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	// Increased timeout to 5 minutes for multi-turn agent loop
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 	defer cancel()
 
 	result, err := s.llmService.QueryConnectionsWithHistory(ctx, query, summaries, history)
@@ -123,7 +125,8 @@ func (s *Service) GenerateHealthReport() (*llm.HealthReport, error) {
 	}
 
 	// Call LLM service
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	// Increased timeout for comprehensive report generation
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 	defer cancel()
 
 	result, err := s.llmService.GenerateHealthReport(ctx, summaries)
