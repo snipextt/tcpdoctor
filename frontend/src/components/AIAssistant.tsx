@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import './AIAssistant.css';
 import AIChart from './AIChart';
 
@@ -217,6 +218,29 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
         }
     };
 
+    const exportChat = () => {
+        if (messages.length <= 1) return; // Only welcome message
+
+        const timestamp = new Date().toISOString().split('T')[0];
+        let markdown = `# AI Chat Export - Session ${contextId}\n`;
+        markdown += `Exported: ${new Date().toLocaleString()}\n\n---\n\n`;
+
+        messages.forEach(msg => {
+            if (msg.id.includes('welcome')) return; // Skip welcome
+            const role = msg.role === 'user' ? '**You**' : '**AI Assistant**';
+            const time = msg.timestamp.toLocaleTimeString();
+            markdown += `### ${role} (${time})\n\n${msg.content}\n\n---\n\n`;
+        });
+
+        const blob = new Blob([markdown], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ai-chat-session-${contextId}-${timestamp}.md`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     if (!isOpen) return null;
 
     const panelClass = isDocked ? 'ai-docked-panel' : 'ai-full-panel';
@@ -229,7 +253,14 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                     <h3>TCP Doctor AI</h3>
                     {!isConfigured && <span className="badge warning">No API Key</span>}
                 </div>
-                <button className="btn-close" onClick={onClose}>×</button>
+                <div className="ai-header-actions">
+                    {messages.length > 1 && (
+                        <button className="btn-export" onClick={exportChat} title="Export Chat">
+                            Export
+                        </button>
+                    )}
+                    <button className="btn-close" onClick={onClose}>×</button>
+                </div>
             </div>
 
             <div className="ai-body">
@@ -238,22 +269,30 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                     {messages.map((msg) => (
                         <div key={msg.id} className={`message ${msg.role}`}>
                             <div className="message-content">
-                                {msg.content.split('\n').map((line, i) => {
-                                    if (line.startsWith('##')) {
-                                        return <h2 key={i}>{line.replace(/^#+\s*/, '')}</h2>;
-                                    }
-                                    if (line.startsWith('###')) {
-                                        return <h3 key={i}>{line.replace(/^#+\s*/, '')}</h3>;
-                                    }
-                                    if (line.startsWith('•')) {
-                                        return <div key={i} className="bullet">{line}</div>;
-                                    }
-                                    return (
-                                        <p key={i} dangerouslySetInnerHTML={{
-                                            __html: line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                        }} />
-                                    );
-                                })}
+                                <ReactMarkdown
+                                    components={{
+                                        h1: ({ children }) => <h1 className="md-h1">{children}</h1>,
+                                        h2: ({ children }) => <h2 className="md-h2">{children}</h2>,
+                                        h3: ({ children }) => <h3 className="md-h3">{children}</h3>,
+                                        p: ({ children }) => <p className="md-p">{children}</p>,
+                                        ul: ({ children }) => <ul className="md-ul">{children}</ul>,
+                                        ol: ({ children }) => <ol className="md-ol">{children}</ol>,
+                                        li: ({ children }) => <li className="md-li">{children}</li>,
+                                        code: ({ className, children, ...props }) => {
+                                            const isInline = !className;
+                                            return isInline
+                                                ? <code className="md-code-inline" {...props}>{children}</code>
+                                                : <code className={`md-code-block ${className || ''}`} {...props}>{children}</code>;
+                                        },
+                                        pre: ({ children }) => <pre className="md-pre">{children}</pre>,
+                                        strong: ({ children }) => <strong className="md-strong">{children}</strong>,
+                                        em: ({ children }) => <em className="md-em">{children}</em>,
+                                        blockquote: ({ children }) => <blockquote className="md-blockquote">{children}</blockquote>,
+                                        a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="md-link">{children}</a>,
+                                    }}
+                                >
+                                    {msg.content}
+                                </ReactMarkdown>
 
                                 {/* Render graphs if present */}
                                 {msg.graphs && msg.graphs.length > 0 && msg.graphs.map((graph, gIdx) => (
@@ -285,11 +324,13 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                 {!isConfigured && (
                     <div className="config-overlay animate-fade">
                         <div className="config-card">
-                            <span className="icon">Key</span>
-                            <p>AI features require a Gemini API key to query the network analysis engine.</p>
+                            <span className="icon">⚿</span>
+                            <h4>API Key Required</h4>
+                            <p>Connect your Google Gemini API key to unlock AI-powered network analysis, diagnostics, and intelligent insights.</p>
                             <button className="btn-primary" onClick={onConfigureAPI}>
-                                Configure Gemini
+                                Configure API Key
                             </button>
+                            <span className="config-hint">Free tier available at ai.google.dev</span>
                         </div>
                     </div>
                 )}

@@ -69,41 +69,63 @@
     gap: 12px;
     background: transparent;
     border: 1px solid transparent;
-    padding: 10px;
-    border-radius: var(--radius-sm);
+    padding: 12px;
+    border-radius: 8px;
     cursor: pointer;
     text-align: left;
     transition: all 0.2s;
 }
 
 .context-item:hover {
-    background: var(--color-bg-secondary);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.08);
 }
 
 .context-item.active {
-    background: var(--color-bg-primary-dim);
-    border-color: var(--color-primary);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%);
+    border-color: rgba(59, 130, 246, 0.4);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
 }
 
 .context-item .icon {
-    font-size: 18px;
+    font-size: 20px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.context-item.active .icon {
+    background: rgba(59, 130, 246, 0.2);
 }
 
 .context-item .info {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    flex: 1;
+    min-width: 0;
 }
 
 .context-item .title {
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--color-text-main);
+}
+
+.context-item.active .title {
+    color: #60a5fa;
 }
 
 .context-item .subtitle {
     font-size: 11px;
     color: var(--color-text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Chat Area */
@@ -151,4 +173,40 @@
 .embedded-assistant .ai-header {
     display: none;
     /* Hide internal header since we have view header */
+}
+
+/* No Session Placeholder */
+.no-session-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 40px;
+    text-align: center;
+    color: var(--color-text-dim);
+}
+
+.no-session-placeholder .placeholder-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.4;
+}
+
+.no-session-placeholder h3 {
+    margin: 0 0 8px 0;
+    color: var(--color-text-main);
+    font-size: 18px;
+}
+
+.no-session-placeholder p {
+    margin: 0;
+    font-size: 14px;
+    max-width: 300px;
+    line-height: 1.5;
+}
+
+.no-context {
+    color: var(--color-text-dim);
+    font-style: italic;
 }

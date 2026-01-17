@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { tcpmonitor } from "../../wailsjs/go/models";
-import { QueryConnectionsWithHistory, GenerateHealthReport, QueryConnectionsForSession, GenerateHealthReportForSession, QueryConnectionsForSessionWithHistory } from "../../wailsjs/go/main/App";
+import { QueryConnectionsForSessionWithHistory, GenerateHealthReportForSession } from "../../wailsjs/go/main/App";
 import AIAssistant from './AIAssistant';
 import './AIAgentView.css';
 
@@ -29,12 +29,19 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
     onDiagnoseConnection
 }) => {
     const [sessions, setSessions] = useState<RecordingSession[]>([]);
-    const [selectedContext, setSelectedContext] = useState<string>('live'); // 'live' or session ID
+    const [selectedContext, setSelectedContext] = useState<string>('');
     const [isLoadingSessions, setIsLoadingSessions] = useState(false);
 
     useEffect(() => {
         loadSessions();
     }, []);
+
+    // Auto-select first session when sessions load
+    useEffect(() => {
+        if (sessions.length > 0 && !selectedContext) {
+            setSelectedContext(sessions[0].id.toString());
+        }
+    }, [sessions, selectedContext]);
 
     const loadSessions = async () => {
         setIsLoadingSessions(true);
@@ -57,28 +64,15 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
             {/* Context Sidebar */}
             <div className="ai-context-sidebar">
                 <div className="context-header">
-                    <h3>Context</h3>
+                    <h3>Sessions</h3>
                     <button className="refresh-btn" onClick={loadSessions} title="Refresh Sessions">↻</button>
                 </div>
 
                 <div className="context-list">
-                    <button
-                        className={`context-item ${selectedContext === 'live' ? 'active' : ''}`}
-                        onClick={() => setSelectedContext('live')}
-                    >
-                        <span className="icon">📡</span>
-                        <div className="info">
-                            <span className="title">Live Dashboard</span>
-                            <span className="subtitle">Real-time data</span>
-                        </div>
-                    </button>
-
-                    <div className="section-label">Recorded Sessions</div>
-
                     {isLoadingSessions ? (
                         <div className="loading-ctx">Loading...</div>
                     ) : sessions.length === 0 ? (
-                        <div className="empty-ctx">No sessions recorded</div>
+                        <div className="empty-ctx">No sessions recorded yet. Start a capture from the Dashboard to analyze with AI.</div>
                     ) : (
                         sessions.map(s => (
                             <button
@@ -86,7 +80,7 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
                                 className={`context-item ${selectedContext === s.id.toString() ? 'active' : ''}`}
                                 onClick={() => setSelectedContext(s.id.toString())}
                             >
-                                <span className="icon">💾</span>
+                                <span className="icon">●</span>
                                 <div className="info">
                                     <span className="title">Session #{s.id}</span>
                                     <span className="subtitle">{formatTime(s.startTime)} • {s.snapshotCount} snaps</span>
@@ -101,40 +95,42 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
             <div className="ai-chat-area">
                 <div className="chat-header-bar">
                     <div className="current-context">
-                        Using Context: <strong>{selectedContext === 'live' ? 'Live Dashboard' : `Session #${selectedContext}`}</strong>
+                        {selectedContext ? (
+                            <>Analyzing: <strong>Session #{selectedContext}</strong></>
+                        ) : (
+                            <span className="no-context">Select a session to begin analysis</span>
+                        )}
                     </div>
                 </div>
 
                 <div className="embedded-assistant">
-                    <AIAssistant
-                        isOpen={true}
-                        onClose={() => { }} // No close in full view
-                        onConfigureAPI={onConfigure}
-                        isConfigured={isConfigured}
-                        contextId={selectedContext} // Pass context for separate chat histories
-                        // Bindings - Use session-specific methods when viewing a session
-                        queryConnections={async (q, history) => {
-                            if (selectedContext === 'live') {
-                                return await QueryConnectionsWithHistory(q, history);
-                            } else {
-                                // For sessions, use session-aware history method
+                    {selectedContext ? (
+                        <AIAssistant
+                            isOpen={true}
+                            onClose={() => { }}
+                            onConfigureAPI={onConfigure}
+                            isConfigured={isConfigured}
+                            contextId={selectedContext}
+                            queryConnections={async (q, history) => {
                                 const sessionID = parseInt(selectedContext);
-                                // @ts-ignore - method is added in backend but TS definitions might lag
+                                // @ts-ignore
                                 return await QueryConnectionsForSessionWithHistory(q, sessionID, history);
-                            }
-                        }}
-                        generateHealthReport={async () => {
-                            if (selectedContext === 'live') {
-                                return await GenerateHealthReport();
-                            } else {
+                            }}
+                            generateHealthReport={async () => {
                                 const sessionID = parseInt(selectedContext);
                                 return await GenerateHealthReportForSession(sessionID);
-                            }
-                        }}
-                        onDiagnose={() => onDiagnoseConnection(selectedConnection)}
-                        selectedConnectionInfo={selectedConnection ? `${selectedConnection.LocalAddr}:${selectedConnection.LocalPort} -> ${selectedConnection.RemoteAddr}:${selectedConnection.RemotePort}` : undefined}
-                        isDocked={false} // Full width
-                    />
+                            }}
+                            onDiagnose={() => onDiagnoseConnection(selectedConnection)}
+                            selectedConnectionInfo={selectedConnection ? `${selectedConnection.LocalAddr}:${selectedConnection.LocalPort} -> ${selectedConnection.RemoteAddr}:${selectedConnection.RemotePort}` : undefined}
+                            isDocked={false}
+                        />
+                    ) : (
+                        <div className="no-session-placeholder">
+                            <div className="placeholder-icon">◉</div>
+                            <h3>No Session Selected</h3>
+                            <p>Select a recorded session from the sidebar to start AI-powered analysis.</p>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
