@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { tcpmonitor } from "../../wailsjs/go/models";
 import { QueryConnections, GenerateHealthReport } from "../../wailsjs/go/main/App";
 import AIAssistant from './AIAssistant';
 import './AIAgentView.css';
@@ -15,13 +16,17 @@ interface AIAgentViewProps {
     onConfigure: () => void;
     getSessions: () => Promise<RecordingSession[]>;
     getSessionTimeline: (sessionId: number) => Promise<any[]>;
+    selectedConnection: tcpmonitor.ConnectionInfo | null;
+    onDiagnoseConnection: (connection: tcpmonitor.ConnectionInfo | null) => Promise<any>;
 }
 
 const AIAgentView: React.FC<AIAgentViewProps> = ({
     isConfigured,
     onConfigure,
     getSessions,
-    getSessionTimeline
+    getSessionTimeline,
+    selectedConnection,
+    onDiagnoseConnection
 }) => {
     const [sessions, setSessions] = useState<RecordingSession[]>([]);
     const [selectedContext, setSelectedContext] = useState<string>('live'); // 'live' or session ID
@@ -106,6 +111,7 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
                         onClose={() => { }} // No close in full view
                         onConfigureAPI={onConfigure}
                         isConfigured={isConfigured}
+                        contextId={selectedContext} // Pass context for separate chat histories
                         // Bindings
                         queryConnections={async (q) => {
                             // TODO: Pass context ID to query? 
@@ -118,6 +124,8 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
                             return await QueryConnections(prompt);
                         }}
                         generateHealthReport={GenerateHealthReport}
+                        onDiagnose={() => onDiagnoseConnection(selectedConnection)}
+                        selectedConnectionInfo={selectedConnection ? `${selectedConnection.LocalAddr}:${selectedConnection.LocalPort} -> ${selectedConnection.RemoteAddr}:${selectedConnection.RemotePort}` : undefined}
                         isDocked={false} // Full width
                     />
                 </div>

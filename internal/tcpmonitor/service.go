@@ -706,8 +706,11 @@ func (s *Service) buildConnectionSummary(conn *ConnectionInfo) llm.ConnectionSum
 	}
 
 	if conn.ExtendedStats != nil {
-		// RTT in milliseconds
-		summary.RTTMs = float64(conn.ExtendedStats.SmoothedRTT) / 1000.0
+		// RTT in milliseconds (already in ms from Windows API)
+		summary.RTTMs = float64(conn.ExtendedStats.SmoothedRTT)
+		summary.RTTVarianceMs = float64(conn.ExtendedStats.RTTVariance)
+		summary.MinRTTMs = float64(conn.ExtendedStats.MinRTT)
+		summary.MaxRTTMs = float64(conn.ExtendedStats.MaxRTT)
 
 		// Calculate retransmission rate
 		if conn.ExtendedStats.TotalSegsOut > 0 {
@@ -716,6 +719,27 @@ func (s *Service) buildConnectionSummary(conn *ConnectionInfo) llm.ConnectionSum
 
 		summary.InboundBandwidthBps = conn.ExtendedStats.InboundBandwidth
 		summary.OutboundBandwidthBps = conn.ExtendedStats.OutboundBandwidth
+
+		// Congestion Control
+		summary.CongestionWindow = uint64(conn.ExtendedStats.CurrentCwnd)
+		summary.SlowStartThreshold = uint64(conn.ExtendedStats.CurrentSsthresh)
+
+		// Retransmission Details
+		summary.FastRetransmissions = uint64(conn.ExtendedStats.FastRetrans)
+		summary.TimeoutEpisodes = uint64(conn.ExtendedStats.TimeoutEpisodes)
+		summary.TotalSegmentsOut = conn.ExtendedStats.TotalSegsOut
+
+		// Window & ACK Details
+		summary.DuplicateAcksIn = uint64(conn.ExtendedStats.DupAcksIn)
+		summary.DuplicateAcksOut = uint64(conn.ExtendedStats.DupAcksOut)
+		summary.SACKBlocksReceived = uint64(conn.ExtendedStats.SackBlocksRcvd)
+		summary.WindowScaleSent = int(conn.ExtendedStats.WinScaleSent)
+		summary.WindowScaleReceived = int(conn.ExtendedStats.WinScaleRcvd)
+
+		// MSS
+		summary.CurrentMSS = uint64(conn.ExtendedStats.CurMss)
+		summary.MaxMSS = uint64(conn.ExtendedStats.MaxMss)
+		summary.MinMSS = uint64(conn.ExtendedStats.MinMss)
 	}
 
 	return summary

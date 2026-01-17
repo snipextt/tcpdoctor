@@ -40,6 +40,7 @@ interface AIAssistantProps {
     onDiagnose?: () => Promise<DiagnosticResult | null>;
     selectedConnectionInfo?: string;
     isDocked?: boolean;
+    contextId: string; // 'live' or 'session-N' for separate chat histories
 }
 
 const AIAssistant: React.FC<AIAssistantProps> = ({
@@ -52,18 +53,33 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
     onDiagnose,
     selectedConnectionInfo,
     isDocked = false,
+    contextId,
 }) => {
-    const [messages, setMessages] = useState<Message[]>([
-        {
-            id: '1',
-            role: 'assistant',
-            content: 'Hello! I\'m your TCP Doctor AI Assistant. I can help you:\n\n• **Analyze connections** - Ask about your network traffic\n• **Diagnose issues** - Select a connection and click "Diagnose"\n• **Generate reports** - Get a full network health summary\n\nHow can I help you today?',
-            timestamp: new Date(),
-        }
-    ]);
+    // Context-based chat histories - each context has its own message array
+    const [messagesByContext, setMessagesByContext] = useState<Record<string, Message[]>>({});
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // Get current context's messages
+    const messages = messagesByContext[contextId] || [];
+
+    // Initialize welcome message for new contexts
+    useEffect(() => {
+        if (!messagesByContext[contextId]) {
+            const contextName = contextId === 'live' ? 'Live Dashboard' : `Session #${contextId.replace('session-', '')}`;
+            const welcomeMessage: Message = {
+                id: `${contextId}-welcome`,
+                role: 'assistant',
+                content: `Hello! I'm your TCP Doctor AI Assistant for **${contextName}**.\n\nI can help you:\n\n• **Analyze connections** - Ask about network traffic in this context\n• **Diagnose issues** - Select a connection and click "Diagnose"\n• **Generate reports** - Get a comprehensive health summary\n\nHow can I help you today?`,
+                timestamp: new Date(),
+            };
+            setMessagesByContext(prev => ({
+                ...prev,
+                [contextId]: [welcomeMessage]
+            }));
+        }
+    }, [contextId, messagesByContext]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -77,12 +93,15 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 
     const addMessage = (role: 'user' | 'assistant', content: string) => {
         const newMessage: Message = {
-            id: Date.now().toString(),
+            id: `${contextId}-${Date.now()}`,
             role,
             content,
             timestamp: new Date(),
         };
-        setMessages(prev => [...prev, newMessage]);
+        setMessagesByContext(prev => ({
+            ...prev,
+            [contextId]: [...(prev[contextId] || []), newMessage]
+        }));
     };
 
     const handleSend = async () => {

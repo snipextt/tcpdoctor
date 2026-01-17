@@ -38,6 +38,32 @@ type ConnectionSummary struct {
 	InboundBandwidthBps  uint64  `json:"inboundBandwidthBps"`
 	OutboundBandwidthBps uint64  `json:"outboundBandwidthBps"`
 	HasWarning           bool    `json:"hasWarning"`
+
+	// Congestion Control
+	CongestionWindow   uint64 `json:"congestionWindow"`
+	SlowStartThreshold uint64 `json:"slowStartThreshold"`
+
+	// Retransmission Details
+	FastRetransmissions uint64 `json:"fastRetransmissions"`
+	TimeoutEpisodes     uint64 `json:"timeoutEpisodes"`
+	TotalSegmentsOut    uint64 `json:"totalSegmentsOut"`
+
+	// Window & ACK Details
+	DuplicateAcksIn     uint64 `json:"duplicateAcksIn"`
+	DuplicateAcksOut    uint64 `json:"duplicateAcksOut"`
+	SACKBlocksReceived  uint64 `json:"sackBlocksReceived"`
+	WindowScaleSent     int    `json:"windowScaleSent"`
+	WindowScaleReceived int    `json:"windowScaleReceived"`
+
+	// MSS
+	CurrentMSS uint64 `json:"currentMSS"`
+	MaxMSS     uint64 `json:"maxMSS"`
+	MinMSS     uint64 `json:"minMSS"`
+
+	// Additional RTT Metrics
+	RTTVarianceMs float64 `json:"rttVarianceMs"`
+	MinRTTMs      float64 `json:"minRTTMs"`
+	MaxRTTMs      float64 `json:"maxRTTMs"`
 }
 
 // LLMConfig holds configuration for the LLM service

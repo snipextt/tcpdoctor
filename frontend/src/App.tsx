@@ -321,7 +321,18 @@ function App() {
                     isConfigured={isAIConfigured}
                     onConfigure={() => setIsSettingsOpen(true)}
                     getSessions={GetSessions}
+
                     getSessionTimeline={GetSessionTimeline}
+                    selectedConnection={selectedConnection}
+                    onDiagnoseConnection={async (conn) => {
+                        if (!conn) return null;
+                        return await DiagnoseConnection(
+                            conn.LocalAddr,
+                            conn.LocalPort,
+                            conn.RemoteAddr,
+                            conn.RemotePort
+                        );
+                    }}
                 />
             );
         }

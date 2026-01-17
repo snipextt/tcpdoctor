@@ -122,7 +122,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
         datasets: [
           {
             label: 'Inbound',
-            data: history.map(d => d.bwIn),
+            data: history.map(d => (d.bwIn || 0) / 8), // Convert bits to bytes
             borderColor: '#82ca9d',
             backgroundColor: 'rgba(130, 202, 157, 0.2)',
             tension: 0.4,
@@ -132,7 +132,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
           },
           {
             label: 'Outbound',
-            data: history.map(d => d.bwOut),
+            data: history.map(d => (d.bwOut || 0) / 8), // Convert bits to bytes
             borderColor: '#ffc658',
             backgroundColor: 'rgba(255, 198, 88, 0.2)',
             tension: 0.4,
@@ -145,10 +145,11 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
     };
   }, [history]);
 
-  // Chart formatting helpers
+  // Chart formatting helpers - now in Bytes/s
   const formatChartAxis = (value: number) => {
-    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-    if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+    if (value >= 1000000000) return `${(value / 1000000000).toFixed(1)}GB`;
+    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}MB`;
+    if (value >= 1000) return `${(value / 1000).toFixed(1)}KB`;
     return value.toString();
   };
 
@@ -166,7 +167,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
             let label = context.dataset.label || '';
             if (label) label += ': ';
             if (context.parsed.y !== null) {
-              label += formatChartAxis(context.parsed.y);
+              label += formatChartAxis(context.parsed.y) + '/s';
             }
             return label;
           }
@@ -182,10 +183,11 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
         ticks: {
           color: '#6c757d',
           font: { size: 9 },
-          callback: (value) => formatChartAxis(Number(value))
+          callback: (value) => formatChartAxis(Number(value)) + '/s'
         }
       }
     }
+
   };
 
   if (!connection) {
