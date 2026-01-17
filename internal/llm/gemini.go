@@ -246,8 +246,8 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 	}
 	chatConfig.Tools = tools
 
-	// Send the current message with connection context
-	currentMessage := fmt.Sprintf("%s\n\nUser question: %s", contextData, query)
+	// Initial message parts (User Query)
+	nextParts := []genai.Part{genai.Part{Text: fmt.Sprintf("%s\n\nUser question: %s", contextData, query)}}
 
 	// Loop to handle potential multiple tool calls and responses
 	var fullAnswer strings.Builder
@@ -259,47 +259,42 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 	copy(sessionHistory, chatHistory)
 
 	for i := 0; i < 20; i++ {
-		// Create a NEW chat session for this turn with the sanitized history
-		// This is necessary because we need to modify/sanitize history (remove empty parts)
-		// which isn't easy with the stateful ChatSession object.
-
-		// LOGGING: Print the structure of the request we are about to send
-		// This is critical for debugging 400 'data required' errors
-		fmt.Printf("\n--- [Debugging] Sending Message (Turn %d) ---\n", i)
-		fmt.Printf("Current Message Len: %d\n", len(currentMessage))
-		fmt.Printf("History Count: %d\n", len(sessionHistory))
-
-		for idx, h := range sessionHistory {
-			fmt.Printf("History[%d] Role: %s, Parts: %d\n", idx, h.Role, len(h.Parts))
-			for pIdx, part := range h.Parts {
-				hasText := part.Text != ""
-				hasFnCall := part.FunctionCall != nil
-				hasFnResp := part.FunctionResponse != nil
-				hasBlob := part.InlineData != nil || part.FileData != nil
-				fmt.Printf("  Part[%d]: Text=%v, FnCall=%v, FnResp=%v, Blob=%v\n",
-					pIdx, hasText, hasFnCall, hasFnResp, hasBlob)
-				if hasBlob {
-					fmt.Printf("    -> ALERT: Blob part detected at History[%d].Part[%d]\n", idx, pIdx)
-				}
-				if !hasText && !hasFnCall && !hasFnResp && !hasBlob {
-					fmt.Printf("    -> CRITICAL: Empty/Invalid Part at History[%d].Part[%d]!\n", idx, pIdx)
-				}
-			}
-		}
-
+		// 1. Create a NEW chat session for this turn with current history
 		chatSession, err := g.client.Chats.Create(ctx, g.model, chatConfig, sessionHistory)
 		if err != nil {
 			return &QueryResult{Answer: fmt.Sprintf("Failed to create chat session: %v", err), Success: false}, nil
 		}
 
-		result, err := chatSession.SendMessage(ctx, genai.Part{Text: currentMessage})
+		// LOGGING for debugging
+		fmt.Printf("\n--- [Debugging] Turn %d ---\n", i)
+		fmt.Printf("History Count: %d\n", len(sessionHistory))
+		fmt.Printf("Sending %d parts\n", len(nextParts))
+
+		// 2. Send the pending parts (User text OR Tool Responses)
+		result, err := chatSession.SendMessage(ctx, nextParts...)
 		if err != nil {
-			fmt.Printf("\n!!! GEMINI API ERROR: %v\n", err) // Print to console for visibility
-			return &QueryResult{Answer: fmt.Sprintf("Error: %v", err), Success: false}, nil
+			fmt.Printf("\n!!! GEMINI API ERROR: %v\n", err)
+			return &QueryResult{Answer: fmt.Sprintf("Error in turn %d: %v", i, err), Success: false}, nil
 		}
 
-		// Update our manual history with the User's message
-		sessionHistory = append(sessionHistory, genai.NewContentFromText(currentMessage, "user"))
+		// 3. Update History with what we SENT
+		// Determine role: if any part is a function response, role is "function" (or we rely on "user" if model is lenient,
+		// but formally it should be "function" for responses. Gemini Go SDK uses "function" for responses).
+		role := "user"
+		for _, p := range nextParts {
+			if p.FunctionResponse != nil {
+				role = "function"
+				break
+			}
+		}
+
+		// Create a copy of parts for history to avoid reference issues and convert to pointers
+		historyPartPtrs := make([]*genai.Part, len(nextParts))
+		for i, p := range nextParts {
+			val := p // Create a copy
+			historyPartPtrs[i] = &val
+		}
+		sessionHistory = append(sessionHistory, &genai.Content{Role: role, Parts: historyPartPtrs})
 
 		if len(result.Candidates) == 0 {
 			break
@@ -307,27 +302,28 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 
 		candidate := result.Candidates[0]
 
-		// Sanitize and append the Model's response to our history
+		// 4. Sanitize and append what we RECEIVED (Model Response) to history
 		var validParts []*genai.Part
+		hasFunctionCall := false
+
 		for _, p := range candidate.Content.Parts {
 			if p.Text != "" || p.FunctionCall != nil {
 				validParts = append(validParts, p)
 			}
-		}
-		if len(validParts) == 0 {
-			validParts = []*genai.Part{{Text: "(Visual content)"}} // Fallback to avoid empty message
+			if p.FunctionCall != nil {
+				hasFunctionCall = true
+			}
 		}
 
-		// Append sanitized model response to history for next turn
+		if len(validParts) == 0 {
+			validParts = []*genai.Part{{Text: "(Visual content)"}} // Fallback
+		}
+
 		modelContent := &genai.Content{Role: "model", Parts: validParts}
 		sessionHistory = append(sessionHistory, modelContent)
 
-		currentMessage = "" // Reset for next turn logic
-		currentMessage = "" // Reset for next turn logic
-
-		// Handle Parts (Text and Function Calls)
-		var responses []genai.Part
-		hasFunctionCall := false
+		// 5. Process Content (Text and Tool Calls)
+		var toolResponses []genai.Part
 
 		for _, part := range candidate.Content.Parts {
 			if part.Text != "" {
@@ -336,7 +332,6 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 			}
 
 			if part.FunctionCall != nil {
-				hasFunctionCall = true
 				call := part.FunctionCall
 
 				// Special handling for plot_graph (internal caching)
@@ -359,8 +354,7 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 					}
 					graphs = append(graphs, graph)
 
-					// Acknowledge the graph plotting tool
-					responses = append(responses, genai.Part{
+					toolResponses = append(toolResponses, genai.Part{
 						FunctionResponse: &genai.FunctionResponse{
 							Name:     call.Name,
 							Response: map[string]interface{}{"result": "Graph plotted successfully"},
@@ -373,7 +367,7 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 					g.mu.RUnlock()
 
 					if !ok {
-						responses = append(responses, genai.Part{
+						toolResponses = append(toolResponses, genai.Part{
 							FunctionResponse: &genai.FunctionResponse{
 								Name:     call.Name,
 								Response: map[string]interface{}{"error": "unknown tool"},
@@ -384,7 +378,7 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 
 					toolResult, err := handler(ctx, call.Args)
 					if err != nil {
-						responses = append(responses, genai.Part{
+						toolResponses = append(toolResponses, genai.Part{
 							FunctionResponse: &genai.FunctionResponse{
 								Name:     call.Name,
 								Response: map[string]interface{}{"error": err.Error()},
@@ -392,7 +386,7 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 						})
 					} else {
 						toolResultJSON, _ := json.Marshal(toolResult)
-						responses = append(responses, genai.Part{
+						toolResponses = append(toolResponses, genai.Part{
 							FunctionResponse: &genai.FunctionResponse{
 								Name:     call.Name,
 								Response: map[string]interface{}{"result": string(toolResultJSON)},
@@ -403,25 +397,13 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 			}
 		}
 
+		// 6. Check if we need to loop (Are there tool responses?)
 		if !hasFunctionCall {
-			// Model is finished
 			break
 		}
 
-		// Send responses back to model
-		result, err = chatSession.SendMessage(ctx, responses...)
-		if err != nil {
-			return &QueryResult{Answer: fmt.Sprintf("Error in tool turn: %v", err), Success: false}, nil
-		}
-
-		if len(result.Candidates) > 0 {
-			for _, part := range result.Candidates[0].Content.Parts {
-				if part.Text != "" {
-					fullAnswer.WriteString(part.Text)
-					fullAnswer.WriteString("\n\n")
-				}
-			}
-		}
+		// Set up for next turn
+		nextParts = toolResponses
 	}
 
 	ans := strings.TrimSpace(fullAnswer.String())
