@@ -428,3 +428,47 @@
     font-style: italic;
 }
 
+
+/* Quick Actions Labels */
+.quick-actions-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+}
+
+/* Suggestion Buttons */
+.quick-actions.suggestions {
+    gap: 6px;
+}
+
+.btn-suggestion {
+    background: rgba(var(--color-accent-blue-rgb, 100, 149, 237), 0.15);
+    border: 1px solid rgba(var(--color-accent-blue-rgb, 100, 149, 237), 0.3);
+    color: var(--color-text-main);
+    padding: 5px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-suggestion:hover:not(:disabled) {
+    background: rgba(var(--color-accent-blue-rgb, 100, 149, 237), 0.25);
+    border-color: var(--color-accent-blue);
+    transform: translateY(-1px);
+}
+
+.btn-suggestion:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn-suggestion:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+

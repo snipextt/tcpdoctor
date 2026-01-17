@@ -330,22 +330,70 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
             {/* Input & Quick Actions */}
             <div className="ai-footer">
                 {isConfigured && (
-                    <div className="quick-actions">
-                        <button
-                            className="btn-quick"
-                            onClick={handleDiagnose}
-                            disabled={isLoading || !onDiagnose}
-                        >
-                            Analyze Connection
-                        </button>
-                        <button
-                            className="btn-quick"
-                            onClick={handleGenerateReport}
-                            disabled={isLoading}
-                        >
-                            Full Network Report
-                        </button>
-                    </div>
+                    <>
+                        <div className="quick-actions-label">Quick Actions:</div>
+                        <div className="quick-actions">
+                            <button
+                                className="btn-quick"
+                                onClick={handleDiagnose}
+                                disabled={isLoading || !onDiagnose}
+                            >
+                                Analyze Selected Connection
+                            </button>
+                            <button
+                                className="btn-quick"
+                                onClick={handleGenerateReport}
+                                disabled={isLoading}
+                            >
+                                Full Health Report
+                            </button>
+                        </div>
+                        <div className="quick-actions-label">Suggested Queries:</div>
+                        <div className="quick-actions suggestions">
+                            <button
+                                className="btn-suggestion"
+                                onClick={() => { setInput("Show connection state distribution"); handleSend(); }}
+                                disabled={isLoading}
+                            >
+                                Connection State Distribution
+                            </button>
+                            <button
+                                className="btn-suggestion"
+                                onClick={() => { setInput("Compare RTT across all connections"); handleSend(); }}
+                                disabled={isLoading}
+                            >
+                                Compare RTT
+                            </button>
+                            <button
+                                className="btn-suggestion"
+                                onClick={() => { setInput("Show bandwidth usage for active connections"); handleSend(); }}
+                                disabled={isLoading}
+                            >
+                                Bandwidth Analysis
+                            </button>
+                            <button
+                                className="btn-suggestion"
+                                onClick={() => { setInput("Identify connections with high retransmission rates"); handleSend(); }}
+                                disabled={isLoading}
+                            >
+                                High Retransmissions
+                            </button>
+                            <button
+                                className="btn-suggestion"
+                                onClick={() => { setInput("Which connections have the worst latency?"); handleSend(); }}
+                                disabled={isLoading}
+                            >
+                                Worst Latency
+                            </button>
+                            <button
+                                className="btn-suggestion"
+                                onClick={() => { setInput("Show top 5 connections by data transferred"); handleSend(); }}
+                                disabled={isLoading}
+                            >
+                                Top Data Usage
+                            </button>
+                        </div>
+                    </>
                 )}
 
                 <div className="ai-input-wrapper">
