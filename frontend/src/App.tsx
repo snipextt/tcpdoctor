@@ -405,25 +405,33 @@ function App() {
         return (
             <>
                 <div className="dashboard-header">
-                    <SnapshotControls
-                        isRecording={isRecording}
-                        sessionCount={snapshotCount}
-                        onStartRecording={handleStartRecording}
-                        onStopRecording={handleStopRecording}
-                        getSessions={GetSessions}
-                        getSessionTimeline={GetSessionTimeline}
-                        onLoadSession={handleLoadSession}
-                        onClear={handleClearSnapshots}
-                        onExportSession={handleExportSession}
-                        onImportSession={handleImportSession}
-                    />
+                    {/* Left side: Session viewing indicator */}
+                    <div className="header-left">
+                        {viewingSnapshotId && (
+                            <div className="session-viewing-banner">
+                                <button className="back-btn" onClick={handleExitSession} title="Back to live view">
+                                    ← Back
+                                </button>
+                                <span className="session-label">Viewing Session {viewingSnapshotId}</span>
+                            </div>
+                        )}
+                    </div>
 
-                    {viewingSnapshotId && (
-                        <div className="session-banner">
-                            <span>Viewing Session #{viewingSnapshotId}</span>
-                            <button className="btn-xs" onClick={handleExitSession}>Exit View</button>
-                        </div>
-                    )}
+                    {/* Right side: Sessions control */}
+                    <div className="header-right">
+                        <SnapshotControls
+                            isRecording={isRecording}
+                            sessionCount={snapshotCount}
+                            onStartRecording={handleStartRecording}
+                            onStopRecording={handleStopRecording}
+                            getSessions={GetSessions}
+                            getSessionTimeline={GetSessionTimeline}
+                            onLoadSession={handleLoadSession}
+                            onClear={handleClearSnapshots}
+                            onExportSession={handleExportSession}
+                            onImportSession={handleImportSession}
+                        />
+                    </div>
                 </div>
 
                 <FilterControls

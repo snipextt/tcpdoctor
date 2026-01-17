@@ -26,6 +26,21 @@ interface SnapshotControlsProps {
     onImportSession: () => void;
 }
 
+// Helper to get/set session names from localStorage
+const getSessionNames = (): Record<number, string> => {
+    try {
+        return JSON.parse(localStorage.getItem('session_names') || '{}');
+    } catch {
+        return {};
+    }
+};
+
+const setSessionName = (id: number, name: string) => {
+    const names = getSessionNames();
+    names[id] = name;
+    localStorage.setItem('session_names', JSON.stringify(names));
+};
+
 const SnapshotControls: React.FC<SnapshotControlsProps> = ({
     isRecording,
     sessionCount,
@@ -42,11 +57,16 @@ const SnapshotControls: React.FC<SnapshotControlsProps> = ({
     const [sessions, setSessions] = useState<RecordingSession[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [loadingSessionId, setLoadingSessionId] = useState<number | null>(null);
+    const [sessionNames, setSessionNames] = useState<Record<number, string>>({});
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editName, setEditName] = useState('');
     const popoverRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (isOpen) {
             loadSessions();
+            setSessionNames(getSessionNames());
         }
     }, [isOpen]);
 
@@ -109,6 +129,30 @@ const SnapshotControls: React.FC<SnapshotControlsProps> = ({
 
     const isSessionOngoing = (session: RecordingSession) => {
         return !session.endTime || session.endTime === '0001-01-01T00:00:00Z' || new Date(session.endTime).getFullYear() < 2000;
+    };
+
+    const startEditing = (session: RecordingSession) => {
+        setEditingId(session.id);
+        setEditName(sessionNames[session.id] || `Session ${session.id}`);
+        setTimeout(() => inputRef.current?.focus(), 50);
+    };
+
+    const saveEdit = () => {
+        if (editingId !== null && editName.trim()) {
+            setSessionName(editingId, editName.trim());
+            setSessionNames(prev => ({ ...prev, [editingId]: editName.trim() }));
+        }
+        setEditingId(null);
+        setEditName('');
+    };
+
+    const cancelEdit = () => {
+        setEditingId(null);
+        setEditName('');
+    };
+
+    const getSessionDisplayName = (session: RecordingSession) => {
+        return sessionNames[session.id] || `Session ${session.id}`;
     };
 
     const handleRecordToggle = () => {
@@ -188,15 +232,42 @@ const SnapshotControls: React.FC<SnapshotControlsProps> = ({
                                 const ongoing = isSessionOngoing(session);
                                 const startTimeStr = formatTime(session.startTime);
                                 const endTimeStr = ongoing ? 'Capturing...' : formatTime(session.endTime);
+                                const isEditing = editingId === session.id;
 
                                 return (
                                     <div key={session.id} className={`session-card ${ongoing ? 'ongoing' : ''}`}>
                                         <div className="session-info">
-                                            <div className="session-time">
+                                            {/* Session Name - Click to Edit */}
+                                            {isEditing ? (
+                                                <div className="session-name-edit">
+                                                    <input
+                                                        ref={inputRef}
+                                                        type="text"
+                                                        value={editName}
+                                                        onChange={(e) => setEditName(e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') saveEdit();
+                                                            if (e.key === 'Escape') cancelEdit();
+                                                        }}
+                                                        onBlur={saveEdit}
+                                                        className="session-name-input"
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <div
+                                                    className="session-name"
+                                                    onClick={() => startEditing(session)}
+                                                    title="Click to rename"
+                                                >
+                                                    {getSessionDisplayName(session)}
+                                                    <span className="edit-icon">✎</span>
+                                                </div>
+                                            )}
+                                            <div className="session-time-row">
                                                 {startTimeStr} → {endTimeStr}
                                             </div>
                                             <div className="session-meta">
-                                                Duration: {formatDuration(session.startTime, session.endTime)} · {session.snapshotCount} snapshots
+                                                {formatDuration(session.startTime, session.endTime)} · {session.snapshotCount} snapshots
                                             </div>
                                         </div>
                                         <div className="session-buttons">
