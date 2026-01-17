@@ -388,12 +388,14 @@ function App() {
                     advancedFilters={advancedFilters}
                     onAdvancedFiltersChange={setAdvancedFilters}
                 />
-                <ConnectionTable
-                    connections={connections}
-                    isLoading={isLoading}
-                    selectedConnection={selectedConnection}
-                    onSelectConnection={setSelectedConnection}
-                />
+                <div className="table-section">
+                    <ConnectionTable
+                        connections={connections}
+                        isLoading={isLoading}
+                        selectedConnection={selectedConnection}
+                        onSelectConnection={setSelectedConnection}
+                    />
+                </div>
             </>
         );
     };
@@ -406,7 +408,7 @@ function App() {
                 isAdmin={isAdmin}
             />
 
-            <main className="main-content">
+            <main className="main-content" style={activeTab === 'ai-agent' ? { padding: 0 } : {}}>
                 {renderContent()}
             </main>
 
