@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import './AIAssistant.css';
 import AIChart from './AIChart';
 
@@ -336,6 +337,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                         <div key={msg.id} className={`message ${msg.role}`}>
                             <div className="message-content">
                                 <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
                                     components={{
                                         h1: ({ children }) => <h1 className="md-h1">{children}</h1>,
                                         h2: ({ children }) => <h2 className="md-h2">{children}</h2>,
@@ -355,6 +357,12 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                                         em: ({ children }) => <em className="md-em">{children}</em>,
                                         blockquote: ({ children }) => <blockquote className="md-blockquote">{children}</blockquote>,
                                         a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="md-link">{children}</a>,
+                                        table: ({ children }) => <div className="md-table-wrapper"><table className="md-table">{children}</table></div>,
+                                        thead: ({ children }) => <thead className="md-thead">{children}</thead>,
+                                        tbody: ({ children }) => <tbody className="md-tbody">{children}</tbody>,
+                                        tr: ({ children }) => <tr className="md-tr">{children}</tr>,
+                                        th: ({ children }) => <th className="md-th">{children}</th>,
+                                        td: ({ children }) => <td className="md-td">{children}</td>,
                                     }}
                                 >
                                     {msg.content}
@@ -426,7 +434,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                                             {pickerConnections.length === 0 ? (
                                                 <div className="picker-empty">No connections found</div>
                                             ) : (
-                                                pickerConnections.slice(0, 10).map((conn, idx) => (
+                                                pickerConnections.map((conn, idx) => (
                                                     <button
                                                         key={idx}
                                                         className="picker-item"

@@ -163,7 +163,8 @@ func (s *Service) queryConnectionsForSessionWithHistory(sessionID int64, query s
 	duration := end.Sub(start).Round(time.Second)
 	startISO := start.Format(time.RFC3339)
 	endISO := end.Format(time.RFC3339)
-	sessionContext := fmt.Sprintf(`You are analyzing recorded TCP session #%d.
+	sessionContext := fmt.Sprintf(`You are the TCP Doctor AI Assistant, analyzing recorded TCP session #%d.
+
 Session Details:
 - Session ID: %d
 - Start Time: %s
@@ -171,8 +172,13 @@ Session Details:
 - Duration: %s
 - Snapshot Count: %d
 
-Use the provided tools (get_snapshots_by_time_range, get_metric_history, plot_graph) to fetch and analyze data from this session.
-When calling get_snapshots_by_time_range or get_metric_history, use sessionID=%d and the ISO8601 timestamps above.`,
+CRITICAL INSTRUCTIONS:
+1. Always use the provided tools (get_snapshots_by_time_range, get_metric_history, plot_graph) to fetch and analyze data. Do not guess or hallucinate connection details.
+2. For any data visualization (bar, line, or pie charts), you MUST use the "plot_graph" tool.
+3. NEVER describe a graph in text if it can be plotted. If you are showing distributions (e.g., states) or trends (e.g., RTT), call "plot_graph".
+4. Previous graphs in the chat history were rendered as interactive components. When you call "plot_graph", the user sees a rich chart, not just text.
+5. When calling get_snapshots_by_time_range or get_metric_history, use sessionID=%d and the ISO8601 timestamps above.
+6. Use markdown tables to present tabular data for better readability.`,
 		sessionID, sessionID, startISO, endISO, duration, session.SnapshotCount, sessionID)
 
 	// We rely on the agent to use tools like get_snapshots_by_time_range or get_metric_history

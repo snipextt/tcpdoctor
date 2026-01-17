@@ -100,7 +100,8 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
     // Convert TCP state int to string
     const tcpStateToString = (state: number): string => {
         const states = ['CLOSED', 'LISTEN', 'SYN_SENT', 'SYN_RCVD', 'ESTABLISHED', 'FIN_WAIT1', 'FIN_WAIT2', 'CLOSE_WAIT', 'CLOSING', 'LAST_ACK', 'TIME_WAIT', 'DELETE_TCB'];
-        return states[state] || 'UNKNOWN';
+        // Go iota + 1 means CLOSED=1, LISTEN=2, etc.
+        return states[state - 1] || 'UNKNOWN';
     };
 
     return (
@@ -186,15 +187,14 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
                                     const timeline = await getSessionTimeline(sessionID);
                                     if (!timeline || timeline.length === 0) return [];
 
-                                    // Timeline is array of { timestamp, connection } objects
-                                    // Get unique connections by their address:port combo
+                                    // Deduplicate by Address:Port + PID, moving backwards to get latest state
                                     const seen = new Set<string>();
                                     const connections: any[] = [];
 
-                                    for (const entry of timeline) {
-                                        const c = entry.connection;
+                                    for (let i = timeline.length - 1; i >= 0; i--) {
+                                        const c = timeline[i].connection;
                                         if (!c) continue;
-                                        const key = `${c.localAddr}:${c.localPort}-${c.remoteAddr}:${c.remotePort}`;
+                                        const key = `${c.localAddr}:${c.localPort}-${c.remoteAddr}:${c.remotePort}-${c.pid}`;
                                         if (!seen.has(key)) {
                                             seen.add(key);
                                             connections.push({
@@ -202,11 +202,17 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
                                                 localPort: c.localPort,
                                                 remoteAddr: c.remoteAddr,
                                                 remotePort: c.remotePort,
-                                                state: tcpStateToString(c.state)
+                                                state: tcpStateToString(c.state),
+                                                pid: c.pid
                                             });
                                         }
                                     }
-                                    return connections;
+                                    // Sort by state (Established first) then by local port
+                                    return connections.sort((a, b) => {
+                                        if (a.state === 'ESTABLISHED' && b.state !== 'ESTABLISHED') return -1;
+                                        if (a.state !== 'ESTABLISHED' && b.state === 'ESTABLISHED') return 1;
+                                        return a.localPort - b.localPort;
+                                    });
                                 } catch (e) {
                                     console.error('Failed to get connections for picker:', e);
                                     return [];
