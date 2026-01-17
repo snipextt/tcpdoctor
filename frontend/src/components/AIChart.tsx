@@ -38,8 +38,108 @@ const AIChart: React.FC<AIChartProps> = ({ type, title, dataPoints, xLabel, yLab
             drawPieChart(ctx, dataPoints, rect.width, rect.height);
         } else if (type === 'bar') {
             drawBarChart(ctx, dataPoints, rect.width, rect.height, xLabel, yLabel);
+        } else if (type === 'line') {
+            drawLineChart(ctx, dataPoints, rect.width, rect.height, xLabel, yLabel);
         }
     }, [type, dataPoints, xLabel, yLabel]);
+
+    const drawLineChart = (ctx: CanvasRenderingContext2D, data: DataPoint[], width: number, height: number, xLabel?: string, yLabel?: string) => {
+        const padding = { top: 30, right: 30, bottom: 50, left: 60 };
+        const chartWidth = width - padding.left - padding.right;
+        const chartHeight = height - padding.top - padding.bottom;
+
+        const maxValue = Math.max(...data.map(d => d.value)) * 1.1 || 1;
+        const xStep = chartWidth / (data.length - 1 || 1);
+
+        // Draw axes
+        ctx.strokeStyle = '#555';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(padding.left, padding.top);
+        ctx.lineTo(padding.left, padding.top + chartHeight);
+        ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
+        ctx.stroke();
+
+        // Draw grid lines
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 0.5;
+        const steps = 5;
+        ctx.textAlign = 'right';
+        ctx.font = '10px -apple-system';
+        ctx.fillStyle = '#b0b0b0';
+
+        for (let i = 0; i <= steps; i++) {
+            const y = padding.top + chartHeight - (chartHeight / steps) * i;
+            const val = (maxValue / steps) * i;
+
+            ctx.beginPath();
+            ctx.moveTo(padding.left, y);
+            ctx.lineTo(padding.left + chartWidth, y);
+            ctx.stroke();
+
+            ctx.fillText(val.toFixed(val > 100 ? 0 : 1), padding.left - 10, y + 4);
+        }
+
+        // Draw line
+        ctx.strokeStyle = '#2196F3';
+        ctx.lineWidth = 3;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+
+        data.forEach((point, idx) => {
+            const x = padding.left + idx * xStep;
+            const y = padding.top + chartHeight - (point.value / maxValue) * chartHeight;
+            if (idx === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        // Draw area under line
+        ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
+        ctx.lineTo(padding.left, padding.top + chartHeight);
+        const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);
+        gradient.addColorStop(0, 'rgba(33, 150, 243, 0.3)');
+        gradient.addColorStop(1, 'rgba(33, 150, 243, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        // Draw points
+        data.forEach((point, idx) => {
+            const x = padding.left + idx * xStep;
+            const y = padding.top + chartHeight - (point.value / maxValue) * chartHeight;
+
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#2196F3';
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // X-axis labels (sparse)
+            if (data.length < 15 || idx % Math.ceil(data.length / 8) === 0) {
+                ctx.save();
+                ctx.fillStyle = '#b0b0b0';
+                ctx.translate(x, padding.top + chartHeight + 15);
+                ctx.rotate(-Math.PI / 6);
+                ctx.textAlign = 'right';
+                ctx.fillText(point.label, 0, 0);
+                ctx.restore();
+            }
+        });
+
+        // Axis labels
+        if (yLabel) {
+            ctx.save();
+            ctx.fillStyle = '#e0e0e0';
+            ctx.translate(15, padding.top + chartHeight / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.fillText(yLabel, 0, 0);
+            ctx.restore();
+        }
+    };
 
     const drawPieChart = (ctx: CanvasRenderingContext2D, data: DataPoint[], width: number, height: number) => {
         const total = data.reduce((sum, d) => sum + d.value, 0);

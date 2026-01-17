@@ -9,19 +9,31 @@ import (
 	"google.golang.org/genai"
 )
 
+// ToolHandler is a function that executes a tool call from the LLM
+type ToolHandler func(ctx context.Context, args map[string]interface{}) (interface{}, error)
+
 // GeminiService provides LLM-powered analysis using Google Gemini API
 type GeminiService struct {
-	client *genai.Client
-	model  string
-	apiKey string
-	mu     sync.RWMutex
+	client       *genai.Client
+	model        string
+	apiKey       string
+	toolHandlers map[string]ToolHandler
+	mu           sync.RWMutex
 }
 
 // NewGeminiService creates a new Gemini service
 func NewGeminiService() *GeminiService {
 	return &GeminiService{
-		model: "gemini-2.5-flash", // Full model for comprehensive analysis
+		model:        "gemini-2.5-flash", // Full model for comprehensive analysis
+		toolHandlers: make(map[string]ToolHandler),
 	}
+}
+
+// RegisterTool registers a handler for an AI tool
+func (g *GeminiService) RegisterTool(name string, handler ToolHandler) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.toolHandlers[name] = handler
 }
 
 // Configure sets up the Gemini client with the provided API key
@@ -168,15 +180,105 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 		return &QueryResult{Answer: fmt.Sprintf("Failed to create chat: %v", err), Success: false}, nil
 	}
 
+	// Tools configuration
+	tools := []*genai.Tool{
+		{
+			FunctionDeclarations: []*genai.FunctionDeclaration{
+				{
+					Name:        "get_snapshots_by_time_range",
+					Description: "Retrieve network snapshots for a specific time range within a session. Use this to analyze what happened during a specific interval.",
+					Parameters: &genai.Schema{
+						Type: genai.TypeObject,
+						Properties: map[string]*genai.Schema{
+							"sessionID": {Type: genai.TypeInteger, Description: "The recording session ID"},
+							"startTime": {Type: genai.TypeString, Description: "Start time (ISO8601 format)"},
+							"endTime":   {Type: genai.TypeString, Description: "End time (ISO8601 format)"},
+						},
+						Required: []string{"sessionID", "startTime", "endTime"},
+					},
+				},
+				{
+					Name:        "get_metric_history",
+					Description: "Retrieve historical data points for a specific connection metric (e.g., RTT, bandwidth) across a session.",
+					Parameters: &genai.Schema{
+						Type: genai.TypeObject,
+						Properties: map[string]*genai.Schema{
+							"sessionID":  {Type: genai.TypeInteger, Description: "The recording session ID"},
+							"localAddr":  {Type: genai.TypeString},
+							"localPort":  {Type: genai.TypeInteger},
+							"remoteAddr": {Type: genai.TypeString},
+							"remotePort": {Type: genai.TypeInteger},
+							"metric":     {Type: genai.TypeString, Description: "Metric to fetch: 'rtt', 'bandwidth_in', 'bandwidth_out'"},
+						},
+						Required: []string{"sessionID", "localAddr", "localPort", "remoteAddr", "remotePort", "metric"},
+					},
+				},
+			},
+		},
+	}
+	chatConfig.Tools = tools
+
 	// Send the current message with connection context
 	currentMessage := fmt.Sprintf("%s\n\nUser question: %s", contextData, query)
-	result, err := chat.SendMessage(ctx, genai.Part{Text: currentMessage})
-	if err != nil {
-		return &QueryResult{Answer: fmt.Sprintf("Error: %v", err), Success: false}, nil
-	}
 
-	if len(result.Candidates) == 0 || len(result.Candidates[0].Content.Parts) == 0 {
-		return &QueryResult{Answer: "No response from AI", Success: false}, nil
+	var lastText string
+
+	// Loop to handle potential multiple tool calls
+	for i := 0; i < 5; i++ {
+		result, err := chat.SendMessage(ctx, genai.Part{Text: currentMessage})
+		if err != nil {
+			return &QueryResult{Answer: fmt.Sprintf("Error: %v", err), Success: false}, nil
+		}
+
+		if len(result.Candidates) == 0 {
+			return &QueryResult{Answer: "No response from AI", Success: false}, nil
+		}
+
+		candidate := result.Candidates[0]
+		var toolCall *genai.FunctionCall
+		for _, part := range candidate.Content.Parts {
+			if part.FunctionCall != nil {
+				toolCall = part.FunctionCall
+				break
+			}
+		}
+
+		if toolCall == nil {
+			// No tool call, parse final JSON
+			lastText = result.Text()
+			break
+		}
+
+		// Execute tool
+		g.mu.RLock()
+		handler, ok := g.toolHandlers[toolCall.Name]
+		g.mu.RUnlock()
+
+		if !ok {
+			return &QueryResult{Answer: fmt.Sprintf("Error: AI tried to use unknown tool %s", toolCall.Name), Success: false}, nil
+		}
+
+		toolResult, err := handler(ctx, toolCall.Args)
+		if err != nil {
+			return &QueryResult{Answer: fmt.Sprintf("Error executing tool %s: %v", toolCall.Name, err), Success: false}, nil
+		}
+
+		// Send tool result back
+		toolResultJSON, _ := json.Marshal(toolResult)
+		currentMessage = "" // Clear user message for subsequent turns
+		result, err = chat.SendMessage(ctx, genai.Part{
+			FunctionResponse: &genai.FunctionResponse{
+				Name:     toolCall.Name,
+				Response: map[string]interface{}{"result": string(toolResultJSON)},
+			},
+		})
+		if err != nil {
+			return &QueryResult{Answer: fmt.Sprintf("Error sending tool result: %v", err), Success: false}, nil
+		}
+
+		if len(result.Candidates) > 0 {
+			lastText = result.Text()
+		}
 	}
 
 	// Parse JSON response
@@ -194,9 +296,9 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 		} `json:"graphs"`
 	}
 
-	if err := json.Unmarshal([]byte(result.Text()), &response); err != nil {
+	if err := json.Unmarshal([]byte(lastText), &response); err != nil {
 		// Fallback to raw text if JSON parsing fails
-		return &QueryResult{Answer: result.Text(), Success: true}, nil
+		return &QueryResult{Answer: lastText, Success: true}, nil
 	}
 
 	// Convert to QueryResult

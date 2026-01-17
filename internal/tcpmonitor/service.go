@@ -107,7 +107,70 @@ func NewService(config ServiceConfig) (*Service, error) {
 	// Start recording by default
 	service.snapshotStore.StartRecording()
 
+	// Register AI tool handlers
+	service.registerAIHandlers()
+
 	return service, nil
+}
+
+func (s *Service) registerAIHandlers() {
+	s.llmService.RegisterTool("get_snapshots_by_time_range", s.handleGetSnapshotsByTimeRange)
+	s.llmService.RegisterTool("get_metric_history", s.handleGetMetricHistory)
+}
+
+func (s *Service) handleGetSnapshotsByTimeRange(ctx context.Context, args map[string]interface{}) (interface{}, error) {
+	sessionID, ok := args["sessionID"].(float64)
+	if !ok {
+		return nil, fmt.Errorf("sessionID must be a number")
+	}
+
+	startStr, _ := args["startTime"].(string)
+	endStr, _ := args["endTime"].(string)
+
+	startTime, err := time.Parse(time.RFC3339, startStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid startTime: %v", err)
+	}
+	endTime, err := time.Parse(time.RFC3339, endStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid endTime: %v", err)
+	}
+
+	return s.GetSnapshotsByTimeRange(int64(sessionID), startTime, endTime, nil)
+}
+
+func (s *Service) handleGetMetricHistory(ctx context.Context, args map[string]interface{}) (interface{}, error) {
+	sessionID, _ := args["sessionID"].(float64)
+	localAddr, _ := args["localAddr"].(string)
+	localPort, _ := args["localPort"].(float64)
+	remoteAddr, _ := args["remoteAddr"].(string)
+	remotePort, _ := args["remotePort"].(float64)
+	metric, _ := args["metric"].(string)
+
+	history := s.GetConnectionHistoryForSession(int64(sessionID), localAddr, int(localPort), remoteAddr, int(remotePort))
+
+	// Simplify history to just the requested metric to save tokens
+	type HistoryPoint struct {
+		Time  string  `json:"t"`
+		Value float64 `json:"v"`
+	}
+	var result []HistoryPoint
+	for _, p := range history {
+		val := 0.0
+		switch metric {
+		case "rtt":
+			val = float64(p.RTT)
+		case "bandwidth_in":
+			val = float64(p.InBandwidth)
+		case "bandwidth_out":
+			val = float64(p.OutBandwidth)
+		}
+		result = append(result, HistoryPoint{
+			Time:  p.Timestamp.Format("15:04:05"),
+			Value: val,
+		})
+	}
+	return result, nil
 }
 
 // Start begins the polling loop for connection updates
