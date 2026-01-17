@@ -262,6 +262,31 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 		// Create a NEW chat session for this turn with the sanitized history
 		// This is necessary because we need to modify/sanitize history (remove empty parts)
 		// which isn't easy with the stateful ChatSession object.
+
+		// LOGGING: Print the structure of the request we are about to send
+		// This is critical for debugging 400 'data required' errors
+		fmt.Printf("\n--- [Debugging] Sending Message (Turn %d) ---\n", i)
+		fmt.Printf("Current Message Len: %d\n", len(currentMessage))
+		fmt.Printf("History Count: %d\n", len(sessionHistory))
+
+		for idx, h := range sessionHistory {
+			fmt.Printf("History[%d] Role: %s, Parts: %d\n", idx, h.Role, len(h.Parts))
+			for pIdx, part := range h.Parts {
+				hasText := part.Text != ""
+				hasFnCall := part.FunctionCall != nil
+				hasFnResp := part.FunctionResponse != nil
+				hasBlob := part.InlineData != nil || part.FileData != nil
+				fmt.Printf("  Part[%d]: Text=%v, FnCall=%v, FnResp=%v, Blob=%v\n",
+					pIdx, hasText, hasFnCall, hasFnResp, hasBlob)
+				if hasBlob {
+					fmt.Printf("    -> ALERT: Blob part detected at History[%d].Part[%d]\n", idx, pIdx)
+				}
+				if !hasText && !hasFnCall && !hasFnResp && !hasBlob {
+					fmt.Printf("    -> CRITICAL: Empty/Invalid Part at History[%d].Part[%d]!\n", idx, pIdx)
+				}
+			}
+		}
+
 		chatSession, err := g.client.Chats.Create(ctx, g.model, chatConfig, sessionHistory)
 		if err != nil {
 			return &QueryResult{Answer: fmt.Sprintf("Failed to create chat session: %v", err), Success: false}, nil
@@ -269,6 +294,7 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 
 		result, err := chatSession.SendMessage(ctx, genai.Part{Text: currentMessage})
 		if err != nil {
+			fmt.Printf("\n!!! GEMINI API ERROR: %v\n", err) // Print to console for visibility
 			return &QueryResult{Answer: fmt.Sprintf("Error: %v", err), Success: false}, nil
 		}
 
