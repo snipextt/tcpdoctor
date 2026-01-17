@@ -6,11 +6,12 @@ import (
 
 // DiagnosticResult contains the AI-generated analysis of a TCP connection
 type DiagnosticResult struct {
-	Summary         string   `json:"summary"`         // Overall diagnosis summary
-	Issues          []string `json:"issues"`          // List of issues found
-	PossibleCauses  []string `json:"possibleCauses"`  // Potential root causes
-	Recommendations []string `json:"recommendations"` // Suggested fixes
-	Severity        string   `json:"severity"`        // healthy, warning, critical
+	Summary         string            `json:"summary"`          // Overall diagnosis summary
+	Issues          []string          `json:"issues"`           // List of issues found
+	PossibleCauses  []string          `json:"possibleCauses"`   // Potential root causes
+	Recommendations []string          `json:"recommendations"`  // Suggested fixes
+	Severity        string            `json:"severity"`         // healthy, warning, critical
+	Graphs          []GraphSuggestion `json:"graphs,omitempty"` // Suggested graph visualizations
 }
 
 // GraphDataPoint represents a single data point for chart rendering
@@ -37,11 +38,12 @@ type QueryResult struct {
 
 // HealthReport contains an AI-generated summary of network health
 type HealthReport struct {
-	Summary     string   `json:"summary"`     // Overall health summary
-	Highlights  []string `json:"highlights"`  // Key highlights
-	Concerns    []string `json:"concerns"`    // Areas of concern
-	Suggestions []string `json:"suggestions"` // Suggestions for improvement
-	Score       int      `json:"score"`       // Health score 0-100
+	Summary     string            `json:"summary"`          // Overall health summary
+	Highlights  []string          `json:"highlights"`       // Key highlights
+	Concerns    []string          `json:"concerns"`         // Areas of concern
+	Suggestions []string          `json:"suggestions"`      // Suggestions for improvement
+	Score       int               `json:"score"`            // Health score 0-100
+	Graphs      []GraphSuggestion `json:"graphs,omitempty"` // Suggested graph visualizations
 }
 
 // ChatMessage represents a single message in conversation history

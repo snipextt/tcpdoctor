@@ -89,59 +89,27 @@ func (g *GeminiService) DiagnoseConnection(ctx context.Context, conn ConnectionS
 		return nil, fmt.Errorf("empty response from Gemini")
 	}
 
-	var diagResult DiagnosticResult
-	if err := json.Unmarshal([]byte(result.Text()), &diagResult); err != nil {
-		// Fallback: return raw response as summary
+	var response struct {
+		DiagnosticResult
+		Graphs []GraphSuggestion `json:"graphs"`
+	}
+
+	if err := json.Unmarshal([]byte(result.Text()), &response); err != nil {
 		return &DiagnosticResult{
 			Summary:  result.Text(),
 			Severity: "warning",
 		}, nil
 	}
 
+	diagResult := response.DiagnosticResult
+	diagResult.Graphs = response.Graphs
 	return &diagResult, nil
 }
 
 // QueryConnections answers a natural language question about the connections
 func (g *GeminiService) QueryConnections(ctx context.Context, query string, connections []ConnectionSummary) (*QueryResult, error) {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-
-	if g.client == nil {
-		return nil, fmt.Errorf("Gemini client not configured. Please set your API key in Settings.")
-	}
-
-	// Limit connections to avoid token limits
-	maxConns := 50
-	if len(connections) > maxConns {
-		connections = connections[:maxConns]
-	}
-
-	connJSON, err := json.Marshal(connections)
-	if err != nil {
-		return nil, fmt.Errorf("failed to serialize connections: %w", err)
-	}
-
-	userPrompt := fmt.Sprintf("Current TCP connections (%d total):\n%s\n\nUser question: %s",
-		len(connections), string(connJSON), query)
-
-	// For queries, we don't need strict JSON schema - natural language is better
-	config := &genai.GenerateContentConfig{
-		SystemInstruction: &genai.Content{
-			Parts: []*genai.Part{{Text: QuerySystemPrompt}},
-		},
-		Temperature: genai.Ptr(float32(0.5)), // Slightly higher for more natural responses
-	}
-
-	result, err := g.client.Models.GenerateContent(ctx, g.model, genai.Text(userPrompt), config)
-	if err != nil {
-		return &QueryResult{Answer: fmt.Sprintf("Error: %v", err), Success: false}, nil
-	}
-
-	if len(result.Candidates) == 0 || len(result.Candidates[0].Content.Parts) == 0 {
-		return &QueryResult{Answer: "No response from AI", Success: false}, nil
-	}
-
-	return &QueryResult{Answer: result.Text(), Success: true}, nil
+	// Refactor to use history-enabled method with empty history for consistency
+	return g.QueryConnectionsWithHistory(ctx, query, connections, nil)
 }
 
 // QueryConnectionsWithHistory answers a question with conversation context
@@ -384,14 +352,20 @@ Generate a health report for this network.`,
 		return nil, fmt.Errorf("empty response from Gemini")
 	}
 
-	var report HealthReport
-	if err := json.Unmarshal([]byte(result.Text()), &report); err != nil {
+	var response struct {
+		HealthReport
+		Graphs []GraphSuggestion `json:"graphs"`
+	}
+
+	if err := json.Unmarshal([]byte(result.Text()), &response); err != nil {
 		return &HealthReport{
 			Summary: result.Text(),
 			Score:   50,
 		}, nil
 	}
 
+	report := response.HealthReport
+	report.Graphs = response.Graphs
 	return &report, nil
 }
 
@@ -428,6 +402,44 @@ func diagnosticResultSchema() *genai.Schema {
 				Description: "Severity level: healthy, warning, or critical",
 				Enum:        []string{"healthy", "warning", "critical"},
 			},
+			"graphs": {
+				Type:        genai.TypeArray,
+				Description: "Optional array of graphs to visualize data",
+				Items: &genai.Schema{
+					Type: genai.TypeObject,
+					Properties: map[string]*genai.Schema{
+						"type": {
+							Type:        genai.TypeString,
+							Description: "Graph type",
+							Enum:        []string{"bar", "line", "pie"},
+						},
+						"title": {
+							Type:        genai.TypeString,
+							Description: "Graph title",
+						},
+						"xLabel": {
+							Type:        genai.TypeString,
+							Description: "X-axis label (optional)",
+						},
+						"yLabel": {
+							Type:        genai.TypeString,
+							Description: "Y-axis label (optional)",
+						},
+						"dataPoints": {
+							Type: genai.TypeArray,
+							Items: &genai.Schema{
+								Type: genai.TypeObject,
+								Properties: map[string]*genai.Schema{
+									"label": {Type: genai.TypeString},
+									"value": {Type: genai.TypeNumber},
+								},
+								Required: []string{"label", "value"},
+							},
+						},
+					},
+					Required: []string{"type", "title", "dataPoints"},
+				},
+			},
 		},
 		Required: []string{"summary", "severity"},
 	}
@@ -460,6 +472,44 @@ func healthReportSchema() *genai.Schema {
 			"score": {
 				Type:        genai.TypeInteger,
 				Description: "Health score from 0 to 100",
+			},
+			"graphs": {
+				Type:        genai.TypeArray,
+				Description: "Optional array of graphs to visualize data",
+				Items: &genai.Schema{
+					Type: genai.TypeObject,
+					Properties: map[string]*genai.Schema{
+						"type": {
+							Type:        genai.TypeString,
+							Description: "Graph type",
+							Enum:        []string{"bar", "line", "pie"},
+						},
+						"title": {
+							Type:        genai.TypeString,
+							Description: "Graph title",
+						},
+						"xLabel": {
+							Type:        genai.TypeString,
+							Description: "X-axis label (optional)",
+						},
+						"yLabel": {
+							Type:        genai.TypeString,
+							Description: "Y-axis label (optional)",
+						},
+						"dataPoints": {
+							Type: genai.TypeArray,
+							Items: &genai.Schema{
+								Type: genai.TypeObject,
+								Properties: map[string]*genai.Schema{
+									"label": {Type: genai.TypeString},
+									"value": {Type: genai.TypeNumber},
+								},
+								Required: []string{"label", "value"},
+							},
+						},
+					},
+					Required: []string{"type", "title", "dataPoints"},
+				},
 			},
 		},
 		Required: []string{"summary", "score"},

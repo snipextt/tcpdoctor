@@ -15,6 +15,7 @@ interface DiagnosticResult {
     possibleCauses: string[];
     recommendations: string[];
     severity: string;
+    graphs?: GraphSuggestion[];
 }
 
 interface GraphDataPoint {
@@ -42,6 +43,7 @@ interface HealthReport {
     concerns: string[];
     suggestions: string[];
     score: number;
+    graphs?: GraphSuggestion[];
 }
 
 interface AIAssistantProps {
@@ -86,7 +88,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
             const welcomeMessage: Message = {
                 id: `${contextId}-welcome`,
                 role: 'assistant',
-                content: `Hello! I'm your TCP Doctor AI Assistant for **${contextName}**.\n\nI can help you:\n\n• **Analyze connections** - Ask about network traffic in this context\n• **Diagnose issues** - Select a connection and click "Diagnose"\n• **Generate reports** - Get a comprehensive health summary\n\nHow can I help you today?`,
+                content: `Hello! I'm your TCP Doctor AI Assistant for **${contextName}**.\n\nI can help you:\n\n• **Analyze connections** - Ask about network traffic in this context\n• **Diagnose issues** - Select a connection and click "Analyze Connection"\n• **Generate reports** - Get a comprehensive health summary\n\nHow can I help you today?`,
                 timestamp: new Date(),
             };
             setMessagesByContext(prev => ({
@@ -146,7 +148,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                 addMessage('assistant', "I received an empty or invalid response from the network analysis engine.");
             }
         } catch (error) {
-            addMessage('assistant', `❌ Error: ${error}`);
+            addMessage('assistant', `Error: ${error}`);
         } finally {
             setIsLoading(false);
         }
@@ -156,22 +158,22 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
         if (isLoading || !isConfigured) return;
 
         setIsLoading(true);
-        addMessage('user', '📊 Generate network health report');
+        addMessage('user', 'Generate comprehensive network health report');
 
         try {
             const report = await generateHealthReport();
-            let reportContent = `## Health Report: ${report.score}/100\n\n${report.summary}\n\n`;
+            let reportContent = `## Network Health Assessment: ${report.score}/100\n\n${report.summary}\n\n`;
 
             if (report.highlights?.length > 0) {
-                reportContent += '### ✅ Highlights\n' + report.highlights.map(h => `• ${h}`).join('\n') + '\n\n';
+                reportContent += '### Positive Indicators\n' + report.highlights.map(h => `• ${h}`).join('\n') + '\n\n';
             }
             if (report.concerns?.length > 0) {
-                reportContent += '### ⚠️ Concerns\n' + report.concerns.map(c => `• ${c}`).join('\n') + '\n\n';
+                reportContent += '### Technical Concerns\n' + report.concerns.map(c => `• ${c}`).join('\n') + '\n\n';
             }
 
-            addMessage('assistant', reportContent);
+            addMessage('assistant', reportContent, report.graphs);
         } catch (error) {
-            addMessage('assistant', `❌ Failed to generate report: ${error}`);
+            addMessage('assistant', `Error: Failed to generate report - ${error}`);
         } finally {
             setIsLoading(false);
         }
@@ -181,28 +183,27 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
         if (!onDiagnose || isLoading || !isConfigured) return;
 
         setIsLoading(true);
-        addMessage('user', `🔍 Diagnose connection: ${selectedConnectionInfo || 'selected'}`);
+        addMessage('user', `Analyze connection: ${selectedConnectionInfo || 'selected'}`);
 
         try {
             const result = await onDiagnose();
             if (!result) {
-                addMessage('assistant', '⚠️ Please select a connection to diagnose.');
+                addMessage('assistant', 'Action Required: Please select a connection to analyze.');
                 return;
             }
 
-            const severityIcon = result.severity === 'healthy' ? '✅' : result.severity === 'warning' ? '⚠️' : '❌';
-            let diagContent = `## ${severityIcon} Diagnosis\n\n${result.summary}\n\n`;
+            let diagContent = `## Connection Analysis: ${result.severity.toUpperCase()}\n\n${result.summary}\n\n`;
 
             if (result.issues?.length > 0) {
-                diagContent += '### Issues\n' + result.issues.map(i => `• ${i}`).join('\n') + '\n\n';
+                diagContent += '### Detected Issues\n' + result.issues.map(i => `• ${i}`).join('\n') + '\n\n';
             }
             if (result.recommendations?.length > 0) {
-                diagContent += '### Recommendations\n' + result.recommendations.map(r => `• ${r}`).join('\n');
+                diagContent += '### Technical Recommendations\n' + result.recommendations.map(r => `• ${r}`).join('\n');
             }
 
-            addMessage('assistant', diagContent);
+            addMessage('assistant', diagContent, result.graphs);
         } catch (error) {
-            addMessage('assistant', `❌ Diagnosis failed: ${error}`);
+            addMessage('assistant', `Error: Analysis failed - ${error}`);
         } finally {
             setIsLoading(false);
         }
@@ -224,7 +225,6 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
             {/* Header */}
             <div className="ai-header">
                 <div className="ai-header-title">
-                    <span className="ai-icon">✨</span>
                     <h3>TCP Doctor AI</h3>
                     {!isConfigured && <span className="badge warning">No API Key</span>}
                 </div>
@@ -293,7 +293,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                                         )}
                                         {graph.type === 'line' && (
                                             <div className="line-chart-placeholder">
-                                                📈 Line chart: {graph.dataPoints.map(d => d.label).join(', ')}
+                                                Line chart: {graph.dataPoints.map(d => d.label).join(', ')}
                                             </div>
                                         )}
                                     </div>
@@ -317,7 +317,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                 {!isConfigured && (
                     <div className="config-overlay animate-fade">
                         <div className="config-card">
-                            <span className="icon">🔑</span>
+                            <span className="icon">Key</span>
                             <p>AI features require a Gemini API key to query the network analysis engine.</p>
                             <button className="btn-primary" onClick={onConfigureAPI}>
                                 Configure Gemini
@@ -336,14 +336,14 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                             onClick={handleDiagnose}
                             disabled={isLoading || !onDiagnose}
                         >
-                            🔍 Diagnose
+                            Analyze Connection
                         </button>
                         <button
                             className="btn-quick"
                             onClick={handleGenerateReport}
                             disabled={isLoading}
                         >
-                            📊 Report
+                            Full Network Report
                         </button>
                     </div>
                 )}
@@ -363,7 +363,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                         onClick={handleSend}
                         disabled={!input.trim() || isLoading || !isConfigured}
                     >
-                        ➤
+                        Send
                     </button>
                 </div>
             </div>
