@@ -23,7 +23,7 @@ interface GraphDataPoint {
 }
 
 interface GraphSuggestion {
-    type: 'bar' | 'line' | 'pie';
+    type: string; // 'bar', 'line', or 'pie' - using string for Wails type compatibility
     title: string;
     xLabel?: string;
     yLabel?: string;
