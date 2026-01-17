@@ -27,7 +27,7 @@ type GeminiService struct {
 // NewGeminiService creates a new Gemini service
 func NewGeminiService() *GeminiService {
 	return &GeminiService{
-		model:        "gemini-2.5-flash", // Full model for comprehensive analysis
+		model:        "gemini-3-flash-preview", // Full model for comprehensive analysis
 		toolHandlers: make(map[string]ToolHandler),
 	}
 }

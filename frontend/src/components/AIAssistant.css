@@ -628,36 +628,33 @@
     border-bottom-style: solid;
 }
 
-/* Improved message bubbles */
+/* Message bubbles - plain styling */
 .message.assistant .message-content {
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--color-bg-accent);
+    border: 1px solid var(--color-border);
     border-bottom-left-radius: 4px;
 }
 
 .message.user .message-content {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: var(--color-primary);
     border-bottom-right-radius: 4px;
 }
 
-/* Improved config overlay */
+/* Config overlay - plain styling */
 .config-overlay {
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(8px);
 }
 
 .config-card {
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
-    border: 1px solid rgba(59, 130, 246, 0.3);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
     max-width: 320px;
 }
 
 .config-card .icon {
     font-size: 48px;
-    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--color-primary);
 }
 
 .config-card p {
@@ -666,7 +663,7 @@
 }
 
 .config-card .btn-primary {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: var(--color-primary);
     padding: 12px 24px;
     font-size: 14px;
     border-radius: 8px;
@@ -674,8 +671,7 @@
 }
 
 .config-card .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    background: var(--color-primary-hover);
 }
 
 .config-card h4 {

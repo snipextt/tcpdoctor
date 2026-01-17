@@ -134,9 +134,20 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 
         try {
             // Pass conversation history (excluding welcome message) for context
+            // Include graph data so AI can reference its previous visualizations
             const historyForContext = messages
                 .filter(m => m.id !== `${contextId}-welcome`)
-                .map(m => ({ role: m.role, content: m.content }));
+                .map(m => {
+                    let content = m.content;
+                    // Append graph info to the content so AI knows what it visualized
+                    if (m.graphs && m.graphs.length > 0) {
+                        const graphSummary = m.graphs.map(g =>
+                            `[Generated Graph: "${g.title}" (${g.type} chart) with data: ${g.dataPoints.map(d => `${d.label}=${d.value}`).join(', ')}]`
+                        ).join('\n');
+                        content += '\n\n' + graphSummary;
+                    }
+                    return { role: m.role, content };
+                });
 
             const result = await queryConnections(userQuery, historyForContext);
             if (result && typeof result.answer === 'string') {
