@@ -227,6 +227,14 @@ func (a *App) QueryConnectionsForSession(query string, sessionID int64) (*llm.Qu
 	return a.service.QueryConnectionsForSession(sessionID, query)
 }
 
+// QueryConnectionsForSessionWithHistory queries AI about a specific recorded session with history
+func (a *App) QueryConnectionsForSessionWithHistory(query string, sessionID int64, history []llm.ChatMessage) (*llm.QueryResult, error) {
+	if a.service == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.service.QueryConnectionsForSessionWithHistory(sessionID, query, history)
+}
+
 // GenerateHealthReportForSession creates an AI-generated health report for a specific session
 func (a *App) GenerateHealthReportForSession(sessionID int64) (*llm.HealthReport, error) {
 	if a.service == nil {

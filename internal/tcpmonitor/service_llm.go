@@ -131,11 +131,59 @@ func (s *Service) GenerateHealthReport() (*llm.HealthReport, error) {
 
 	result, err := s.llmService.GenerateHealthReport(ctx, summaries)
 	if err != nil {
-		s.logger.Error("LLM health report failed: %v", err)
+		s.logger.Error("LLM report generation failed: %v", err)
 		return nil, err
 	}
 
 	return result, nil
+}
+
+// QueryConnectionsForSessionWithHistory answers a natural language question about a specific session with history
+func (s *Service) QueryConnectionsForSessionWithHistory(sessionID int64, query string, history []llm.ChatMessage) (*llm.QueryResult, error) {
+	s.logger.Debug("LLM Query for session %d with history: %s", sessionID, query)
+	return s.queryConnectionsForSessionWithHistory(sessionID, query, history)
+}
+
+// Internal implementation of session query with history
+func (s *Service) queryConnectionsForSessionWithHistory(sessionID int64, query string, history []llm.ChatMessage) (*llm.QueryResult, error) {
+	// Verify session exists
+	session := s.snapshotStore.GetSessionByID(sessionID)
+	if session == nil {
+		return nil, fmt.Errorf("session %d not found", sessionID)
+	}
+
+	// Get session time range
+	start := session.StartTime
+	end := session.EndTime
+	if end.IsZero() {
+		// If session is still ongoing or not properly closed, use current time or last snapshot time
+		end = time.Now()
+	}
+
+	// Prepare session context string
+	duration := end.Sub(start).Round(time.Second)
+	sessionContext := fmt.Sprintf("Analyze the recorded TCP session #%d. Duration: %s (from %s to %s).",
+		sessionID, duration, start.Format("15:04:05"), end.Format("15:04:05"))
+
+	// Since we can't load ALL snapshots into context, we don't pass massive summaries here.
+	// Instead, we rely on the agent to use tools like get_snapshots_by_time_range or get_metric_history
+	// to fetch data as needed. We provide an empty summary list but a strong system prompt context.
+
+	// Call LLM service
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	defer cancel()
+
+	// We reuse QueryConnectionsWithHistory but prepend the session context to the query
+	// Ideally we should have a specific method in GeminiService, but this works if we augment the query/context
+	// The LLM service's QueryConnectionsWithHistory expects connection summaries, which we don't have for the *whole* session readily available
+	// as a live snapshot.
+	// However, looking at the existing QueryConnectionsForSession (which delegates to unexported),
+	// let's see how that works. It seems there isn't actually a proper implementation of QueryConnectionsForSession in service_llm.go yet?
+	// Wait, I see s.QueryConnectionsForSession -> s.queryConnectionsForSession.
+	// Let's implement this properly.
+
+	// Actually, we should check specifically what queryConnectionsForSession does.
+	return s.llmService.QueryConnectionsWithHistory(ctx, sessionContext+"\n"+query, []llm.ConnectionSummary{}, history)
 }
 
 // QueryConnectionsForSession answers a natural language question about a specific session

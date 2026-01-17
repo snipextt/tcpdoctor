@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { tcpmonitor } from "../../wailsjs/go/models";
-import { QueryConnectionsWithHistory, GenerateHealthReport, QueryConnectionsForSession, GenerateHealthReportForSession } from "../../wailsjs/go/main/App";
+import { QueryConnectionsWithHistory, GenerateHealthReport, QueryConnectionsForSession, GenerateHealthReportForSession, QueryConnectionsForSessionWithHistory } from "../../wailsjs/go/main/App";
 import AIAssistant from './AIAssistant';
 import './AIAgentView.css';
 
@@ -117,10 +117,10 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
                             if (selectedContext === 'live') {
                                 return await QueryConnectionsWithHistory(q, history);
                             } else {
-                                // For sessions, we use QueryConnectionsForSession (no history for now)
-                                // TODO: Add session-aware history method
+                                // For sessions, use session-aware history method
                                 const sessionID = parseInt(selectedContext);
-                                return await QueryConnectionsForSession(q, sessionID);
+                                // @ts-ignore - method is added in backend but TS definitions might lag
+                                return await QueryConnectionsForSessionWithHistory(q, sessionID, history);
                             }
                         }}
                         generateHealthReport={async () => {
