@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import './AIAssistant.css';
 import AIChart from './AIChart';
 
-interface Message {
+export interface Message {
     id: string;
     role: 'user' | 'assistant';
     content: string;
@@ -61,6 +61,9 @@ interface AIAssistantProps {
     isDocked?: boolean;
     contextId: string; // 'live' or 'session-N' for separate chat histories
     getConnectionsForPicker?: () => Promise<ConnectionForPicker[]>;
+    // Optional external state management for chat persistence
+    externalMessages?: Record<string, Message[]>;
+    onMessagesChange?: (updater: any) => void;
 }
 
 // Simple connection type for the picker
@@ -84,9 +87,19 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
     isDocked = false,
     contextId,
     getConnectionsForPicker,
+    externalMessages,
+    onMessagesChange,
 }) => {
-    // Context-based chat histories - each context has its own message array
-    const [messagesByContext, setMessagesByContext] = useState<Record<string, Message[]>>({});
+    // Use external state if provided, otherwise use local state
+    const [localMessages, setLocalMessages] = useState<Record<string, Message[]>>({});
+    const messagesByContext = externalMessages ?? localMessages;
+    const setMessagesByContext = (updater: any) => {
+        if (onMessagesChange) {
+            onMessagesChange(typeof updater === 'function' ? updater : () => updater);
+        } else {
+            setLocalMessages(updater);
+        }
+    };
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
@@ -109,7 +122,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                 content: `Hello! I'm your TCP Doctor AI Assistant for **${contextName}**.\n\nI can help you:\n\n• **Analyze connections** - Ask about network traffic in this context\n• **Diagnose issues** - Select a connection and click "Analyze Connection"\n• **Generate reports** - Get a comprehensive health summary\n\nHow can I help you today?`,
                 timestamp: new Date(),
             };
-            setMessagesByContext(prev => ({
+            setMessagesByContext((prev: Record<string, Message[]>) => ({
                 ...prev,
                 [contextId]: [welcomeMessage]
             }));
@@ -134,7 +147,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
             timestamp: new Date(),
             graphs,
         };
-        setMessagesByContext(prev => ({
+        setMessagesByContext((prev: Record<string, Message[]>) => ({
             ...prev,
             [contextId]: [...(prev[contextId] || []), newMessage]
         }));

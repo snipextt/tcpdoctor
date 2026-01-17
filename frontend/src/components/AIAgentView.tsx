@@ -4,6 +4,15 @@ import { GenerateHealthReportForSession } from "../../wailsjs/go/main/App";
 import AIAssistant from './AIAssistant';
 import './AIAgentView.css';
 
+// Helper to get session names from localStorage (shared with SnapshotControls)
+const getSessionNames = (): Record<number, string> => {
+    try {
+        return JSON.parse(localStorage.getItem('session_names') || '{}');
+    } catch {
+        return {};
+    }
+};
+
 interface RecordingSession {
     id: number;
     startTime: string;
@@ -18,6 +27,8 @@ interface AIAgentViewProps {
     getSessionTimeline: (sessionId: number) => Promise<any[]>;
     selectedConnection: tcpmonitor.ConnectionInfo | null;
     onDiagnoseConnection: (connection: tcpmonitor.ConnectionInfo | null) => Promise<any>;
+    externalChatHistories?: Record<string, any[]>;
+    onChatHistoriesChange?: (histories: Record<string, any[]>) => void;
 }
 
 const AIAgentView: React.FC<AIAgentViewProps> = ({
@@ -26,11 +37,14 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
     getSessions,
     getSessionTimeline,
     selectedConnection,
-    onDiagnoseConnection
+    onDiagnoseConnection,
+    externalChatHistories,
+    onChatHistoriesChange
 }) => {
     const [sessions, setSessions] = useState<RecordingSession[]>([]);
     const [selectedContext, setSelectedContext] = useState<string>('');
     const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+    const [sessionNames, setSessionNames] = useState<Record<number, string>>({});
 
     useEffect(() => {
         loadSessions();
@@ -48,6 +62,7 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
         try {
             const data = await getSessions();
             setSessions(data || []);
+            setSessionNames(getSessionNames());
         } catch (e) {
             // Silently ignore errors on background refresh
         }
@@ -65,10 +80,16 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
         try {
             const data = await getSessions();
             setSessions(data || []);
+            setSessionNames(getSessionNames());
         } catch (e) {
             console.error('Failed to load sessions for AI context:', e);
         }
         setIsLoadingSessions(false);
+    };
+
+    // Get display name for a session
+    const getSessionDisplayName = (s: RecordingSession): string => {
+        return sessionNames[s.id] || `Session #${s.id}`;
     };
 
     const formatTime = (ts: string) => {
@@ -105,7 +126,7 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
                             >
                                 <span className="icon">●</span>
                                 <div className="info">
-                                    <span className="title">Session #{s.id}</span>
+                                    <span className="title">{getSessionDisplayName(s)}</span>
                                     <span className="subtitle">{formatTime(s.startTime)} • {s.snapshotCount} snaps</span>
                                 </div>
                             </button>
@@ -119,7 +140,7 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
                 <div className="chat-header-bar">
                     <div className="current-context">
                         {selectedContext ? (
-                            <>Analyzing: <strong>Session #{selectedContext}</strong></>
+                            <>Analyzing: <strong>{sessionNames[parseInt(selectedContext)] || `Session #${selectedContext}`}</strong></>
                         ) : (
                             <span className="no-context">Select a session to begin analysis</span>
                         )}
@@ -156,6 +177,8 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
                             }}
                             selectedConnectionInfo={selectedConnection ? `${selectedConnection.LocalAddr}:${selectedConnection.LocalPort} -> ${selectedConnection.RemoteAddr}:${selectedConnection.RemotePort}` : undefined}
                             isDocked={false}
+                            externalMessages={externalChatHistories}
+                            onMessagesChange={onChatHistoriesChange}
                             getConnectionsForPicker={async () => {
                                 // Fetch connections from the session timeline
                                 const sessionID = parseInt(selectedContext);

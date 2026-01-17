@@ -78,6 +78,9 @@ function App() {
     });
     const [filtersExpanded, setFiltersExpanded] = useState(false);
 
+    // AI Chat histories by session/context - persisted here so they survive tab switches
+    const [aiChatHistories, setAiChatHistories] = useState<Record<string, any[]>>({});
+
     // Check if AI is configured on mount
     const checkAIConfig = async () => {
         try {
@@ -151,15 +154,53 @@ function App() {
                         filtered = filtered.filter(c => (c.ExtendedStats?.SegsRetrans || 0) > 0);
                     }
 
-                    // Numeric filters
+                    // Helper function to parse filter expressions like "> 50", "< 100", ">= 1M"
+                    const parseFilterExpression = (expr: string, value: number): boolean => {
+                        if (!expr) return true;
+                        const match = expr.match(/^([<>=!]+)?\s*(\d+(?:\.\d+)?)\s*([KMG])?$/i);
+                        if (!match) return true;
+
+                        const operator = match[1] || '>';
+                        let threshold = parseFloat(match[2]);
+                        const unit = match[3]?.toUpperCase();
+
+                        // Apply unit multiplier
+                        if (unit === 'K') threshold *= 1024;
+                        else if (unit === 'M') threshold *= 1024 * 1024;
+                        else if (unit === 'G') threshold *= 1024 * 1024 * 1024;
+
+                        switch (operator) {
+                            case '>': return value > threshold;
+                            case '>=': return value >= threshold;
+                            case '<': return value < threshold;
+                            case '<=': return value <= threshold;
+                            case '=': case '==': return value === threshold;
+                            case '!=': return value !== threshold;
+                            default: return value > threshold;
+                        }
+                    };
+
+                    // Numeric filters with expression parsing
                     if (advancedFilters.rtt) {
-                        const val = parseInt(advancedFilters.rtt);
-                        if (!isNaN(val)) filtered = filtered.filter(c => (c.ExtendedStats?.SmoothedRTT || 0) > val);
+                        filtered = filtered.filter(c =>
+                            parseFilterExpression(advancedFilters.rtt, c.ExtendedStats?.SmoothedRTT || 0)
+                        );
+                    }
+                    if (advancedFilters.bytesIn) {
+                        filtered = filtered.filter(c =>
+                            parseFilterExpression(advancedFilters.bytesIn, c.BasicStats?.DataBytesIn || 0)
+                        );
+                    }
+                    if (advancedFilters.bytesOut) {
+                        filtered = filtered.filter(c =>
+                            parseFilterExpression(advancedFilters.bytesOut, c.BasicStats?.DataBytesOut || 0)
+                        );
                     }
                     if (advancedFilters.bandwidth) {
-                        // const val = parseInt(advancedFilters.bandwidth);
-                        // Bandwidth check skipped for now
-                        // if (!isNaN(val)) filtered = filtered.filter(c => (c.ExtendedStats?.InboundBandwidth || 0) > val);
+                        filtered = filtered.filter(c => {
+                            const bw = (c.ExtendedStats?.InboundBandwidth || 0) + (c.ExtendedStats?.OutboundBandwidth || 0);
+                            return parseFilterExpression(advancedFilters.bandwidth, bw);
+                        });
                     }
 
 
@@ -365,7 +406,6 @@ function App() {
                     isConfigured={isAIConfigured}
                     onConfigure={() => setIsSettingsOpen(true)}
                     getSessions={GetSessions}
-
                     getSessionTimeline={GetSessionTimeline}
                     selectedConnection={selectedConnection}
                     onDiagnoseConnection={async (conn: tcpmonitor.ConnectionInfo | null) => {
@@ -377,6 +417,8 @@ function App() {
                             conn.RemotePort
                         );
                     }}
+                    externalChatHistories={aiChatHistories}
+                    onChatHistoriesChange={setAiChatHistories}
                 />
             );
         }
