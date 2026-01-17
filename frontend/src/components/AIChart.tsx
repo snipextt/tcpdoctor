@@ -65,7 +65,7 @@ const AIChart: React.FC<AIChartProps> = ({ type, title, dataPoints, xLabel, yLab
         ctx.lineWidth = 0.5;
         const steps = 5;
         ctx.textAlign = 'right';
-        ctx.font = '10px -apple-system';
+        ctx.font = '11px Outfit, sans-serif';
         ctx.fillStyle = '#b0b0b0';
 
         for (let i = 0; i <= steps; i++) {
@@ -172,7 +172,7 @@ const AIChart: React.FC<AIChartProps> = ({ type, title, dataPoints, xLabel, yLab
         // Draw legend
         const legendX = 10;
         let legendY = 10;
-        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.font = '500 11px Outfit, sans-serif';
         ctx.textAlign = 'left';
 
         data.forEach((point, idx) => {
@@ -228,13 +228,13 @@ const AIChart: React.FC<AIChartProps> = ({ type, title, dataPoints, xLabel, yLab
 
             // Value label on top of bar
             ctx.fillStyle = '#fff';
-            ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.font = '600 11px Outfit, sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText(point.value.toFixed(1), x + barWidth / 2, y - 5);
 
             // X-axis label
             ctx.fillStyle = '#b0b0b0';
-            ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.font = '11px Outfit, sans-serif';
             const truncatedLabel = point.label.length > 15 ? point.label.slice(0, 12) + '...' : point.label;
             ctx.save();
             ctx.translate(x + barWidth / 2, padding.top + chartHeight + 15);
@@ -245,7 +245,7 @@ const AIChart: React.FC<AIChartProps> = ({ type, title, dataPoints, xLabel, yLab
 
         // Y-axis labels
         ctx.fillStyle = '#b0b0b0';
-        ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.font = '11px Outfit, sans-serif';
         ctx.textAlign = 'right';
         const steps = 5;
         for (let i = 0; i <= steps; i++) {
@@ -266,7 +266,7 @@ const AIChart: React.FC<AIChartProps> = ({ type, title, dataPoints, xLabel, yLab
         if (yLabel) {
             ctx.save();
             ctx.fillStyle = '#e0e0e0';
-            ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.font = '600 11px Outfit, sans-serif';
             ctx.textAlign = 'center';
             ctx.translate(15, padding.top + chartHeight / 2);
             ctx.rotate(-Math.PI / 2);
@@ -276,7 +276,7 @@ const AIChart: React.FC<AIChartProps> = ({ type, title, dataPoints, xLabel, yLab
 
         if (xLabel) {
             ctx.fillStyle = '#e0e0e0';
-            ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.font = '600 11px Outfit, sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText(xLabel, padding.left + chartWidth / 2, height - 5);
         }
