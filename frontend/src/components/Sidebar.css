@@ -85,7 +85,7 @@
 
 .nav-item.active {
     background: var(--color-primary);
-    color: var(--color-bg-main);
+    color: #ffffff;
     border-color: var(--color-primary);
 }
 

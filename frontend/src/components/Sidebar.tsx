@@ -4,10 +4,11 @@ import './Sidebar.css';
 interface SidebarProps {
     activeTab: string;
     onTabChange: (tab: string) => void;
+    onOpenSettings: () => void;
     isAdmin: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, isAdmin }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onOpenSettings, isAdmin }) => {
     return (
         <aside className="sidebar">
             <div className="sidebar-header">
@@ -51,8 +52,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, isAdmin }) =>
 
 
                 <button
-                    className={`nav-item settings-item ${activeTab === 'settings' ? 'active' : ''}`}
-                    onClick={() => onTabChange('settings')}
+                    className="nav-item settings-item"
+                    onClick={onOpenSettings}
                 >
                     <span className="nav-icon">⚙️</span>
                     <span className="nav-label">Settings</span>

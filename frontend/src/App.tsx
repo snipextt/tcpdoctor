@@ -326,14 +326,7 @@ function App() {
             );
         }
 
-        if (activeTab === 'settings') {
-            return (
-                <div style={{ padding: 40, color: '#aaa', textAlign: 'center' }}>
-                    <h2>Settings moved to modal</h2>
-                    <button className="btn-primary" onClick={() => setIsSettingsOpen(true)}>Open Settings</button>
-                </div>
-            );
-        }
+
 
         if (selectedConnection) {
             return (
@@ -405,6 +398,7 @@ function App() {
             <Sidebar
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
+                onOpenSettings={() => setIsSettingsOpen(true)}
                 isAdmin={isAdmin}
             />
 

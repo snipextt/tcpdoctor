@@ -215,6 +215,9 @@ func (s *Service) performUpdate() {
 	// Update connection manager
 	events := s.connectionManager.Update(allConnections)
 
+	// Capture snapshot if recording is active
+	s.snapshotStore.Take(allConnections)
+
 	// Check if selected connection was closed
 	s.mu.Lock()
 	if s.selectedConn != nil {

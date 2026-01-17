@@ -2,9 +2,10 @@
 
 :root {
   /* Neutral Palette - Softer Dark Mode */
-  --color-primary: #ffffff;
-  --color-primary-hover: #e5e5e5;
-  --color-primary-glow: rgba(255, 255, 255, 0.05);
+  /* Brand Blue Palette */
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-glow: rgba(37, 99, 235, 0.3);
 
   --color-bg-main: #121212;
   /* Was #000000 */
