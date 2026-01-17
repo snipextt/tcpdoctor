@@ -107,7 +107,7 @@
 
 .message.user .message-content {
     background: var(--color-primary);
-    color: var(--color-bg-main);
+    color: white;
     border-bottom-right-radius: 0;
 }
 
@@ -471,4 +471,3 @@
     opacity: 0.5;
     cursor: not-allowed;
 }
-

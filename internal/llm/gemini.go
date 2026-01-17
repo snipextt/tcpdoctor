@@ -162,7 +162,11 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 		if msg.Role == "assistant" {
 			role = "model"
 		}
-		chatHistory = append(chatHistory, genai.NewContentFromText(msg.Content, role))
+		content := msg.Content
+		if strings.TrimSpace(content) == "" {
+			content = "(No text content)"
+		}
+		chatHistory = append(chatHistory, genai.NewContentFromText(content, role))
 	}
 
 	// Create chat config with system instruction
@@ -367,8 +371,17 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 		}
 	}
 
+	ans := strings.TrimSpace(fullAnswer.String())
+	if ans == "" {
+		if len(graphs) > 0 {
+			ans = "Here are the requested visualizations."
+		} else {
+			ans = "Processed."
+		}
+	}
+
 	return &QueryResult{
-		Answer:  strings.TrimSpace(fullAnswer.String()),
+		Answer:  ans,
 		Graphs:  graphs,
 		Success: true,
 	}, nil
