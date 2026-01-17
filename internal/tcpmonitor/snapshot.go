@@ -21,20 +21,20 @@ type CompactConnection struct {
 	SegmentsIn  int64 `json:"segmentsIn"`
 	SegmentsOut int64 `json:"segmentsOut"`
 	// Extended Stats
-	SampleRTT       int64 `json:"sampleRTT"`
-	FastRetrans     int64 `json:"fastRetrans"`
-	TimeoutEpisodes int64 `json:"timeoutEpisodes"`
-	RTT             int64 `json:"rtt"`
-	RTTVariance   int64 `json:"rttVariance"`
-	MinRTT        int64 `json:"minRtt"`
-	MaxRTT        int64 `json:"maxRtt"`
-	Retrans       int64 `json:"retrans"`
-	SegsRetrans   int64 `json:"segsRetrans"`
-	TotalSegsOut  int64 `json:"totalSegsOut"`
-	TotalSegsIn   int64 `json:"totalSegsIn"`
-	CongestionWin int64 `json:"congestionWin"`
-	InBandwidth   int64 `json:"inBandwidth"`
-	OutBandwidth  int64 `json:"outBandwidth"`
+	SampleRTT         int64 `json:"sampleRTT"`
+	FastRetrans       int64 `json:"fastRetrans"`
+	TimeoutEpisodes   int64 `json:"timeoutEpisodes"`
+	RTT               int64 `json:"rtt"`
+	RTTVariance       int64 `json:"rttVariance"`
+	MinRTT            int64 `json:"minRtt"`
+	MaxRTT            int64 `json:"maxRtt"`
+	Retrans           int64 `json:"retrans"`
+	SegsRetrans       int64 `json:"segsRetrans"`
+	TotalSegsOut      int64 `json:"totalSegsOut"`
+	TotalSegsIn       int64 `json:"totalSegsIn"`
+	CongestionWin     int64 `json:"congestionWin"`
+	InBandwidth       int64 `json:"inBandwidth"`
+	OutBandwidth      int64 `json:"outBandwidth"`
 	ThruBytesAcked    int64 `json:"thruBytesAcked"`
 	ThruBytesReceived int64 `json:"thruBytesReceived"`
 	CurrentSsthresh   int64 `json:"currentSsthresh"`
@@ -221,6 +221,14 @@ func (s *SnapshotStore) Take(connections []ConnectionInfo) *Snapshot {
 			compact[i].SacksRcvd = int64(c.ExtendedStats.SacksRcvd)
 			compact[i].SackBlocksRcvd = int64(c.ExtendedStats.SackBlocksRcvd)
 			compact[i].DsackDups = int64(c.ExtendedStats.DsackDups)
+		}
+	}
+
+	// Find active session and increment count
+	for i := range s.sessions {
+		if s.sessions[i].ID == s.currentSessionID {
+			s.sessions[i].SnapshotCount++
+			break
 		}
 	}
 

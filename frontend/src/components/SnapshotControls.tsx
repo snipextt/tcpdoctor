@@ -138,13 +138,6 @@ const SnapshotControls: React.FC<SnapshotControlsProps> = ({
 
             {isOpen && (
                 <div className="sessions-popover">
-                    <div className="popover-header-row">
-                        <div className="limit-info">
-                            <span className="icon">ℹ️</span>
-                            <span>Rolling 1h buffer (auto-discards old data)</span>
-                        </div>
-                    </div>
-
                     {/* Control Buttons */}
                     <div className="controls-row">
                         {!isRecording ? (

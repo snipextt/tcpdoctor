@@ -145,6 +145,13 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
     };
   }, [history]);
 
+  // Chart formatting helpers
+  const formatChartAxis = (value: number) => {
+    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+    return value.toString();
+  };
+
   const chartOptions: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
@@ -154,6 +161,16 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
       tooltip: {
         mode: 'index',
         intersect: false,
+        callbacks: {
+          label: (context) => {
+            let label = context.dataset.label || '';
+            if (label) label += ': ';
+            if (context.parsed.y !== null) {
+              label += formatChartAxis(context.parsed.y);
+            }
+            return label;
+          }
+        }
       }
     },
     scales: {
@@ -164,7 +181,8 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
         grid: { color: 'rgba(255,255,255,0.05)' },
         ticks: {
           color: '#6c757d',
-          font: { size: 9 }
+          font: { size: 9 },
+          callback: (value) => formatChartAxis(Number(value))
         }
       }
     }
@@ -187,8 +205,10 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
   const StatItem = ({ label, value, subValue }: { label: string, value: string, subValue?: string }) => (
     <div className="stat-item">
       <div className="stat-label">{label}</div>
-      <div className="stat-value">{value}</div>
-      {subValue && <div className="stat-subvalue">{subValue}</div>}
+      <div className="stat-value-group">
+        <span className="stat-value">{value}</span>
+        {subValue && <span className="stat-subvalue">{subValue}</span>}
+      </div>
     </div>
   );
 
@@ -229,13 +249,13 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
         {hasExtended && ExtendedStats && visibleSections.has('charts') && (
           <div className="stats-section charts-section" style={{ animationDelay: '0.05s' }}>
             <div className="chart-wrapper">
-              <h3><span className="section-icon">📈</span>Live RTT (ms)</h3>
+              <h3><span className="section-icon">📈</span>Live RTT</h3>
               <div className="chart-container">
                 <Line data={chartData.rtt} options={chartOptions} />
               </div>
             </div>
             <div className="chart-wrapper">
-              <h3><span className="section-icon">📊</span>Live Throughput (bps)</h3>
+              <h3><span className="section-icon">📊</span>Live Throughput</h3>
               <div className="chart-container">
                 <Line data={chartData.bandwidth} options={chartOptions} />
               </div>

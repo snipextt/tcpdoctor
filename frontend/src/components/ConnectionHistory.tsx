@@ -344,11 +344,11 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
                 </div>
             )}
 
-            {visibleCharts.has('retrans') && (
+            {visibleCharts.has('rtt') && (
                 <div className="chart-section">
-                    <div className="chart-title">Retransmissions (Bytes)</div>
-                    <div style={{ height: 160 }}>
-                        <Bar ref={(el: any) => chartRefs.current[1] = el} data={chartData.retrans} options={options} plugins={plugins as any} />
+                    <div className="chart-title">Round Trip Time (ms)</div>
+                    <div style={{ height: 180 }}>
+                        <Line ref={(el: any) => chartRefs.current[3] = el} data={chartData.rtt} options={options} plugins={plugins as any} />
                     </div>
                 </div>
             )}
@@ -362,11 +362,11 @@ const HistoryCharts = React.memo(({ data, onHover, onZoom, zoomRange, hoverIndex
                 </div>
             )}
 
-            {visibleCharts.has('rtt') && (
+            {visibleCharts.has('retrans') && (
                 <div className="chart-section">
-                    <div className="chart-title">Round Trip Time (ms)</div>
-                    <div style={{ height: 180 }}>
-                        <Line ref={(el: any) => chartRefs.current[3] = el} data={chartData.rtt} options={options} plugins={plugins as any} />
+                    <div className="chart-title">Retransmissions (Bytes)</div>
+                    <div style={{ height: 160 }}>
+                        <Bar ref={(el: any) => chartRefs.current[1] = el} data={chartData.retrans} options={options} plugins={plugins as any} />
                     </div>
                 </div>
             )}
