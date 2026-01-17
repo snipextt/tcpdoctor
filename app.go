@@ -224,7 +224,7 @@ func (a *App) QueryConnectionsForSession(query string, sessionID int64) (*llm.Qu
 	if a.service == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
-	return a.service.QueryConnectionsForSession(query, sessionID)
+	return a.service.QueryConnectionsForSession(sessionID, query)
 }
 
 // GenerateHealthReportForSession creates an AI-generated health report for a specific session

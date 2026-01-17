@@ -179,12 +179,6 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 		Temperature: genai.Ptr(float32(0.5)),
 	}
 
-	// Create chat with history
-	chat, err := g.client.Chats.Create(ctx, g.model, chatConfig, chatHistory)
-	if err != nil {
-		return &QueryResult{Answer: fmt.Sprintf("Failed to create chat: %v", err), Success: false}, nil
-	}
-
 	// Tools configuration
 	tools := []*genai.Tool{
 		{
@@ -259,17 +253,50 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 	var fullAnswer strings.Builder
 	var graphs []GraphSuggestion
 
+	// We maintain our own history for the session to allow sanitization
+	// Start with the base history constructed above
+	sessionHistory := make([]*genai.Content, len(chatHistory))
+	copy(sessionHistory, chatHistory)
+
 	for i := 0; i < 20; i++ {
-		result, err := chat.SendMessage(ctx, genai.Part{Text: currentMessage})
+		// Create a NEW chat session for this turn with the sanitized history
+		// This is necessary because we need to modify/sanitize history (remove empty parts)
+		// which isn't easy with the stateful ChatSession object.
+		chatSession, err := g.client.Chats.Create(ctx, g.model, chatConfig, sessionHistory)
+		if err != nil {
+			return &QueryResult{Answer: fmt.Sprintf("Failed to create chat session: %v", err), Success: false}, nil
+		}
+
+		result, err := chatSession.SendMessage(ctx, genai.Part{Text: currentMessage})
 		if err != nil {
 			return &QueryResult{Answer: fmt.Sprintf("Error: %v", err), Success: false}, nil
 		}
+
+		// Update our manual history with the User's message
+		sessionHistory = append(sessionHistory, genai.NewContentFromText(currentMessage, "user"))
 
 		if len(result.Candidates) == 0 {
 			break
 		}
 
 		candidate := result.Candidates[0]
+
+		// Sanitize and append the Model's response to our history
+		var validParts []*genai.Part
+		for _, p := range candidate.Content.Parts {
+			if p.Text != "" || p.FunctionCall != nil {
+				validParts = append(validParts, p)
+			}
+		}
+		if len(validParts) == 0 {
+			validParts = []*genai.Part{{Text: "(Visual content)"}} // Fallback to avoid empty message
+		}
+
+		// Append sanitized model response to history for next turn
+		modelContent := &genai.Content{Role: "model", Parts: validParts}
+		sessionHistory = append(sessionHistory, modelContent)
+
+		currentMessage = "" // Reset for next turn logic
 		currentMessage = "" // Reset for next turn logic
 
 		// Handle Parts (Text and Function Calls)
@@ -356,7 +383,7 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 		}
 
 		// Send responses back to model
-		result, err = chat.SendMessage(ctx, responses...)
+		result, err = chatSession.SendMessage(ctx, responses...)
 		if err != nil {
 			return &QueryResult{Answer: fmt.Sprintf("Error in tool turn: %v", err), Success: false}, nil
 		}
@@ -404,58 +431,6 @@ func getFloat64(v interface{}) float64 {
 		return float64(t)
 	default:
 		return 0
-	}
-}
-
-// queryResponseSchema returns the JSON schema for query responses with graphs
-func queryResponseSchema() *genai.Schema {
-	return &genai.Schema{
-		Type: genai.TypeObject,
-		Properties: map[string]*genai.Schema{
-			"response": {
-				Type:        genai.TypeString,
-				Description: "Your text response in Markdown format. Be natural and helpful.",
-			},
-			"graphs": {
-				Type:        genai.TypeArray,
-				Description: "Optional array of graphs to visualize data. Only include when visualization would help understanding.",
-				Items: &genai.Schema{
-					Type: genai.TypeObject,
-					Properties: map[string]*genai.Schema{
-						"type": {
-							Type:        genai.TypeString,
-							Description: "Graph type",
-							Enum:        []string{"bar", "line", "pie"},
-						},
-						"title": {
-							Type:        genai.TypeString,
-							Description: "Graph title",
-						},
-						"xLabel": {
-							Type:        genai.TypeString,
-							Description: "X-axis label (optional)",
-						},
-						"yLabel": {
-							Type:        genai.TypeString,
-							Description: "Y-axis label (optional)",
-						},
-						"dataPoints": {
-							Type: genai.TypeArray,
-							Items: &genai.Schema{
-								Type: genai.TypeObject,
-								Properties: map[string]*genai.Schema{
-									"label": {Type: genai.TypeString},
-									"value": {Type: genai.TypeNumber},
-								},
-								Required: []string{"label", "value"},
-							},
-						},
-					},
-					Required: []string{"type", "title", "dataPoints"},
-				},
-			},
-		},
-		Required: []string{"response"},
 	}
 }
 

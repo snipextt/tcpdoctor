@@ -672,8 +672,8 @@ func (s *Service) findPerformanceExtremes(conns []SessionConnectionSummary) (wor
 // Session Query Methods
 // =====================================================
 
-// QueryConnectionsForSession queries AI about session data
-func (s *Service) QueryConnectionsForSession(query string, sessionID int64) (*llm.QueryResult, error) {
+// queryConnectionsForSession queries AI about session data
+func (s *Service) queryConnectionsForSession(sessionID int64, query string) (*llm.QueryResult, error) {
 	s.logger.Debug("LLM Session Query: %s (session %d)", query, sessionID)
 
 	// Generate highlights for context
@@ -732,8 +732,8 @@ USER QUESTION: %s`,
 	return s.llmService.QueryConnections(ctx, enrichedQuery, summaries)
 }
 
-// GenerateHealthReportForSession generates AI health report for session
-func (s *Service) GenerateHealthReportForSession(sessionID int64) (*llm.HealthReport, error) {
+// generateHealthReportForSession generates AI health report for session
+func (s *Service) generateHealthReportForSession(sessionID int64) (*llm.HealthReport, error) {
 	s.logger.Info("Generating AI health report for session %d", sessionID)
 
 	timeline := s.snapshotStore.GetSessionTimeline(sessionID)
