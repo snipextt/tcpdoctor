@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { tcpmonitor } from "../../wailsjs/go/models";
-import { QueryConnectionsForSessionWithHistory, GenerateHealthReportForSession } from "../../wailsjs/go/main/App";
+import { GenerateHealthReportForSession } from "../../wailsjs/go/main/App";
 import AIAssistant from './AIAssistant';
 import './AIAgentView.css';
 
@@ -113,8 +113,8 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
                             contextId={selectedContext}
                             queryConnections={async (q, history) => {
                                 const sessionID = parseInt(selectedContext);
-                                // @ts-ignore
-                                return await QueryConnectionsForSessionWithHistory(q, sessionID, history);
+                                // @ts-ignore - Use window.go binding directly until Wails bindings are regenerated
+                                return await (window as any).go.main.App.QueryConnectionsForSessionWithHistory(q, sessionID, history);
                             }}
                             generateHealthReport={async () => {
                                 const sessionID = parseInt(selectedContext);
