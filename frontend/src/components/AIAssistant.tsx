@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './AIAssistant.css';
+import AIChart from './AIChart';
 
 interface Message {
     id: string;
@@ -256,47 +257,14 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
 
                                 {/* Render graphs if present */}
                                 {msg.graphs && msg.graphs.length > 0 && msg.graphs.map((graph, gIdx) => (
-                                    <div key={gIdx} className="ai-graph">
-                                        <div className="graph-title">{graph.title}</div>
-                                        {graph.type === 'bar' && (
-                                            <div className="bar-chart">
-                                                {graph.dataPoints.map((dp, dpIdx) => {
-                                                    const maxVal = Math.max(...graph.dataPoints.map(d => d.value));
-                                                    const pct = maxVal > 0 ? (dp.value / maxVal) * 100 : 0;
-                                                    return (
-                                                        <div key={dpIdx} className="bar-row">
-                                                            <span className="bar-label" title={dp.label}>{dp.label.length > 20 ? dp.label.slice(0, 17) + '...' : dp.label}</span>
-                                                            <div className="bar-track">
-                                                                <div className="bar-fill" style={{ width: `${pct}%` }} />
-                                                            </div>
-                                                            <span className="bar-value">{dp.value.toFixed(1)}</span>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                        {graph.type === 'pie' && (
-                                            <div className="pie-chart">
-                                                {graph.dataPoints.map((dp, dpIdx) => {
-                                                    const total = graph.dataPoints.reduce((s, d) => s + d.value, 0);
-                                                    const pct = total > 0 ? (dp.value / total) * 100 : 0;
-                                                    const colors = ['#4CAF50', '#2196F3', '#FF9800', '#E91E63', '#9C27B0', '#00BCD4'];
-                                                    return (
-                                                        <div key={dpIdx} className="pie-item">
-                                                            <span className="pie-color" style={{ background: colors[dpIdx % colors.length] }} />
-                                                            <span className="pie-label">{dp.label}</span>
-                                                            <span className="pie-value">{pct.toFixed(1)}%</span>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                        {graph.type === 'line' && (
-                                            <div className="line-chart-placeholder">
-                                                Line chart: {graph.dataPoints.map(d => d.label).join(', ')}
-                                            </div>
-                                        )}
-                                    </div>
+                                    <AIChart
+                                        key={gIdx}
+                                        type={graph.type}
+                                        title={graph.title}
+                                        dataPoints={graph.dataPoints}
+                                        xLabel={graph.xLabel}
+                                        yLabel={graph.yLabel}
+                                    />
                                 ))}
                             </div>
                             <div className="message-time">

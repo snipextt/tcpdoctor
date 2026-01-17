@@ -1,0 +1,21 @@
+/* AI Chart Styles */
+.ai-chart-container {
+    margin: 16px 0;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+}
+
+.ai-chart-container .chart-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 12px;
+    color: var(--color-text-main);
+    text-align: center;
+}
+
+.ai-chart-canvas {
+    display: block;
+    border-radius: 4px;
+}
