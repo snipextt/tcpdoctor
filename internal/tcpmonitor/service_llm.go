@@ -156,7 +156,6 @@ func (s *Service) queryConnectionsForSessionWithHistory(sessionID int64, query s
 	start := session.StartTime
 	end := session.EndTime
 	if end.IsZero() {
-		// If session is still ongoing or not properly closed, use current time or last snapshot time
 		end = time.Now()
 	}
 
@@ -165,25 +164,24 @@ func (s *Service) queryConnectionsForSessionWithHistory(sessionID int64, query s
 	sessionContext := fmt.Sprintf("Analyze the recorded TCP session #%d. Duration: %s (from %s to %s).",
 		sessionID, duration, start.Format("15:04:05"), end.Format("15:04:05"))
 
-	// Since we can't load ALL snapshots into context, we don't pass massive summaries here.
-	// Instead, we rely on the agent to use tools like get_snapshots_by_time_range or get_metric_history
+	// We rely on the agent to use tools like get_snapshots_by_time_range or get_metric_history
 	// to fetch data as needed. We provide an empty summary list but a strong system prompt context.
 
 	// Call LLM service
 	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 	defer cancel()
 
-	// We reuse QueryConnectionsWithHistory but prepend the session context to the query
-	// Ideally we should have a specific method in GeminiService, but this works if we augment the query/context
-	// The LLM service's QueryConnectionsWithHistory expects connection summaries, which we don't have for the *whole* session readily available
-	// as a live snapshot.
-	// However, looking at the existing QueryConnectionsForSession (which delegates to unexported),
-	// let's see how that works. It seems there isn't actually a proper implementation of QueryConnectionsForSession in service_llm.go yet?
-	// Wait, I see s.QueryConnectionsForSession -> s.queryConnectionsForSession.
-	// Let's implement this properly.
-
-	// Actually, we should check specifically what queryConnectionsForSession does.
+	// Pass empty summaries as we want "on demand" fetching
 	return s.llmService.QueryConnectionsWithHistory(ctx, sessionContext+"\n"+query, []llm.ConnectionSummary{}, history)
+}
+
+// Helper to convert TCP state int to string
+func tcpStateToString(state int) string {
+	states := []string{"CLOSED", "LISTEN", "SYN_SENT", "SYN_RCVD", "ESTABLISHED", "FIN_WAIT1", "FIN_WAIT2", "CLOSE_WAIT", "CLOSING", "LAST_ACK", "TIME_WAIT", "DELETE_TCB"}
+	if state >= 0 && state < len(states) {
+		return states[state]
+	}
+	return fmt.Sprintf("UNKNOWN(%d)", state)
 }
 
 // QueryConnectionsForSession answers a natural language question about a specific session

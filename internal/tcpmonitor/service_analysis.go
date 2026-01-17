@@ -1,6 +1,3 @@
-//go:build windows
-// +build windows
-
 package tcpmonitor
 
 import (
@@ -755,6 +752,10 @@ func (s *Service) generateHealthReportForSession(sessionID int64) (*llm.HealthRe
 func (s *Service) GetSnapshotsByTimeRange(sessionID int64, startTime, endTime time.Time, filter *llm.ConnectionFilter) ([]SessionConnectionSummary, error) {
 	timeline := s.snapshotStore.GetSessionTimeline(sessionID)
 
+	// DEBUG: Log the raw timeline size and requested range
+	s.logger.Debug("[GetSnapshotsByTimeRange] SessionID=%d, Start=%s, End=%s, TimelineLen=%d",
+		sessionID, startTime.Format(time.RFC3339), endTime.Format(time.RFC3339), len(timeline))
+
 	// Filter by time range
 	var filtered []TimelineConnection
 	for _, tc := range timeline {
@@ -774,6 +775,9 @@ func (s *Service) GetSnapshotsByTimeRange(sessionID int64, startTime, endTime ti
 			filtered = append(filtered, tc)
 		}
 	}
+
+	// DEBUG: Log how many matched the filter
+	s.logger.Debug("[GetSnapshotsByTimeRange] Filtered=%d connections after time+filter", len(filtered))
 
 	return s.aggregateSessionConnections(filtered), nil
 }

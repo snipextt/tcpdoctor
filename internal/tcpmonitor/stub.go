@@ -6,8 +6,6 @@ package tcpmonitor
 import (
 	"fmt"
 	"time"
-
-	"tcpdoctor/internal/llm"
 )
 
 // Stub types for non-Windows platforms (for development/testing purposes)
@@ -67,12 +65,5 @@ func (s *Service) ConfigureLLM(apiKey string) error {
 // Snapshot types are now in snapshot.go (untagged)
 // Removed duplicate struct definitions
 
-// Internal method implementations for session analysis (stubbed for Mac)
-// These are called by service_llm.go
-func (s *Service) queryConnectionsForSession(sessionID int64, query string) (*llm.QueryResult, error) {
-	return nil, fmt.Errorf("Session analysis not supported on non-Windows platforms")
-}
-
-func (s *Service) generateHealthReportForSession(sessionID int64) (*llm.HealthReport, error) {
-	return nil, fmt.Errorf("Session analysis not supported on non-Windows platforms")
-}
+// Internal method implementations for session analysis are now in service_analysis.go
+// Removed duplicates
