@@ -401,7 +401,7 @@ function App() {
     };
 
     return (
-        <div className="app-container">
+        <div className="app-shell">
             <Sidebar
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
