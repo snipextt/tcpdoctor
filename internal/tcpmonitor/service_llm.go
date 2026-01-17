@@ -159,10 +159,21 @@ func (s *Service) queryConnectionsForSessionWithHistory(sessionID int64, query s
 		end = time.Now()
 	}
 
-	// Prepare session context string
+	// Prepare session context string with ISO8601 timestamps for tool compatibility
 	duration := end.Sub(start).Round(time.Second)
-	sessionContext := fmt.Sprintf("Analyze the recorded TCP session #%d. Duration: %s (from %s to %s).",
-		sessionID, duration, start.Format("15:04:05"), end.Format("15:04:05"))
+	startISO := start.Format(time.RFC3339)
+	endISO := end.Format(time.RFC3339)
+	sessionContext := fmt.Sprintf(`You are analyzing recorded TCP session #%d.
+Session Details:
+- Session ID: %d
+- Start Time: %s
+- End Time: %s
+- Duration: %s
+- Snapshot Count: %d
+
+Use the provided tools (get_snapshots_by_time_range, get_metric_history, plot_graph) to fetch and analyze data from this session.
+When calling get_snapshots_by_time_range or get_metric_history, use sessionID=%d and the ISO8601 timestamps above.`,
+		sessionID, sessionID, startISO, endISO, duration, session.SnapshotCount, sessionID)
 
 	// We rely on the agent to use tools like get_snapshots_by_time_range or get_metric_history
 	// to fetch data as needed. We provide an empty summary list but a strong system prompt context.
@@ -172,7 +183,7 @@ func (s *Service) queryConnectionsForSessionWithHistory(sessionID int64, query s
 	defer cancel()
 
 	// Pass empty summaries as we want "on demand" fetching
-	return s.llmService.QueryConnectionsWithHistory(ctx, sessionContext+"\n"+query, []llm.ConnectionSummary{}, history)
+	return s.llmService.QueryConnectionsWithHistory(ctx, sessionContext+"\n\nUser Query: "+query, []llm.ConnectionSummary{}, history)
 }
 
 // Helper to convert TCP state int to string
