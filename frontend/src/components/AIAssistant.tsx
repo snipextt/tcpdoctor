@@ -56,10 +56,20 @@ interface AIAssistantProps {
     // Wails bindings - queryConnections now accepts history for context
     queryConnections: (query: string, history: Array<{ role: string, content: string }>) => Promise<QueryResult>;
     generateHealthReport: () => Promise<HealthReport>;
-    onDiagnose?: () => Promise<DiagnosticResult | null>;
+    onDiagnose?: (connection?: ConnectionForPicker) => Promise<DiagnosticResult | null>;
     selectedConnectionInfo?: string;
     isDocked?: boolean;
     contextId: string; // 'live' or 'session-N' for separate chat histories
+    getConnectionsForPicker?: () => Promise<ConnectionForPicker[]>;
+}
+
+// Simple connection type for the picker
+interface ConnectionForPicker {
+    localAddr: string;
+    localPort: number;
+    remoteAddr: string;
+    remotePort: number;
+    state: string;
 }
 
 const AIAssistant: React.FC<AIAssistantProps> = ({
@@ -73,11 +83,17 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
     selectedConnectionInfo,
     isDocked = false,
     contextId,
+    getConnectionsForPicker,
 }) => {
     // Context-based chat histories - each context has its own message array
     const [messagesByContext, setMessagesByContext] = useState<Record<string, Message[]>>({});
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    // Connection picker state
+    const [showConnectionPicker, setShowConnectionPicker] = useState(false);
+    const [pickerConnections, setPickerConnections] = useState<ConnectionForPicker[]>([]);
+    const [isLoadingConnections, setIsLoadingConnections] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Get current context's messages
@@ -192,14 +208,40 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
         }
     };
 
-    const handleDiagnose = async () => {
+    // Open connection picker to select a connection for analysis
+    const openConnectionPicker = async () => {
+        if (!getConnectionsForPicker) return;
+
+        setIsLoadingConnections(true);
+        try {
+            const connections = await getConnectionsForPicker();
+            setPickerConnections(connections || []);
+            setShowConnectionPicker(true);
+        } catch (e) {
+            console.error('Failed to load connections:', e);
+        }
+        setIsLoadingConnections(false);
+    };
+
+    const handleDiagnose = async (pickedConnection?: ConnectionForPicker) => {
         if (!onDiagnose || isLoading || !isConfigured) return;
 
+        // If no connection selected and no picked connection, show picker
+        if (!selectedConnectionInfo && !pickedConnection && getConnectionsForPicker) {
+            openConnectionPicker();
+            return;
+        }
+
+        setShowConnectionPicker(false);
         setIsLoading(true);
-        addMessage('user', `Analyze connection: ${selectedConnectionInfo || 'selected'}`);
+
+        const connInfo = pickedConnection
+            ? `${pickedConnection.localAddr}:${pickedConnection.localPort} -> ${pickedConnection.remoteAddr}:${pickedConnection.remotePort}`
+            : selectedConnectionInfo || 'selected';
+        addMessage('user', `Analyze connection: ${connInfo}`);
 
         try {
-            const result = await onDiagnose();
+            const result = await onDiagnose(pickedConnection);
             if (!result) {
                 addMessage('assistant', 'Action Required: Please select a connection to analyze.');
                 return;
@@ -353,13 +395,41 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
                     <>
                         <div className="quick-actions-label">Quick Actions:</div>
                         <div className="quick-actions">
-                            <button
-                                className="btn-quick"
-                                onClick={handleDiagnose}
-                                disabled={isLoading || !onDiagnose}
-                            >
-                                Analyze Selected Connection
-                            </button>
+                            <div className="connection-picker-wrapper">
+                                <button
+                                    className="btn-quick"
+                                    onClick={() => handleDiagnose()}
+                                    disabled={isLoading || !onDiagnose || isLoadingConnections}
+                                >
+                                    {isLoadingConnections ? 'Loading...' : 'Analyze Connection'}
+                                </button>
+                                {showConnectionPicker && (
+                                    <div className="connection-picker-popover">
+                                        <div className="picker-header">
+                                            <span>Select Connection</span>
+                                            <button className="picker-close" onClick={() => setShowConnectionPicker(false)}>×</button>
+                                        </div>
+                                        <div className="picker-list">
+                                            {pickerConnections.length === 0 ? (
+                                                <div className="picker-empty">No connections found</div>
+                                            ) : (
+                                                pickerConnections.slice(0, 10).map((conn, idx) => (
+                                                    <button
+                                                        key={idx}
+                                                        className="picker-item"
+                                                        onClick={() => handleDiagnose(conn)}
+                                                    >
+                                                        <span className="picker-addr">{conn.localAddr}:{conn.localPort}</span>
+                                                        <span className="picker-arrow">→</span>
+                                                        <span className="picker-addr">{conn.remoteAddr}:{conn.remotePort}</span>
+                                                        <span className={`picker-state ${conn.state.toLowerCase()}`}>{conn.state}</span>
+                                                    </button>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                             <button
                                 className="btn-quick"
                                 onClick={handleGenerateReport}

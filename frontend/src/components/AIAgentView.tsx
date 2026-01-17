@@ -34,7 +34,24 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
 
     useEffect(() => {
         loadSessions();
+
+        // Auto-refresh sessions every 3 seconds to update snapshot counts
+        const refreshInterval = setInterval(() => {
+            loadSessionsSilent();
+        }, 3000);
+
+        return () => clearInterval(refreshInterval);
     }, []);
+
+    // Silent load (no loading spinner) for background refresh
+    const loadSessionsSilent = async () => {
+        try {
+            const data = await getSessions();
+            setSessions(data || []);
+        } catch (e) {
+            // Silently ignore errors on background refresh
+        }
+    };
 
     // Auto-select first session when sessions load
     useEffect(() => {
@@ -120,9 +137,40 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
                                 const sessionID = parseInt(selectedContext);
                                 return await GenerateHealthReportForSession(sessionID);
                             }}
-                            onDiagnose={() => onDiagnoseConnection(selectedConnection)}
+                            onDiagnose={async (pickedConn) => {
+                                // If a connection was picked from the popover, use it
+                                // Otherwise fall back to the globally selected connection
+                                const connToAnalyze = pickedConn ? {
+                                    LocalAddr: pickedConn.localAddr,
+                                    LocalPort: pickedConn.localPort,
+                                    RemoteAddr: pickedConn.remoteAddr,
+                                    RemotePort: pickedConn.remotePort,
+                                } as any : selectedConnection;
+                                return await onDiagnoseConnection(connToAnalyze);
+                            }}
                             selectedConnectionInfo={selectedConnection ? `${selectedConnection.LocalAddr}:${selectedConnection.LocalPort} -> ${selectedConnection.RemoteAddr}:${selectedConnection.RemotePort}` : undefined}
                             isDocked={false}
+                            getConnectionsForPicker={async () => {
+                                // Fetch connections from the session timeline
+                                const sessionID = parseInt(selectedContext);
+                                try {
+                                    const timeline = await getSessionTimeline(sessionID);
+                                    if (!timeline || timeline.length === 0) return [];
+                                    // Get unique connections from the latest snapshot
+                                    const latestSnapshot = timeline[timeline.length - 1];
+                                    const connections = latestSnapshot?.connections || [];
+                                    return connections.map((c: any) => ({
+                                        localAddr: c.LocalAddr || c.localAddr,
+                                        localPort: c.LocalPort || c.localPort,
+                                        remoteAddr: c.RemoteAddr || c.remoteAddr,
+                                        remotePort: c.RemotePort || c.remotePort,
+                                        state: c.State || c.state || 'UNKNOWN'
+                                    }));
+                                } catch (e) {
+                                    console.error('Failed to get connections for picker:', e);
+                                    return [];
+                                }
+                            }}
                         />
                     ) : (
                         <div className="no-session-placeholder">
