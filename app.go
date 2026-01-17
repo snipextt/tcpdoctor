@@ -209,6 +209,24 @@ func (a *App) GenerateHealthReport() (*llm.HealthReport, error) {
 	return a.service.GenerateHealthReport()
 }
 
+// === Session-Specific AI Methods ===
+
+// QueryConnectionsForSession queries AI about a specific recorded session
+func (a *App) QueryConnectionsForSession(query string, sessionID int64) (*llm.QueryResult, error) {
+	if a.service == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.service.QueryConnectionsForSession(query, sessionID)
+}
+
+// GenerateHealthReportForSession creates an AI-generated health report for a specific session
+func (a *App) GenerateHealthReportForSession(sessionID int64) (*llm.HealthReport, error) {
+	if a.service == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.service.GenerateHealthReportForSession(sessionID)
+}
+
 // === Snapshot Methods ===
 
 // StartRecording begins snapshot capture

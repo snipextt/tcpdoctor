@@ -1,5 +1,9 @@
 package llm
 
+import (
+	"time"
+)
+
 // DiagnosticResult contains the AI-generated analysis of a TCP connection
 type DiagnosticResult struct {
 	Summary         string   `json:"summary"`         // Brief summary of the connection status
@@ -70,4 +74,95 @@ type ConnectionSummary struct {
 type LLMConfig struct {
 	APIKey string `json:"apiKey"`
 	Model  string `json:"model"` // default: "gemini-2.0-flash"
+}
+
+// ==================================================
+// Session Analysis Types (for temporal intelligence)
+// ==================================================
+
+// TemporalEvent represents a significant event in a connection's timeline
+type TemporalEvent struct {
+	Timestamp time.Time   `json:"timestamp"`
+	Metric    string      `json:"metric"`    // "rtt", "bandwidth", "retrans"
+	EventType string      `json:"eventType"` // "spike", "drop", "burst"
+	Value     interface{} `json:"value"`
+	Severity  string      `json:"severity"` // "high", "medium", "low"
+}
+
+// State Transition represents a TCP state change
+type StateTransition struct {
+	Timestamp time.Time `json:"timestamp"`
+	FromState string    `json:"fromState"`
+	ToState   string    `json:"toState"`
+}
+
+// PerformancePeriod represents a time span of degraded or recovered performance
+type PerformancePeriod struct {
+	Start  time.Time `json:"start"`
+	End    time.Time `json:"end"`
+	Type   string    `json:"type"`   // "degradation" or "recovery"
+	Reason string    `json:"reason"` // Description of what caused it
+}
+
+// ConnectionRanking ranks a connection by a specific metric
+type ConnectionRanking struct {
+	LocalAddr  string  `json:"localAddr"`
+	RemoteAddr string  `json:"remoteAddr"`
+	LocalPort  uint16  `json:"localPort"`
+	RemotePort uint16  `json:"remotePort"`
+	Score      float64 `json:"score"`    // The metric value
+	Severity   string  `json:"severity"` // "high", "medium", "low"
+}
+
+// MajorEvent represents a significant event affecting multiple connections
+type MajorEvent struct {
+	Timestamp   time.Time `json:"timestamp"`
+	Type        string    `json:"type"` // "mass_degradation", "timeout_burst", etc.
+	Description string    `json:"description"`
+	Affected    int       `json:"affected"` // Number of connections affected
+	Severity    string    `json:"severity"`
+}
+
+// SessionHighlights contains preprocessed session analysis
+type SessionHighlights struct {
+	// Session overview
+	SessionID         int64   `json:"sessionId"`
+	Duration          float64 `json:"duration"` // seconds
+	TotalSnapshots    int     `json:"totalSnapshots"`
+	UniqueConnections int     `json:"uniqueConnections"`
+
+	// Top issues (automatically surfaced)
+	WorstRTTConnections       []ConnectionRanking `json:"worstRTTConnections"`
+	HighestRetransConnections []ConnectionRanking `json:"highestRetransConnections"`
+	MostVolatileConnections   []ConnectionRanking `json:"mostVolatileConnections"`
+
+	// Timeline highlights
+	MajorEvents []MajorEvent `json:"majorEvents"`
+
+	// Performance summary
+	OverallHealth      string   `json:"overallHealth"` // "healthy", "degraded", "critical"
+	HealthScore        int      `json:"healthScore"`   // 0-100
+	PrimaryIssues      []string `json:"primaryIssues"`
+	AnomalyCount       int      `json:"anomalyCount"`
+	DegradationPeriods int      `json:"degradationPeriods"`
+
+	// Temporal patterns
+	TimeOfWorstPerformance time.Time `json:"timeOfWorstPerformance,omitempty"`
+	TimeOfBestPerformance  time.Time `json:"timeOfBestPerformance,omitempty"`
+}
+
+// ConnectionIdentifier uniquely identifies a connection
+type ConnectionIdentifier struct {
+	LocalAddr  string `json:"localAddr"`
+	LocalPort  int    `json:"localPort"`
+	RemoteAddr string `json:"remoteAddr"`
+	RemotePort int    `json:"remotePort"`
+}
+
+// ConnectionFilter for filtering snapshots
+type ConnectionFilter struct {
+	LocalAddr  *string `json:"localAddr,omitempty"`
+	RemoteAddr *string `json:"remoteAddr,omitempty"`
+	LocalPort  *int    `json:"localPort,omitempty"`
+	RemotePort *int    `json:"remotePort,omitempty"`
 }

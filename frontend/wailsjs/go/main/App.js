@@ -30,6 +30,10 @@ export function GenerateHealthReport() {
   return window['go']['main']['App']['GenerateHealthReport']();
 }
 
+export function GenerateHealthReportForSession(arg1) {
+  return window['go']['main']['App']['GenerateHealthReportForSession'](arg1);
+}
+
 export function GetConnectionCount() {
   return window['go']['main']['App']['GetConnectionCount']();
 }
@@ -96,6 +100,10 @@ export function IsRecording() {
 
 export function QueryConnections(arg1) {
   return window['go']['main']['App']['QueryConnections'](arg1);
+}
+
+export function QueryConnectionsForSession(arg1, arg2) {
+  return window['go']['main']['App']['QueryConnectionsForSession'](arg1, arg2);
 }
 
 export function SetHealthThresholds(arg1) {

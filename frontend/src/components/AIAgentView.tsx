@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { tcpmonitor } from "../../wailsjs/go/models";
-import { QueryConnections, GenerateHealthReport } from "../../wailsjs/go/main/App";
+import { QueryConnections, GenerateHealthReport, QueryConnectionsForSession, GenerateHealthReportForSession } from "../../wailsjs/go/main/App";
 import AIAssistant from './AIAssistant';
 import './AIAgentView.css';
 
@@ -112,18 +112,23 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
                         onConfigureAPI={onConfigure}
                         isConfigured={isConfigured}
                         contextId={selectedContext} // Pass context for separate chat histories
-                        // Bindings
+                        // Bindings - Use session-specific methods when viewing a session
                         queryConnections={async (q) => {
-                            // TODO: Pass context ID to query? 
-                            // The backend QueryConnections might need to know if we are querying a snapshot.
-                            // For now, we assume it queries LIVE data unless we enhance the backend.
-                            // We can prepend context to query to prompt the AI: 
-                            const prompt = selectedContext === 'live'
-                                ? q
-                                : `[Context: Session #${selectedContext}] ${q}`;
-                            return await QueryConnections(prompt);
+                            if (selectedContext === 'live') {
+                                return await QueryConnections(q);
+                            } else {
+                                const sessionID = parseInt(selectedContext);
+                                return await QueryConnectionsForSession(q, sessionID);
+                            }
                         }}
-                        generateHealthReport={GenerateHealthReport}
+                        generateHealthReport={async () => {
+                            if (selectedContext === 'live') {
+                                return await GenerateHealthReport();
+                            } else {
+                                const sessionID = parseInt(selectedContext);
+                                return await GenerateHealthReportForSession(sessionID);
+                            }
+                        }}
                         onDiagnose={() => onDiagnoseConnection(selectedConnection)}
                         selectedConnectionInfo={selectedConnection ? `${selectedConnection.LocalAddr}:${selectedConnection.LocalPort} -> ${selectedConnection.RemoteAddr}:${selectedConnection.RemotePort}` : undefined}
                         isDocked={false} // Full width
