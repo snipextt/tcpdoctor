@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { tcpmonitor } from "../../wailsjs/go/models";
-import { QueryConnections, GenerateHealthReport, QueryConnectionsForSession, GenerateHealthReportForSession } from "../../wailsjs/go/main/App";
+import { QueryConnectionsWithHistory, GenerateHealthReport, QueryConnectionsForSession, GenerateHealthReportForSession } from "../../wailsjs/go/main/App";
 import AIAssistant from './AIAssistant';
 import './AIAgentView.css';
 
@@ -113,10 +113,12 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
                         isConfigured={isConfigured}
                         contextId={selectedContext} // Pass context for separate chat histories
                         // Bindings - Use session-specific methods when viewing a session
-                        queryConnections={async (q) => {
+                        queryConnections={async (q, history) => {
                             if (selectedContext === 'live') {
-                                return await QueryConnections(q);
+                                return await QueryConnectionsWithHistory(q, history);
                             } else {
+                                // For sessions, we use QueryConnectionsForSession (no history for now)
+                                // TODO: Add session-aware history method
                                 const sessionID = parseInt(selectedContext);
                                 return await QueryConnectionsForSession(q, sessionID);
                             }

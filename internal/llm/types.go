@@ -28,6 +28,12 @@ type HealthReport struct {
 	Score       int      `json:"score"`       // Health score 0-100
 }
 
+// ChatMessage represents a single message in conversation history
+type ChatMessage struct {
+	Role    string `json:"role"`    // "user" or "assistant"
+	Content string `json:"content"` // Message content
+}
+
 // ConnectionSummary is a simplified connection representation for LLM context
 type ConnectionSummary struct {
 	LocalAddr            string  `json:"localAddr"`

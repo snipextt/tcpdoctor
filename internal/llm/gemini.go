@@ -144,6 +144,67 @@ func (g *GeminiService) QueryConnections(ctx context.Context, query string, conn
 	return &QueryResult{Answer: result.Text(), Success: true}, nil
 }
 
+// QueryConnectionsWithHistory answers a question with conversation context
+func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query string, connections []ConnectionSummary, history []ChatMessage) (*QueryResult, error) {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	if g.client == nil {
+		return nil, fmt.Errorf("Gemini client not configured. Please set your API key in Settings.")
+	}
+
+	// Limit connections to avoid token limits
+	maxConns := 50
+	if len(connections) > maxConns {
+		connections = connections[:maxConns]
+	}
+
+	connJSON, err := json.Marshal(connections)
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize connections: %w", err)
+	}
+
+	// Build conversation context from history
+	historyContext := ""
+	if len(history) > 0 {
+		historyContext = "\n\n=== CONVERSATION HISTORY ===\n"
+		// Limit to last 10 messages to save tokens
+		start := 0
+		if len(history) > 10 {
+			start = len(history) - 10
+		}
+		for _, msg := range history[start:] {
+			role := "User"
+			if msg.Role == "assistant" {
+				role = "Assistant"
+			}
+			historyContext += fmt.Sprintf("%s: %s\n\n", role, msg.Content)
+		}
+		historyContext += "=== END HISTORY ===\n"
+	}
+
+	userPrompt := fmt.Sprintf("Current TCP connections (%d total):\n%s%s\n\nUser question: %s",
+		len(connections), string(connJSON), historyContext, query)
+
+	config := &genai.GenerateContentConfig{
+		SystemInstruction: &genai.Content{
+			Parts: []*genai.Part{{Text: QuerySystemPrompt}},
+		},
+		Temperature: genai.Ptr(float32(0.5)),
+	}
+
+	result, err := g.client.Models.GenerateContent(ctx, g.model, genai.Text(userPrompt), config)
+	if err != nil {
+		return &QueryResult{Answer: fmt.Sprintf("Error: %v", err), Success: false}, nil
+	}
+
+	if len(result.Candidates) == 0 || len(result.Candidates[0].Content.Parts) == 0 {
+		return &QueryResult{Answer: "No response from AI", Success: false}, nil
+	}
+
+	return &QueryResult{Answer: result.Text(), Success: true}, nil
+}
+
 // GenerateHealthReport creates a comprehensive health report
 func (g *GeminiService) GenerateHealthReport(ctx context.Context, connections []ConnectionSummary) (*HealthReport, error) {
 	g.mu.RLock()

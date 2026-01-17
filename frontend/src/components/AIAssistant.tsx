@@ -34,8 +34,8 @@ interface AIAssistantProps {
     onClose: () => void;
     onConfigureAPI: () => void;
     isConfigured: boolean;
-    // Wails bindings
-    queryConnections: (query: string) => Promise<QueryResult>;
+    // Wails bindings - queryConnections now accepts history for context
+    queryConnections: (query: string, history: Array<{ role: string, content: string }>) => Promise<QueryResult>;
     generateHealthReport: () => Promise<HealthReport>;
     onDiagnose?: () => Promise<DiagnosticResult | null>;
     selectedConnectionInfo?: string;
@@ -113,7 +113,12 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
         setIsLoading(true);
 
         try {
-            const result = await queryConnections(userQuery);
+            // Pass conversation history (excluding welcome message) for context
+            const historyForContext = messages
+                .filter(m => m.id !== `${contextId}-welcome`)
+                .map(m => ({ role: m.role, content: m.content }));
+
+            const result = await queryConnections(userQuery, historyForContext);
             if (result && typeof result.answer === 'string') {
                 addMessage('assistant', result.answer);
             } else if (result && (result as any).Answer) {

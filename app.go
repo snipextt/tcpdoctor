@@ -201,6 +201,14 @@ func (a *App) QueryConnections(query string) (*llm.QueryResult, error) {
 	return a.service.QueryConnections(query)
 }
 
+// QueryConnectionsWithHistory answers a question with full conversation context
+func (a *App) QueryConnectionsWithHistory(query string, history []llm.ChatMessage) (*llm.QueryResult, error) {
+	if a.service == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.service.QueryConnectionsWithHistory(query, history)
+}
+
 // GenerateHealthReport creates an AI-generated network health report
 func (a *App) GenerateHealthReport() (*llm.HealthReport, error) {
 	if a.service == nil {

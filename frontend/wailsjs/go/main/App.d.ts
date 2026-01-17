@@ -55,6 +55,8 @@ export function QueryConnections(arg1: string): Promise<llm.QueryResult>;
 
 export function QueryConnectionsForSession(arg1: string, arg2: number): Promise<llm.QueryResult>;
 
+export function QueryConnectionsWithHistory(arg1: string, arg2: Array<{ role: string, content: string }>): Promise<llm.QueryResult>;
+
 export function SetHealthThresholds(arg1: tcpmonitor.HealthThresholds): Promise<void>;
 
 export function SetRTTThreshold(arg1: number): Promise<void>;

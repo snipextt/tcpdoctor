@@ -663,6 +663,32 @@ func (s *Service) QueryConnections(query string) (*llm.QueryResult, error) {
 	return result, nil
 }
 
+// QueryConnectionsWithHistory answers a question with conversation history
+func (s *Service) QueryConnectionsWithHistory(query string, history []llm.ChatMessage) (*llm.QueryResult, error) {
+	s.logger.Debug("LLM Query with history: %s (%d messages)", query, len(history))
+
+	// Get all connections
+	allConnections := s.connectionManager.GetAll()
+
+	// Build summaries for LLM
+	summaries := make([]llm.ConnectionSummary, 0, len(allConnections))
+	for i := range allConnections {
+		summaries = append(summaries, s.buildConnectionSummary(&allConnections[i]))
+	}
+
+	// Call LLM service
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancel()
+
+	result, err := s.llmService.QueryConnectionsWithHistory(ctx, query, summaries, history)
+	if err != nil {
+		s.logger.Error("LLM query failed: %v", err)
+		return nil, err
+	}
+
+	return result, nil
+}
+
 // GenerateHealthReport creates an AI-generated network health report
 func (s *Service) GenerateHealthReport() (*llm.HealthReport, error) {
 	s.logger.Info("Generating AI health report")
