@@ -324,7 +324,7 @@ function App() {
 
                     getSessionTimeline={GetSessionTimeline}
                     selectedConnection={selectedConnection}
-                    onDiagnoseConnection={async (conn: tcpmonitor.ConnectionInfo) => {
+                    onDiagnoseConnection={async (conn: tcpmonitor.ConnectionInfo | null) => {
                         if (!conn) return null;
                         return await DiagnoseConnection(
                             conn.LocalAddr,
