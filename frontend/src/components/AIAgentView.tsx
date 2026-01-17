@@ -76,6 +76,12 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
         return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
+    // Convert TCP state int to string
+    const tcpStateToString = (state: number): string => {
+        const states = ['CLOSED', 'LISTEN', 'SYN_SENT', 'SYN_RCVD', 'ESTABLISHED', 'FIN_WAIT1', 'FIN_WAIT2', 'CLOSE_WAIT', 'CLOSING', 'LAST_ACK', 'TIME_WAIT', 'DELETE_TCB'];
+        return states[state] || 'UNKNOWN';
+    };
+
     return (
         <div className="ai-agent-view">
             {/* Context Sidebar */}
@@ -156,16 +162,28 @@ const AIAgentView: React.FC<AIAgentViewProps> = ({
                                 try {
                                     const timeline = await getSessionTimeline(sessionID);
                                     if (!timeline || timeline.length === 0) return [];
-                                    // Get unique connections from the latest snapshot
-                                    const latestSnapshot = timeline[timeline.length - 1];
-                                    const connections = latestSnapshot?.connections || [];
-                                    return connections.map((c: any) => ({
-                                        localAddr: c.LocalAddr || c.localAddr,
-                                        localPort: c.LocalPort || c.localPort,
-                                        remoteAddr: c.RemoteAddr || c.remoteAddr,
-                                        remotePort: c.RemotePort || c.remotePort,
-                                        state: c.State || c.state || 'UNKNOWN'
-                                    }));
+
+                                    // Timeline is array of { timestamp, connection } objects
+                                    // Get unique connections by their address:port combo
+                                    const seen = new Set<string>();
+                                    const connections: any[] = [];
+
+                                    for (const entry of timeline) {
+                                        const c = entry.connection;
+                                        if (!c) continue;
+                                        const key = `${c.localAddr}:${c.localPort}-${c.remoteAddr}:${c.remotePort}`;
+                                        if (!seen.has(key)) {
+                                            seen.add(key);
+                                            connections.push({
+                                                localAddr: c.localAddr,
+                                                localPort: c.localPort,
+                                                remoteAddr: c.remoteAddr,
+                                                remotePort: c.remotePort,
+                                                state: tcpStateToString(c.state)
+                                            });
+                                        }
+                                    }
+                                    return connections;
                                 } catch (e) {
                                     console.error('Failed to get connections for picker:', e);
                                     return [];
