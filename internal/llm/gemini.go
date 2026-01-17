@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 
 	"google.golang.org/genai"
@@ -164,14 +165,14 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 		chatHistory = append(chatHistory, genai.NewContentFromText(msg.Content, role))
 	}
 
-	// Create chat config with system instruction and JSON response schema
+	// Create chat config with system instruction
+	// NOTE: We don't set ResponseMIMEType: "application/json" here because it is currently
+	// incompatible with Function Calling (tools) in the Gemini API.
 	chatConfig := &genai.GenerateContentConfig{
 		SystemInstruction: &genai.Content{
 			Parts: []*genai.Part{{Text: QuerySystemPromptWithGraphs}},
 		},
-		Temperature:      genai.Ptr(float32(0.5)),
-		ResponseMIMEType: "application/json",
-		ResponseSchema:   queryResponseSchema(),
+		Temperature: genai.Ptr(float32(0.5)),
 	}
 
 	// Create chat with history
@@ -190,9 +191,13 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 					Parameters: &genai.Schema{
 						Type: genai.TypeObject,
 						Properties: map[string]*genai.Schema{
-							"sessionID": {Type: genai.TypeInteger, Description: "The recording session ID"},
-							"startTime": {Type: genai.TypeString, Description: "Start time (ISO8601 format)"},
-							"endTime":   {Type: genai.TypeString, Description: "End time (ISO8601 format)"},
+							"sessionID":  {Type: genai.TypeInteger, Description: "The recording session ID"},
+							"startTime":  {Type: genai.TypeString, Description: "Start time (ISO8601 format)"},
+							"endTime":    {Type: genai.TypeString, Description: "End time (ISO8601 format)"},
+							"localAddr":  {Type: genai.TypeString, Description: "Filter by local address"},
+							"localPort":  {Type: genai.TypeInteger, Description: "Filter by local port"},
+							"remoteAddr": {Type: genai.TypeString, Description: "Filter by remote address"},
+							"remotePort": {Type: genai.TypeInteger, Description: "Filter by remote port"},
 						},
 						Required: []string{"sessionID", "startTime", "endTime"},
 					},
@@ -213,6 +218,31 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 						Required: []string{"sessionID", "localAddr", "localPort", "remoteAddr", "remotePort", "metric"},
 					},
 				},
+				{
+					Name:        "plot_graph",
+					Description: "Suggest a graph visualization to show data to the user. Use this whenever you want to visualize distributions or trends.",
+					Parameters: &genai.Schema{
+						Type: genai.TypeObject,
+						Properties: map[string]*genai.Schema{
+							"type":   {Type: genai.TypeString, Description: "Graph type: 'bar', 'line', 'pie'", Enum: []string{"bar", "line", "pie"}},
+							"title":  {Type: genai.TypeString, Description: "Clear, descriptive title for the graph"},
+							"xLabel": {Type: genai.TypeString, Description: "Label for the X axis"},
+							"yLabel": {Type: genai.TypeString, Description: "Label for the Y axis"},
+							"dataPoints": {
+								Type: genai.TypeArray,
+								Items: &genai.Schema{
+									Type: genai.TypeObject,
+									Properties: map[string]*genai.Schema{
+										"label": {Type: genai.TypeString},
+										"value": {Type: genai.TypeNumber},
+									},
+									Required: []string{"label", "value"},
+								},
+							},
+						},
+						Required: []string{"type", "title", "dataPoints"},
+					},
+				},
 			},
 		},
 	}
@@ -221,109 +251,147 @@ func (g *GeminiService) QueryConnectionsWithHistory(ctx context.Context, query s
 	// Send the current message with connection context
 	currentMessage := fmt.Sprintf("%s\n\nUser question: %s", contextData, query)
 
-	var lastText string
+	// Loop to handle potential multiple tool calls and responses
+	var fullAnswer strings.Builder
+	var graphs []GraphSuggestion
 
-	// Loop to handle potential multiple tool calls
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 20; i++ {
 		result, err := chat.SendMessage(ctx, genai.Part{Text: currentMessage})
 		if err != nil {
 			return &QueryResult{Answer: fmt.Sprintf("Error: %v", err), Success: false}, nil
 		}
 
 		if len(result.Candidates) == 0 {
-			return &QueryResult{Answer: "No response from AI", Success: false}, nil
-		}
-
-		candidate := result.Candidates[0]
-		var toolCall *genai.FunctionCall
-		for _, part := range candidate.Content.Parts {
-			if part.FunctionCall != nil {
-				toolCall = part.FunctionCall
-				break
-			}
-		}
-
-		if toolCall == nil {
-			// No tool call, parse final JSON
-			lastText = result.Text()
 			break
 		}
 
-		// Execute tool
-		g.mu.RLock()
-		handler, ok := g.toolHandlers[toolCall.Name]
-		g.mu.RUnlock()
+		candidate := result.Candidates[0]
+		currentMessage = "" // Reset for next turn logic
 
-		if !ok {
-			return &QueryResult{Answer: fmt.Sprintf("Error: AI tried to use unknown tool %s", toolCall.Name), Success: false}, nil
+		// Handle Parts (Text and Function Calls)
+		var responses []genai.Part
+		hasFunctionCall := false
+
+		for _, part := range candidate.Content.Parts {
+			if part.Text != "" {
+				fullAnswer.WriteString(part.Text)
+				fullAnswer.WriteString("\n\n")
+			}
+
+			if part.FunctionCall != nil {
+				hasFunctionCall = true
+				call := part.FunctionCall
+
+				// Special handling for plot_graph (internal caching)
+				if call.Name == "plot_graph" {
+					graph := GraphSuggestion{
+						Type:   call.Args["type"].(string),
+						Title:  call.Args["title"].(string),
+						XLabel: getValueString(call.Args, "xLabel"),
+						YLabel: getValueString(call.Args, "yLabel"),
+					}
+					if dps, ok := call.Args["dataPoints"].([]interface{}); ok {
+						for _, it := range dps {
+							if dp, ok := it.(map[string]interface{}); ok {
+								graph.DataPoints = append(graph.DataPoints, GraphDataPoint{
+									Label: dp["label"].(string),
+									Value: getFloat64(dp["value"]),
+								})
+							}
+						}
+					}
+					graphs = append(graphs, graph)
+
+					// Acknowledge the graph plotting tool
+					responses = append(responses, genai.Part{
+						FunctionResponse: &genai.FunctionResponse{
+							Name:     call.Name,
+							Response: map[string]interface{}{"result": "Graph plotted successfully"},
+						},
+					})
+				} else {
+					// External data retrieval tools
+					g.mu.RLock()
+					handler, ok := g.toolHandlers[call.Name]
+					g.mu.RUnlock()
+
+					if !ok {
+						responses = append(responses, genai.Part{
+							FunctionResponse: &genai.FunctionResponse{
+								Name:     call.Name,
+								Response: map[string]interface{}{"error": "unknown tool"},
+							},
+						})
+						continue
+					}
+
+					toolResult, err := handler(ctx, call.Args)
+					if err != nil {
+						responses = append(responses, genai.Part{
+							FunctionResponse: &genai.FunctionResponse{
+								Name:     call.Name,
+								Response: map[string]interface{}{"error": err.Error()},
+							},
+						})
+					} else {
+						toolResultJSON, _ := json.Marshal(toolResult)
+						responses = append(responses, genai.Part{
+							FunctionResponse: &genai.FunctionResponse{
+								Name:     call.Name,
+								Response: map[string]interface{}{"result": string(toolResultJSON)},
+							},
+						})
+					}
+				}
+			}
 		}
 
-		toolResult, err := handler(ctx, toolCall.Args)
-		if err != nil {
-			return &QueryResult{Answer: fmt.Sprintf("Error executing tool %s: %v", toolCall.Name, err), Success: false}, nil
+		if !hasFunctionCall {
+			// Model is finished
+			break
 		}
 
-		// Send tool result back
-		toolResultJSON, _ := json.Marshal(toolResult)
-		currentMessage = "" // Clear user message for subsequent turns
-		result, err = chat.SendMessage(ctx, genai.Part{
-			FunctionResponse: &genai.FunctionResponse{
-				Name:     toolCall.Name,
-				Response: map[string]interface{}{"result": string(toolResultJSON)},
-			},
-		})
+		// Send responses back to model
+		result, err = chat.SendMessage(ctx, responses...)
 		if err != nil {
-			return &QueryResult{Answer: fmt.Sprintf("Error sending tool result: %v", err), Success: false}, nil
+			return &QueryResult{Answer: fmt.Sprintf("Error in tool turn: %v", err), Success: false}, nil
 		}
 
 		if len(result.Candidates) > 0 {
-			lastText = result.Text()
+			for _, part := range result.Candidates[0].Content.Parts {
+				if part.Text != "" {
+					fullAnswer.WriteString(part.Text)
+					fullAnswer.WriteString("\n\n")
+				}
+			}
 		}
 	}
 
-	// Parse JSON response
-	var response struct {
-		Response string `json:"response"`
-		Graphs   []struct {
-			Type       string `json:"type"`
-			Title      string `json:"title"`
-			XLabel     string `json:"xLabel"`
-			YLabel     string `json:"yLabel"`
-			DataPoints []struct {
-				Label string  `json:"label"`
-				Value float64 `json:"value"`
-			} `json:"dataPoints"`
-		} `json:"graphs"`
-	}
-
-	if err := json.Unmarshal([]byte(lastText), &response); err != nil {
-		// Fallback to raw text if JSON parsing fails
-		return &QueryResult{Answer: lastText, Success: true}, nil
-	}
-
-	// Convert to QueryResult
-	qr := &QueryResult{
-		Answer:  response.Response,
+	return &QueryResult{
+		Answer:  strings.TrimSpace(fullAnswer.String()),
+		Graphs:  graphs,
 		Success: true,
-	}
+	}, nil
+}
 
-	for _, g := range response.Graphs {
-		graph := GraphSuggestion{
-			Type:   g.Type,
-			Title:  g.Title,
-			XLabel: g.XLabel,
-			YLabel: g.YLabel,
-		}
-		for _, dp := range g.DataPoints {
-			graph.DataPoints = append(graph.DataPoints, GraphDataPoint{
-				Label: dp.Label,
-				Value: dp.Value,
-			})
-		}
-		qr.Graphs = append(qr.Graphs, graph)
+func getValueString(m map[string]interface{}, key string) string {
+	if v, ok := m[key].(string); ok {
+		return v
 	}
+	return ""
+}
 
-	return qr, nil
+func getFloat64(v interface{}) float64 {
+	switch t := v.(type) {
+	case float64:
+		return t
+	case int:
+		return float64(t)
+	case int64:
+		return float64(t)
+	default:
+		return 0
+	}
 }
 
 // queryResponseSchema returns the JSON schema for query responses with graphs

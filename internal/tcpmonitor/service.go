@@ -116,6 +116,7 @@ func NewService(config ServiceConfig) (*Service, error) {
 func (s *Service) registerAIHandlers() {
 	s.llmService.RegisterTool("get_snapshots_by_time_range", s.handleGetSnapshotsByTimeRange)
 	s.llmService.RegisterTool("get_metric_history", s.handleGetMetricHistory)
+	s.llmService.RegisterTool("plot_graph", s.handlePlotGraph)
 }
 
 func (s *Service) handleGetSnapshotsByTimeRange(ctx context.Context, args map[string]interface{}) (interface{}, error) {
@@ -136,7 +137,43 @@ func (s *Service) handleGetSnapshotsByTimeRange(ctx context.Context, args map[st
 		return nil, fmt.Errorf("invalid endTime: %v", err)
 	}
 
-	return s.GetSnapshotsByTimeRange(int64(sessionID), startTime, endTime, nil)
+	// Parsing optional connection filters
+	filter := &llm.ConnectionFilter{}
+	hasFilter := false
+
+	if laddr, ok := args["localAddr"].(string); ok && laddr != "" {
+		filter.LocalAddr = &laddr
+		hasFilter = true
+	}
+	if raddr, ok := args["remoteAddr"].(string); ok && raddr != "" {
+		filter.RemoteAddr = &raddr
+		hasFilter = true
+	}
+	if lport, ok := args["localPort"].(float64); ok && lport != 0 {
+		p := int(lport)
+		filter.LocalPort = &p
+		hasFilter = true
+	}
+	if rport, ok := args["remotePort"].(float64); ok && rport != 0 {
+		p := int(rport)
+		filter.RemotePort = &p
+		hasFilter = true
+	}
+
+	var f *llm.ConnectionFilter
+	if hasFilter {
+		f = filter
+	}
+
+	return s.GetSnapshotsByTimeRange(int64(sessionID), startTime, endTime, f)
+}
+
+// handlePlotGraph is a local handler for the plot_graph tool
+// It doesn't actually do anything on the backend side as the graphing logic
+// is handled within the AI loop in query_connections.go, but it needs to be registered
+// so that the tool Registry doesn't error out.
+func (s *Service) handlePlotGraph(ctx context.Context, args map[string]interface{}) (interface{}, error) {
+	return "Acknowledged", nil
 }
 
 func (s *Service) handleGetMetricHistory(ctx context.Context, args map[string]interface{}) (interface{}, error) {

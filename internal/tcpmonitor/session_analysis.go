@@ -692,9 +692,18 @@ func (s *Service) QueryConnectionsForSession(query string, sessionID int64) (*ll
 		summaries[i] = agg.ConnectionSummary
 	}
 
+	// Fetch session metadata for time boundaries
+	sessionMeta := s.snapshotStore.GetSessionByID(sessionID)
+	sessionTimes := ""
+	if sessionMeta != nil {
+		sessionTimes = fmt.Sprintf("\nSession Boundaries: Start [%s] | End [%s]",
+			sessionMeta.StartTime.Format(time.RFC3339),
+			sessionMeta.EndTime.Format(time.RFC3339))
+	}
+
 	// Build enriched query with session context
 	enrichedQuery := fmt.Sprintf(`SESSION ANALYSIS CONTEXT:
-Session ID: %d | Duration: %.1f min | Connections: %d | Health: %s (%d/100)
+Session ID: %d | Duration: %.1f min | Connections: %d | Health: %s (%d/100)%s
 
 TOP ISSUES: %s
 
@@ -710,6 +719,7 @@ USER QUESTION: %s`,
 		highlights.UniqueConnections,
 		highlights.OverallHealth,
 		highlights.HealthScore,
+		sessionTimes,
 		formatIssues(highlights.PrimaryIssues),
 		formatRankings(highlights.WorstRTTConnections),
 		formatMajorEvents(highlights.MajorEvents),

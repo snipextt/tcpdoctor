@@ -340,6 +340,19 @@ func (s *SnapshotStore) SessionCount() int {
 	return len(s.sessions)
 }
 
+// GetSessionByID returns a specific session by ID
+func (s *SnapshotStore) GetSessionByID(sessionID int64) *RecordingSession {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for i := range s.sessions {
+		if s.sessions[i].ID == sessionID {
+			return &s.sessions[i]
+		}
+	}
+	return nil
+}
+
 // TimelineConnection represents a connection snapshot with its timestamp for timeline view
 type TimelineConnection struct {
 	Timestamp  time.Time         `json:"timestamp"`
