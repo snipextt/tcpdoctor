@@ -267,13 +267,57 @@ function App() {
         setSessionTimeline(timeline);
         setIsRecording(false); // Can't view and record? usually fine, just stop polling live view
 
-        // Transform timeline to ConnectionInfo[] roughly for the table
+        // Transform timeline to ConnectionInfo[] for the table
+        // Note: timeline contains CompactConnection (camelCase) but table expects ConnectionInfo (PascalCase)
         if (timeline && timeline.length > 0) {
             const uniqueConns = new Map<string, tcpmonitor.ConnectionInfo>();
             timeline.forEach(t => {
-                const key = `${t.connection.LocalAddr}:${t.connection.LocalPort}-${t.connection.RemoteAddr}:${t.connection.RemotePort}`;
+                const conn = t.connection;
+                // Use camelCase properties from CompactConnection
+                const key = `${conn.localAddr}:${conn.localPort}-${conn.remoteAddr}:${conn.remotePort}`;
                 if (!uniqueConns.has(key)) {
-                    uniqueConns.set(key, t.connection);
+                    // Transform CompactConnection to ConnectionInfo-like object
+                    const connectionInfo = new tcpmonitor.ConnectionInfo({
+                        LocalAddr: conn.localAddr,
+                        LocalPort: conn.localPort,
+                        RemoteAddr: conn.remoteAddr,
+                        RemotePort: conn.remotePort,
+                        State: conn.state,
+                        PID: conn.pid,
+                        IsIPv6: conn.localAddr?.includes(':') || false,
+                        BasicStats: {
+                            DataBytesIn: conn.bytesIn || 0,
+                            DataBytesOut: conn.bytesOut || 0,
+                            DataSegsIn: conn.segmentsIn || 0,
+                            DataSegsOut: conn.segmentsOut || 0,
+                        },
+                        ExtendedStats: {
+                            SmoothedRTT: conn.rtt || 0,
+                            RTTVariance: conn.rttVariance || 0,
+                            MinRTT: conn.minRtt || 0,
+                            MaxRTT: conn.maxRtt || 0,
+                            SegsRetrans: conn.segsRetrans || 0,
+                            BytesRetrans: conn.retrans || 0,
+                            CurrentCwnd: conn.congestionWin || 0,
+                            InboundBandwidth: conn.inBandwidth || 0,
+                            OutboundBandwidth: conn.outBandwidth || 0,
+                            TotalSegsIn: conn.segmentsIn || 0,
+                            TotalSegsOut: conn.segmentsOut || 0,
+                            ThruBytesAcked: 0,
+                            ThruBytesReceived: 0,
+                            FastRetrans: 0,
+                            TimeoutEpisodes: 0,
+                            SampleRTT: conn.rtt || 0,
+                            CurrentSsthresh: 0,
+                            SlowStartCount: 0,
+                            CongAvoidCount: 0,
+                            CurRetxQueue: 0,
+                            MaxRetxQueue: 0,
+                            CurAppWQueue: 0,
+                            MaxAppWQueue: 0,
+                        },
+                    });
+                    uniqueConns.set(key, connectionInfo);
                 }
             });
             setConnections(Array.from(uniqueConns.values()));
